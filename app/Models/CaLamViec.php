@@ -1,0 +1,78 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+
+class CaLamViec extends Model
+{
+    protected $table = 'ca_lam_viec';
+
+    protected $fillable = [
+        'diem_ban_id',
+        'nguoi_dung_id',
+        'ngay_lam',
+        'gio_bat_dau',
+        'gio_ket_thuc',
+        'trang_thai',
+        'ghi_chu',
+    ];
+
+    protected $casts = [
+        'ngay_lam' => 'date',
+    ];
+
+    /**
+     * Relationships
+     */
+    public function diemBan(): BelongsTo
+    {
+        return $this->belongsTo(Agency::class, 'diem_ban_id');
+    }
+
+    public function nguoiDung(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'nguoi_dung_id');
+    }
+
+    public function chamCong(): HasMany
+    {
+        return $this->hasMany(ChamCong::class, 'ca_lam_viec_id');
+    }
+
+    public function phieuChotCa(): HasMany
+    {
+        return $this->hasMany(PhieuChotCa::class, 'ca_lam_viec_id');
+    }
+
+    /**
+     * Scopes
+     */
+    public function scopeUpcoming($query)
+    {
+        return $query->where('ngay_lam', '>=', today())
+                     ->where('trang_thai', 'chua_bat_dau');
+    }
+
+    public function scopeToday($query)
+    {
+        return $query->whereDate('ngay_lam', today());
+    }
+
+    public function scopeByDate($query, $date)
+    {
+        return $query->whereDate('ngay_lam', $date);
+    }
+
+    public function scopeByDiemBan($query, $diemBanId)
+    {
+        return $query->where('diem_ban_id', $diemBanId);
+    }
+
+    public function scopeByNguoiDung($query, $nguoiDungId)
+    {
+        return $query->where('nguoi_dung_id', $nguoiDungId);
+    }
+}
