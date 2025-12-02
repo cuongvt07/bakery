@@ -61,11 +61,9 @@ Thay vì sử dụng WebSocket (Realtime thực sự), hệ thống sẽ sử d�
 | | Báo cáo nguyên liệu | Tồn kho – cost – hao hụt – định mức. |
 | | Báo cáo sản xuất | Tổng mẻ – định mức – sai lệch. |
 | **Hệ thống thông báo** | Trung tâm thông báo | Gửi thông báo đến điểm bán/nhân viên. |
-| **Truyền thông nội bộ** | Chat với điểm bán | Nhắn tin trao đổi, giao việc. |
 | **Nhật ký hoạt động** | Log hệ thống | Tạo ca – nhập kho – phân bổ – duyệt chốt ca… |
 | **Hồ sơ cá nhân** | Tài khoản Admin | Đổi mật khẩu – thông tin – 2FA. |
 | **Cài đặt hệ thống** | Cấu hình chung | Đơn vị tính – hệ số quy đổi – POS. |
-| | Phân quyền nâng cao | Admin tổng – Admin theo điểm. |
 | | Setting thông báo | Bật/tắt cảnh báo kho – HSD – lệch tiền – sự cố. |
 ---
 

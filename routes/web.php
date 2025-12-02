@@ -10,50 +10,65 @@ use App\Livewire\Admin\ProductCategory\CategoryList;
 use App\Livewire\Admin\NguoiDung\DanhSach as NguoiDungDanhSach;
 use App\Livewire\Admin\DiemBan\DanhSach as DiemBanDanhSach;
 use App\Livewire\Admin\Shift\ShiftClosing;
+use App\Livewire\Admin\Distribution\DailyDistribution;
+
+use App\Livewire\Auth\Login;
 
 Route::get('/', function () {
-    return redirect()->route('admin.dashboard');
+    if (auth()->check()) {
+        if (auth()->user()->vai_tro === 'nhan_vien') {
+            return redirect()->route('admin.shift.closing');
+        }
+        return redirect()->route('admin.dashboard');
+    }
+    return redirect()->route('login');
 });
 
-Route::prefix('admin')->name('admin.')->group(function () {
+Route::get('/login', Login::class)->name('login');
+
+Route::post('/logout', function () {
+    auth()->logout();
+    request()->session()->invalidate();
+    request()->session()->regenerateToken();
+    return redirect()->route('login');
+})->name('logout');
+
+Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     Route::get('/dashboard', function () {
         return view('dashboard');
     })->name('dashboard');
 
     // Users
     Route::get('/users', UserList::class)->name('users.index');
-    Route::get('/users/create', function() { return 'Create User'; })->name('users.create');
-    Route::get('/users/{id}/edit', function() { return 'Edit User'; })->name('users.edit');
+    Route::get('/users/create', App\Livewire\Admin\User\UserForm::class)->name('users.create');
+    Route::get('/users/{id}/edit', App\Livewire\Admin\User\UserForm::class)->name('users.edit');
     
     // Agencies
     Route::get('/agencies', AgencyList::class)->name('agencies.index');
-    Route::get('/agencies/create', function() { return 'Create Agency'; })->name('agencies.create');
-    Route::get('/agencies/{id}/edit', function() { return 'Edit Agency'; })->name('agencies.edit');
+    Route::get('/agencies/create', App\Livewire\Admin\Agency\AgencyForm::class)->name('agencies.create');
+    Route::get('/agencies/{id}/edit', App\Livewire\Admin\Agency\AgencyForm::class)->name('agencies.edit');
 
     // Products
     Route::get('/products', ProductList::class)->name('products.index');
-    Route::get('/products/create', function() { return 'Create Product'; })->name('products.create');
-    Route::get('/products/{id}/edit', function() { return 'Edit Product'; })->name('products.edit');
+    Route::get('/products/create', App\Livewire\Admin\Product\ProductForm::class)->name('products.create');
+    Route::get('/products/{id}/edit', App\Livewire\Admin\Product\ProductForm::class)->name('products.edit');
 
     // Categories
     Route::get('/categories', CategoryList::class)->name('categories.index');
-    Route::get('/categories/create', function() { return 'Create Category'; })->name('categories.create');
-    Route::get('/categories/{id}/edit', function() { return 'Edit Category'; })->name('categories.edit');
+    Route::get('/categories/create', App\Livewire\Admin\ProductCategory\CategoryForm::class)->name('categories.create');
+    Route::get('/categories/{id}/edit', App\Livewire\Admin\ProductCategory\CategoryForm::class)->name('categories.edit');
 
     // Suppliers
     Route::get('/suppliers', SupplierList::class)->name('suppliers.index');
-    Route::get('/suppliers/create', function() { return 'Create Supplier'; })->name('suppliers.create');
-    Route::get('/suppliers/{id}/edit', function() { return 'Edit Supplier'; })->name('suppliers.edit');
+    Route::get('/suppliers/create', App\Livewire\Admin\Supplier\SupplierForm::class)->name('suppliers.create');
+    Route::get('/suppliers/{id}/edit', App\Livewire\Admin\Supplier\SupplierForm::class)->name('suppliers.edit');
 
     // Ingredients
     Route::get('/ingredients', IngredientList::class)->name('ingredients.index');
-    Route::get('/ingredients/create', function() { return 'Create Ingredient'; })->name('ingredients.create');
-    Route::get('/ingredients/{id}/edit', function() { return 'Edit Ingredient'; })->name('ingredients.edit');
-
-    // Vietnamese Routes (Legacy/Duplicate)
-    Route::get('/nguoi-dung', NguoiDungDanhSach::class)->name('nguoi-dung.index');
-    Route::get('/diem-ban', DiemBanDanhSach::class)->name('diem-ban.index');
+    Route::get('/ingredients/create', App\Livewire\Admin\Ingredient\IngredientForm::class)->name('ingredients.create');
+    Route::get('/ingredients/{id}/edit', App\Livewire\Admin\Ingredient\IngredientForm::class)->name('ingredients.edit');
     
-    // Shift Closing (New)
+    // Core Flow
+    Route::get('/distribution/daily', DailyDistribution::class)->name('distribution.daily');
     Route::get('/shift/closing', ShiftClosing::class)->name('shift.closing');
 });

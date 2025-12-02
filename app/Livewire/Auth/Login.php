@@ -23,6 +23,10 @@ class Login extends Component
         if (Auth::attempt(['email' => $this->email, 'password' => $this->password], $this->remember)) {
             session()->regenerate();
 
+            if (Auth::user()->vai_tro === 'nhan_vien') {
+                return redirect()->route('admin.shift.closing');
+            }
+
             return redirect()->intended(route('admin.dashboard'));
         }
 
