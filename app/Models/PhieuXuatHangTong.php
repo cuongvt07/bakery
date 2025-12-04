@@ -16,7 +16,8 @@ class PhieuXuatHangTong extends Model
         'anh_hang_xuat',
         'tong_so_luong',
         'ghi_chu',
-        'trang_thai'
+        'trang_thai',
+        'ten_me_hang'
     ];
 
     public function chiTiet()

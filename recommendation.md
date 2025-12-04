@@ -24,10 +24,9 @@ Xây dựng hệ thống quản lý toàn diện cho chuỗi cửa hàng bán l�
 -   **CSS**: Tailwind CSS (Dễ dàng tùy biến Responsive cho Mobile và PC).
 -   **Database**: MySQL 8.0+.
 
-### Giải pháp "Real-time" với Livewire
-Thay vì sử dụng WebSocket (Realtime thực sự), hệ thống sẽ sử dụng cơ chế **Polling** của Livewire (`wire:poll`) cho các tính năng cần cập nhật liên tục:
--   **Dashboard Admin**: `wire:poll.10s` (Cập nhật số liệu mỗi 10 giây).
--   **POS**: Tương tác trực tiếp, phản hồi ngay lập tức (SPA-like feel).
+### Giải pháp "Real-time"
+-   **Dashboard Data**: Sử dụng `wire:poll` của Livewire để tự động refresh số liệu (Doanh thu, Sự cố, Chốt ca) mà không cần reload trang.
+-   **Thông báo (Notifications)**: Tích hợp **Lark Webhook** để bắn thông báo tức thì (Sự cố mới, Lệch tiền, Chốt ca xong) vào nhóm chat quản lý.
 
 ## III. CHI TIẾT CHỨC NĂNG THEO ROLE (MA TRẬN PHÂN QUYỀN)
 
@@ -35,48 +34,26 @@ Thay vì sử dụng WebSocket (Realtime thực sự), hệ thống sẽ sử d�
 
 | Level 1 Module | Level 2 Feature | Level 3 Detail |
 | :--- | :--- | :--- |
-| **Quản lý Sản xuất & Công thức** | Thành phẩm | Danh sách SP – cấu hình giá bán (theo size/loại). |
-| | Công thức | Tạo/sửa recipe, định lượng, cost/mẻ. |
-| | Kế hoạch sản xuất | Lập kế hoạch – mẻ – số lượng – HSD. |
-| | QC – Kiểm tra chất lượng | Log QC – ảnh lỗi – tỉ lệ hỏng. |
-| **Quản lý Kho** | Nguyên liệu | Nhập kho – NCC – giá nhập – tồn. |
-| | Tồn nguyên liệu | Lịch sử nhập/xuất – cảnh báo tồn. |
-| | Thành phẩm | Quản lý khay – HSD – tiêu hủy. |
-| | Kiểm kê | Kiểm kê định kỳ – lệch – log kiểm kê. |
-| **Quản lý Điểm bán** | Danh sách điểm bán | Thông tin – hợp đồng – vật dụng – lịch đóng tiền. |
-| | Phân bổ hàng | Tạo phiếu xuất – giao nhận – xác nhận. |
-| | Kiểm kê tại điểm bán | Tồn – lệch – ảnh kiểm kê. |
-| | Luân chuyển hàng | Giao – nhận giữa các điểm bán. |
-| | Yêu cầu ca làm của nhân viên | Duyệt/Từ chối yêu cầu đổi ca – xin nghỉ. |
-| | Ca làm nhân viên | Phân ca – sửa ca – xem ca theo điểm. |
-| **Quản lý Nhân sự** | Danh sách nhân viên | Thêm – sửa – khóa user – gán điểm bán. |
-| | Setting lương nhân viên | Cài đặt lương cơ bản/ngày hoặc theo giờ. |
-| | Tính lương | Tự động: lương setting × số ngày công. |
-| | Bảng lương tổng hợp | Xuất danh sách lương theo tháng. |
-| | Lịch sử lương | Các kỳ lương đã chốt – khóa lương. |
-| **Báo cáo & Thống kê** | Dashboard tổng quan | Doanh thu – tồn – cảnh báo – hiệu suất. |
-| | Báo cáo điểm bán | Doanh số – tồn – lệch – hiệu suất. |
-| | Tổng hợp chốt ca | Đối soát tất cả phiếu chốt ca. |
-| | Lịch sử luân chuyển | Lưu vết toàn bộ luân chuyển. |
-| | Báo cáo nguyên liệu | Tồn kho – cost – hao hụt – định mức. |
-| | Báo cáo sản xuất | Tổng mẻ – định mức – sai lệch. |
-| **Hệ thống thông báo** | Trung tâm thông báo | Gửi thông báo đến điểm bán/nhân viên. |
-| **Nhật ký hoạt động** | Log hệ thống | Tạo ca – nhập kho – phân bổ – duyệt chốt ca… |
-| **Hồ sơ cá nhân** | Tài khoản Admin | Đổi mật khẩu – thông tin – 2FA. |
-| **Cài đặt hệ thống** | Cấu hình chung | Đơn vị tính – hệ số quy đổi – POS. |
-| | Setting thông báo | Bật/tắt cảnh báo kho – HSD – lệch tiền – sự cố. |
----
+| **Quản lý Đại lý (Nâng cao)** | Danh sách điểm bán | Quản lý chi tiết: Nhân viên, Chủ nhà, Hợp đồng, Tiền điện/nước, "Tiền luật" (Công an), Vật dụng, Biển bảng. |
+| | Bản đồ điểm bán | View dạng Map/Grid để thấy tổng quan tình hình (Điểm nào đang ổn, điểm nào có sự cố). |
+| | Nhắc nhở đóng tiền | Lên lịch nhắc đóng tiền nhà, tiền luật, điện nước... |
+| **Quản lý Sự cố (Mới)** | Dashboard sự cố | Theo dõi realtime các sự cố từ điểm bán gửi về (Hỏng đồ, Tai nạn, Công an hỏi...). |
+| | Xử lý sự cố | Phản hồi, cập nhật trạng thái xử lý (Đang xử lý -> Đã xong). |
+| **Quản lý Kho & Phân bổ** | Phân bổ hàng | Phân bổ từ Kho tổng -> Hub (Đại lý riêng tư) -> Điểm bán vỉa hè. |
+| | Quản lý Hạn sử dụng | Theo dõi Date bánh (3 ngày). Cảnh báo sắp hết hạn/hết hạn cần tiêu hủy. |
+| | Luân chuyển hàng | Điều chuyển bánh giữa các điểm (Vỉa hè <-> Hub) khi hết hàng/thừa hàng. |
+| **Báo cáo & Thống kê** | Dashboard tổng quan | Doanh thu, Tồn kho, Lệch tiền, Sự cố chưa xử lý. |
 
 ### B. ROLE: NHÂN VIÊN ĐIỂM BÁN (Mobile Web / POS)
 
 | Level 1 Module | Level 2 Feature | Level 3 Detail |
 | :--- | :--- | :--- |
-| **Nhân sự** | Check-in/out | **Phase 1**: GPS + Nút bấm (Ghi nhận giờ vào/ra).<br>**Phase 2**: Thêm chụp ảnh nếu cần thiết. |
-| **Ca làm việc** | Lịch ca làm | Xem danh sách ca làm việc đã được Admin phân công. |
-| | Yêu cầu ca làm | Gửi yêu cầu: Xin ca, Đổi ca, Xin nghỉ phép -> Chờ Admin duyệt. |
-| **Chốt ca** | **Chốt Ca Nâng Cao** | - Nhập tồn đầu/cuối – Tiền mặt – Tiền CK.<br>**Tự động tính lệch** (Thừa/Thiếu tiền, Hàng).<br>**Sinh câu lệnh Zalo**: Tự động tạo text báo cáo mẫu để copy gửi nhóm.<br>- Upload ảnh chốt két. |
-| | Lịch sử chốt ca | Xem lại danh sách các ca mình đã chốt và trạng thái (Đã duyệt/Từ chối). |
-| **Hồ sơ cá nhân** | Thông tin tài khoản | Đổi mật khẩu – Cập nhật thông tin cá nhân. |
+| **Bán hàng (POS)** | Giao diện bán hàng | **Siêu tối giản**: Chỉ có nút Cộng/Trừ số lượng theo từng vị bánh. Màn hình luôn sáng (Wake lock). |
+| **Vận hành** | Check-in/out | Chụp ảnh check-in đầu ca, giữa ca, cuối ca. |
+| | Báo cáo sự cố | Form soạn tin + Chụp ảnh sự cố gửi về trung tâm. |
+| | Nhập chi phí | Nhập chỉ số điện/nước cuối tháng (nếu có). |
+| **Chốt ca** | Chốt ca cuối ngày | - Đếm tồn cuối (nhập số lượng).<br>- Nhập tiền mặt/CK thực tế.<br>- **Upload ảnh**: Ảnh két tiền, Ảnh khay bánh tồn.<br>- **Sinh text Zalo**: Tự động tạo tin nhắn mẫu để copy gửi nhóm.<br>- Hệ thống tự tính lệch. |
+| **Kho tại điểm** | Nhập/Trả hàng | - Nhận bánh từ Hub/Kho tổng.<br>- Trả bánh tồn về Hub (với điểm vỉa hè).<br>- Nhập hạn sử dụng (với Hub). |
 
 ---
 
@@ -85,32 +62,17 @@ Thay vì sử dụng WebSocket (Realtime thực sự), hệ thống sẽ sử d�
 ### Giai đoạn 1: Nền tảng & Quản lý Đại lý (Tuần 1-3)
 -   Setup Laravel + Livewire + Tailwind.
 -   Xây dựng Admin Portal (PC Layout).
--   Module Quản lý Đại lý & Nhân sự.
+-   **Module Quản lý Đại lý Nâng cao**: Thêm các trường quản lý chi tiết (Hợp đồng, Chi phí...).
 
-### Giai đoạn 2: Kho & Phân bổ (Tuần 4-7)
--   Module Sản phẩm (Danh sách & Giá bán).
--   Nhập/Xuất kho đơn giản (Chưa cần Recipe/Cost).
--   Logic phân bổ hàng hóa & Luân chuyển cơ bản (Số lượng + Lý do).
+### Giai đoạn 2: Kho, Phân bổ & Sự cố (Tuần 4-7)
+-   **Phân bổ & Luân chuyển**: Logic Hub vs Vỉa hè, Quản lý HSD.
+-   **Module Sự cố**: Nhân viên báo -> Admin xử lý.
+-   **Module Chốt ca**: Hoàn thiện logic tính lệch, Upload ảnh, Sinh text Zalo.
 
-### Giai đoạn 3: POS Mobile & Vận hành (Tuần 8-11)
--   **Trọng tâm**: Xây dựng giao diện **POS Mobile Tối Giản**.
-    -   **Giao diện**: Chạm +/− số lượng từng vị bánh (Icon to, rõ).
-    -   **Tốc độ**: Cực nhanh, không cần nhập tên khách hàng.
-    -   **Màn hình**: Luôn sáng (Wake lock) để sẵn sàng thao tác.
--   Module **Chốt Ca Nâng Cao**:
-    -   Logic tính lệch tự động.
-    -   Sinh text báo cáo Zalo.
--   Module Chấm công (GPS Only).
-
-### Giai đoạn 4: Nâng cao & Báo cáo (Tuần 12-14)
--   **Nâng cấp Sản xuất**: Thêm Công thức (Recipe), Tính Cost tự động, QC.
--   **Nâng cấp Kho**: Quản lý HSD chi tiết, Cảnh báo hết hạn.
--   **Nâng cấp Chấm công**: Thêm yêu cầu chụp ảnh (nếu cần).
--   Dashboard Admin (Sử dụng `wire:poll` để cập nhật số liệu).
-
-### Giai đoạn 5: Tối ưu (Tuần 15-16)
--   Tối ưu tốc độ tải trang (Livewire navigate).
--   Kiểm thử trên các thiết bị di động thực tế.
+### Giai đoạn 3: POS Mobile & Tối ưu Vận hành (Tuần 8-11)
+-   **POS Mobile**: Giao diện +/- siêu tốc.
+-   **Dashboard Realtime**: Livewire Poll cho số liệu & Sự cố.
+-   **Tích hợp Lark**: Bắn noti sự cố/chốt ca.
 
 ## V. DATABASE SCHEMA (MVP PHASE 1)
 

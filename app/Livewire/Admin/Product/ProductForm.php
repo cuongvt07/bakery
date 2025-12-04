@@ -17,6 +17,8 @@ class ProductForm extends Component
     public $mo_ta = '';
     public $gia_ban = 0;
     public $don_vi_tinh = 'cái';
+    public $don_vi_phan_phoi = '';
+    public $so_luong_quy_doi = 1;
     public $trang_thai = 'con_hang';
 
     public function mount($id = null)
@@ -29,6 +31,8 @@ class ProductForm extends Component
             $this->mo_ta = $this->product->mo_ta;
             $this->gia_ban = $this->product->gia_ban;
             $this->don_vi_tinh = $this->product->don_vi_tinh;
+            $this->don_vi_phan_phoi = $this->product->don_vi_phan_phoi;
+            $this->so_luong_quy_doi = $this->product->so_luong_quy_doi ?? 1;
             $this->trang_thai = $this->product->trang_thai;
         }
     }
@@ -39,6 +43,8 @@ class ProductForm extends Component
             'ma_san_pham' => 'required|unique:san_pham,ma_san_pham,' . ($this->product->id ?? 'NULL'),
             'ten_san_pham' => 'required|min:2',
             'gia_ban' => 'required|numeric|min:0',
+            'don_vi_tinh' => 'required',
+            'so_luong_quy_doi' => 'nullable|integer|min:1',
             'trang_thai' => 'required|in:con_hang,het_hang,ngung_ban',
         ]);
 
@@ -49,6 +55,8 @@ class ProductForm extends Component
             'mo_ta' => $this->mo_ta,
             'gia_ban' => $this->gia_ban,
             'don_vi_tinh' => $this->don_vi_tinh,
+            'don_vi_phan_phoi' => $this->don_vi_phan_phoi ?: null,
+            'so_luong_quy_doi' => $this->so_luong_quy_doi ?: 1,
             'trang_thai' => $this->trang_thai,
         ];
 

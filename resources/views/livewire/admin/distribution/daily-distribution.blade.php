@@ -1,175 +1,136 @@
-<div class="max-w-7xl mx-auto p-4">
+<div>
     <!-- Header -->
-    <div class="mb-6 flex justify-between items-center">
-        <div>
-            <h1 class="text-2xl font-bold text-gray-800">Phân Bổ Hàng Hàng Ngày</h1>
-            <p class="text-sm text-gray-500">Quản lý nhập hàng từ xưởng và chia về các điểm bán</p>
-        </div>
-        <div>
-            <input type="date" wire:model.live="date" class="border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
-        </div>
+    <div class="flex justify-between items-center mb-6">
+        <h2 class="text-2xl font-semibold text-gray-800">Phân bổ hàng - {{ \Carbon\Carbon::parse($date)->format('d/m/Y') }}</h2>
+        <input type="date" wire:model.live="date" class="px-4 py-2 border border-gray-300 rounded-lg">
     </div>
 
-    @if (session()->has('success'))
-        <div class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-4" role="alert">
-            <p>{{ session('success') }}</p>
+    @if($productionBatches->isEmpty())
+        <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6">
+            <p class="text-yellow-700">
+                <strong>Chưa có mẻ sản xuất nào hoàn thành!</strong><br>
+                Vui lòng đến <a href="{{ route('admin.production-batches.index') }}" class="underline">Module Mẻ sản xuất</a> để tạo và QC mẻ.
+            </p>
         </div>
-    @endif
-
-    @if (session()->has('error'))
-        <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-4" role="alert">
-            <p>{{ session('error') }}</p>
-        </div>
-    @endif
-
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <!-- Left Column: Total Ticket (Step 1) -->
-        <div class="lg:col-span-1">
-            <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                <div class="bg-gray-50 px-4 py-3 border-b border-gray-200 flex justify-between items-center">
-                    <h2 class="font-semibold text-gray-700">1. Tổng Hàng Từ Xưởng</h2>
-                    @if($step == 2)
-                        <span class="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded">Đã tạo</span>
-                    @endif
-                </div>
-                
-                <div class="p-4">
-                    @if($step == 1)
-                        <div class="space-y-4">
-                            @foreach($products as $p)
-                                <div class="flex items-center justify-between">
-                                    <label class="text-sm font-medium text-gray-700 w-1/2">{{ $p->ten_san_pham }}</label>
-                                    <input type="number" wire:model="totalQuantities.{{ $p->id }}" class="w-24 border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-right" min="0">
-                                </div>
-                            @endforeach
-                            
-                            <div class="pt-4 border-t">
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Ghi chú</label>
-                                <textarea wire:model="ghiChuTong" class="w-full border-gray-300 rounded-md shadow-sm text-sm" rows="2"></textarea>
-                            </div>
-                            
-                            <button wire:click="createTotalTicket" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded transition">
-                                Lưu Phiếu Tổng
-                            </button>
+    @else
+        <!-- Select Production Batch -->
+        <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+            <h3 class="font-semibold text-gray-800 mb-4">1. Chọn Mẻ sản xuất</h3>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                @foreach($productionBatches as $batch)
+                    <button 
+                        wire:click="selectProductionBatch({{ $batch->id }})"
+                        class="p-4 border-2 rounded-lg transition-all {{ $selectedProductionBatchId == $batch->id ? 'border-indigo-600 bg-indigo-50' : 'border-gray-200 hover:border-indigo-300' }}">
+                        <div class="flex justify-between items-start mb-2">
+                            <span class="font-bold text-indigo-600">{{ $batch->ma_me }}</span>
+                            <span class="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs">{{ ucfirst($batch->buoi) }}</span>
                         </div>
-                    @else
-                        <!-- Read-only view for Step 2 -->
-                        <div class="space-y-3">
-                            @foreach($products as $p)
-                                @if(($totalQuantities[$p->id] ?? 0) > 0)
-                                    <div class="flex justify-between text-sm">
-                                        <span class="text-gray-600">{{ $p->ten_san_pham }}</span>
-                                        <span class="font-bold">{{ $totalQuantities[$p->id] }}</span>
-                                    </div>
-                                @endif
-                            @endforeach
-                            <div class="pt-3 border-t text-xs text-gray-500">
-                                Mã phiếu: {{ $phieuTong->ma_phieu }}<br>
-                                Tạo lúc: {{ $phieuTong->created_at->format('H:i') }}
-                            </div>
+                        <div class="text-sm text-gray-700 font-medium mb-1">{{ $batch->recipe->product->ten_san_pham }}</div>
+                        <div class="text-xs text-gray-500">
+                            Thực tế: {{ $batch->so_luong_thuc_te }} {{ $batch->recipe->don_vi_san_xuat }}<br>
+                            Đã phân bổ: {{ $batch->distributed_quantity }}<br>
+                            <strong class="text-green-600">Còn lại: {{ $batch->available_quantity }}</strong>
                         </div>
-                    @endif
-                </div>
+                    </button>
+                @endforeach
             </div>
         </div>
 
-        <!-- Right Column: Distribution (Step 2) -->
-        <div class="lg:col-span-2">
-            @if($step == 2)
-                <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden h-full">
-                    <div class="bg-gray-50 px-4 py-3 border-b border-gray-200">
-                        <h2 class="font-semibold text-gray-700">2. Phân Bổ Cho Điểm Bán</h2>
+        @if($currentBatch)
+            <!-- Distribution Form -->
+            <div class="bg-white rounded-lg shadow-sm p-6">
+                <h3 class="font-semibold text-gray-800 mb-4">2. Phân bổ cho điểm bán</h3>
+                
+                <!-- Batch Info -->
+                <div class="bg-indigo-50 border border-indigo-200 rounded-lg p-4 mb-6">
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                        <div>
+                            <span class="text-gray-600">Sản phẩm:</span>
+                            <div class="font-semibold">{{ $currentBatch->recipe->product->ten_san_pham }}</div>
+                        </div>
+                        <div>
+                            <span class="text-gray-600">Tổng (sau QC):</span>
+                            <div class="font-semibold">{{ $currentBatch->so_luong_thuc_te }} {{ $currentBatch->recipe->don_vi_san_xuat }}</div>
+                        </div>
+                        <div>
+                            <span class="text-gray-600">Đã phân bổ:</span>
+                            <div class="font-semibold text-blue-600">{{ $currentBatch->distributed_quantity }}</div>
+                        </div>
+                        <div>
+                            <span class="text-gray-600">Còn lại:</span>
+                            <div class="font-semibold text-green-600">{{ $currentBatch->available_quantity }}</div>
+                        </div>
                     </div>
-                    
-                    <div class="p-4">
-                        <!-- Agency Selector -->
-                        <div class="mb-6 flex space-x-2 overflow-x-auto pb-2">
-                            @foreach($agencies as $agency)
-                                <button 
-                                    wire:click="selectAgency({{ $agency->id }})"
-                                    class="px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors {{ $selectedAgencyId == $agency->id ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200' }}"
-                                >
-                                    {{ $agency->ten_diem_ban }}
-                                </button>
+                </div>
+
+                <!-- Distribution List -->
+                <div class="mb-6">
+                    <h4 class="font-medium text-gray-700 mb-3">Đã phân bổ:</h4>
+                    @if($currentBatch->distributions->isEmpty())
+                        <p class="text-gray-500 text-sm">Chưa phân bổ cho điểm nào</p>
+                    @else
+                        <div class="space-y-2">
+                            @foreach($currentBatch->distributions->groupBy('diem_ban_id') as $diemBanId => $dists)
+                                @php
+                                    $agency = $agencies->find($diemBanId);
+                                    $total = $dists->sum('so_luong');
+                                @endphp
+                                <div class="flex justify-between items-center p-3 bg-gray-50 rounded border">
+                                    <div>
+                                        <span class="font-medium">{{ $agency->ten_diem_ban }}</span>
+                                        <span class="text-xs text-gray-500 ml-2">
+                                            @foreach($dists as $d)
+                                                {{ ucfirst($d->buoi) }}: {{ $d->so_luong }}
+                                            @endforeach
+                                        </span>
+                                    </div>
+                                    <span class="font-semibold text-indigo-600">{{ $total }} {{ $currentBatch->recipe->don_vi_san_xuat }}</span>
+                                </div>
                             @endforeach
                         </div>
-
-                        @if($selectedAgencyId)
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                <!-- Input Form -->
-                                <div>
-                                    <h3 class="text-sm font-bold text-gray-900 uppercase mb-3">Nhập số lượng</h3>
-                                    <div class="space-y-3">
-                                        @foreach($products as $p)
-                                            @php
-                                                $total = $totalQuantities[$p->id] ?? 0;
-                                                if ($total == 0) continue;
-                                                
-                                                $distributed = $distributedState[$p->id] ?? 0;
-                                                // Exclude current agency from distributed count for calculation
-                                                // (Simplified for UI: just show remaining global)
-                                                $remaining = $total - $distributed + ($agencyQuantities[$p->id] ?? 0); 
-                                            @endphp
-                                            <div class="flex items-center justify-between">
-                                                <div class="flex-1">
-                                                    <div class="text-sm font-medium text-gray-700">{{ $p->ten_san_pham }}</div>
-                                                    <div class="text-xs text-gray-500">Còn lại: {{ $remaining }} / {{ $total }}</div>
-                                                </div>
-                                                <input type="number" wire:model="agencyQuantities.{{ $p->id }}" class="w-24 border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-right" min="0" max="{{ $remaining }}">
-                                            </div>
-                                        @endforeach
-                                    </div>
-                                    
-                                    <div class="mt-6">
-                                        <button wire:click="saveAgencyDistribution" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded transition">
-                                            Lưu Phân Bổ Điểm Này
-                                        </button>
-                                    </div>
-                                </div>
-
-                                <!-- Progress/Status -->
-                                <div class="bg-gray-50 rounded-lg p-4">
-                                    <h3 class="text-sm font-bold text-gray-900 uppercase mb-3">Tiến độ phân bổ toàn hệ thống</h3>
-                                    <div class="space-y-4">
-                                        @foreach($products as $p)
-                                            @php
-                                                $total = $totalQuantities[$p->id] ?? 0;
-                                                if ($total == 0) continue;
-                                                $distributed = $distributedState[$p->id] ?? 0;
-                                                $percent = ($distributed / $total) * 100;
-                                            @endphp
-                                            <div>
-                                                <div class="flex justify-between text-xs mb-1">
-                                                    <span>{{ $p->ten_san_pham }}</span>
-                                                    <span class="{{ $distributed > $total ? 'text-red-600' : 'text-gray-600' }}">
-                                                        {{ $distributed }}/{{ $total }}
-                                                    </span>
-                                                </div>
-                                                <div class="w-full bg-gray-200 rounded-full h-2">
-                                                    <div class="bg-indigo-600 h-2 rounded-full" style="width: {{ min($percent, 100) }}%"></div>
-                                                </div>
-                                            </div>
-                                        @endforeach
-                                    </div>
-                                </div>
-                            </div>
-                        @else
-                            <div class="text-center py-12 text-gray-500">
-                                <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                                </svg>
-                                <p class="mt-2">Vui lòng chọn một điểm bán để bắt đầu phân bổ.</p>
-                            </div>
-                        @endif
-                    </div>
+                    @endif
                 </div>
-            @else
-                <div class="flex items-center justify-center h-full bg-gray-50 rounded-xl border border-dashed border-gray-300">
-                    <div class="text-center p-6">
-                        <p class="text-gray-500">Hoàn thành Bước 1 để tiếp tục phân bổ.</p>
+
+                <!-- Add/Edit Distribution -->
+                <form wire:submit="saveAgencyDistribution" class="border-t pt-6">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Điểm bán</label>
+                            <select wire:model.live="selectedAgencyId" class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                                <option value="">-- Chọn điểm --</option>
+                                @foreach($agencies as $agency)
+                                    <option value="{{ $agency->id }}">{{ $agency->ten_diem_ban }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Buổi</label>
+                            <select wire:model.live="selectedSession" class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                                <option value="sang">Sáng</option>
+                                <option value="chieu">Chiều</option>
+                            </select>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Số lượng</label>
+                            <input type="number" wire:model="distributionQuantity" min="0" class="w-full px-4 py-2 border border-gray-300 rounded-lg" placeholder="VD: 20">
+                        </div>
                     </div>
-                </div>
-            @endif
-        </div>
-    </div>
+
+                    @if (session('success'))
+                        <div class="bg-green-100 border-l-4 border-green-500 text-green-700 p-3 mb-4 rounded">{{ session('success') }}</div>
+                    @endif
+                    @if (session('error'))
+                        <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-3 mb-4 rounded">{{ session('error') }}</div>
+                    @endif
+
+                    <button type="submit" class="bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700" {{ !$selectedAgencyId ? 'disabled' : '' }}>
+                        Lưu phân bổ
+                    </button>
+                </form>
+            </div>
+        @endif
+    @endif
 </div>

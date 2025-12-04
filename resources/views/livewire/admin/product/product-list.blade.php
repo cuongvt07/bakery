@@ -101,6 +101,8 @@
                                 <span class="text-xs font-medium text-gray-500 uppercase">Giá bán</span>
                             </x-sort-icon>
                         </th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Đơn vị</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Quy cách</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Trạng thái</th>
                         <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Thao tác</th>
                     </tr>
@@ -112,6 +114,18 @@
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $product->ten_san_pham }}</td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ $product->category?->ten_danh_muc ?? '-' }}</td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ number_format($product->gia_ban, 0, ',', '.') }} đ</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700 font-medium">
+                                {{ $product->don_vi_tinh }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                                @if($product->don_vi_phan_phoi && $product->so_luong_quy_doi > 1)
+                                    <span class="inline-flex items-center px-2 py-1 bg-indigo-50 text-indigo-700 rounded text-xs font-medium">
+                                        1 {{ $product->don_vi_phan_phoi }} = {{ $product->so_luong_quy_doi }} {{ $product->don_vi_tinh }}
+                                    </span>
+                                @else
+                                    <span class="text-gray-400">-</span>
+                                @endif
+                            </td>
                             <td class="px-6 py-4 whitespace-nowrap">
                                 <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
                                     {{ $product->trang_thai === 'con_hang' ? 'bg-green-100 text-green-800' : ($product->trang_thai === 'het_hang' ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-800') }}">
@@ -125,7 +139,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="6" class="px-6 py-12 text-center text-gray-500">
+                            <td colspan="8" class="px-6 py-12 text-center text-gray-500">
                                 Không tìm thấy sản phẩm nào
                                 @if($search || $categoryId || $trangThai)
                                     <button wire:click="resetFilters" class="block mt-2 text-blue-600 hover:text-blue-800 mx-auto">Xóa bộ lọc</button>

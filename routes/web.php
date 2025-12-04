@@ -17,7 +17,7 @@ use App\Livewire\Auth\Login;
 Route::get('/', function () {
     if (auth()->check()) {
         if (auth()->user()->vai_tro === 'nhan_vien') {
-            return redirect()->route('admin.shift.closing');
+            return redirect()->route('admin.shift.check-in');
         }
         return redirect()->route('admin.dashboard');
     }
@@ -68,7 +68,18 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     Route::get('/ingredients/create', App\Livewire\Admin\Ingredient\IngredientForm::class)->name('ingredients.create');
     Route::get('/ingredients/{id}/edit', App\Livewire\Admin\Ingredient\IngredientForm::class)->name('ingredients.edit');
     
+    // Production Management
+    Route::get('/recipes', App\Livewire\Admin\Production\RecipeList::class)->name('recipes.index');
+    Route::get('/recipes/create', App\Livewire\Admin\Production\RecipeForm::class)->name('recipes.create');
+    Route::get('/recipes/{id}/edit', App\Livewire\Admin\Production\RecipeForm::class)->name('recipes.edit');
+    
+    Route::get('/production-batches', App\Livewire\Admin\Production\ProductionBatchList::class)->name('production-batches.index');
+    Route::get('/production-batches/create', App\Livewire\Admin\Production\ProductionBatchForm::class)->name('production-batches.create');
+    Route::get('/production-batches/{id}/edit', App\Livewire\Admin\Production\ProductionBatchForm::class)->name('production-batches.edit');
+    
     // Core Flow
+    Route::get('/distribution', \App\Livewire\Admin\Distribution\DistributionList::class)->name('distribution.index');
     Route::get('/distribution/daily', DailyDistribution::class)->name('distribution.daily');
+    Route::get('/shift/check-in', App\Livewire\Admin\Shift\ShiftCheckIn::class)->name('shift.check-in');
     Route::get('/shift/closing', ShiftClosing::class)->name('shift.closing');
 });

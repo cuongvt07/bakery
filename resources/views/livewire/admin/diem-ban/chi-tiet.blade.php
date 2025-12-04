@@ -65,7 +65,7 @@
         
         <!-- Thông tin chung -->
         @if ($activeTab === 'thong_tin')
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
                 <div>
                     <h3 class="text-lg font-medium text-gray-900 mb-4">Thông tin liên hệ</h3>
                     <dl class="grid grid-cols-1 gap-x-4 gap-y-6">
