@@ -14,6 +14,7 @@ class AgencyForm extends Component
     public $ten_diem_ban = '';
     public $dia_chi = '';
     public $so_dien_thoai = '';
+    public $loai_dai_ly = 'via_he';
     public $trang_thai = 'hoat_dong';
     public $ghi_chu = '';
 
@@ -25,6 +26,7 @@ class AgencyForm extends Component
             $this->ten_diem_ban = $this->agency->ten_diem_ban;
             $this->dia_chi = $this->agency->dia_chi;
             $this->so_dien_thoai = $this->agency->so_dien_thoai;
+            $this->loai_dai_ly = $this->agency->loai_dai_ly;
             $this->trang_thai = $this->agency->trang_thai;
             $this->ghi_chu = $this->agency->ghi_chu;
         }
@@ -44,6 +46,7 @@ class AgencyForm extends Component
             'ten_diem_ban' => $this->ten_diem_ban,
             'dia_chi' => $this->dia_chi,
             'so_dien_thoai' => $this->so_dien_thoai,
+            'loai_dai_ly' => $this->loai_dai_ly,
             'trang_thai' => $this->trang_thai,
             'ghi_chu' => $this->ghi_chu,
         ];

@@ -5,7 +5,8 @@ namespace App\Livewire\Admin\Distribution;
 use Livewire\Component;
 use Livewire\Attributes\Layout;
 use Livewire\WithPagination;
-use App\Models\PhieuXuatHangTong;
+use App\Models\PhanBoHangDiemBan;
+use App\Models\ProductionBatch;
 use Carbon\Carbon;
 
 #[Layout('components.layouts.app')]
@@ -14,60 +15,65 @@ class DistributionList extends Component
     use WithPagination;
 
     public $dateFilter;
+    public $selectedBatchId;
 
     public function mount()
     {
-        // Default to no filter (show all) or maybe current month?
-        // Let's leave it empty to show all history by default
+        // Default to today
+        $this->dateFilter = Carbon::today()->format('Y-m-d');
     }
 
     public function delete($id)
     {
-        $phieu = PhieuXuatHangTong::find($id);
+        $distribution = PhanBoHangDiemBan::find($id);
         
-        if (!$phieu) {
+        if (!$distribution) {
             return;
         }
 
-        // Check if distributed
-        if ($phieu->phanBo()->exists()) {
-            session()->flash('error', 'Không thể xóa mẻ hàng đã được phân bổ cho điểm bán!');
+        // Check if already received
+        if ($distribution->trang_thai === 'da_nhan') {
+            session()->flash('error', 'Không thể xóa phân bổ đã được nhận hàng!');
             return;
         }
 
-        $phieu->delete();
-        session()->flash('success', 'Đã xóa mẻ hàng thành công!');
+        $distribution->delete();
+        session()->flash('success', 'Đã xóa phân bổ thành công!');
     }
 
     public function render()
     {
-        // 1. Get Distinct Dates (Paginated)
-        $dateQuery = PhieuXuatHangTong::select('ngay_xuat')
-            ->distinct()
-            ->orderBy('ngay_xuat', 'desc');
+        // Get production batches for the selected date
+        $batchesQuery = ProductionBatch::with(['details.product', 'distributions.diemBan', 'distributions.product'])
+            ->where('trang_thai', 'hoan_thanh')
+            ->orderBy('ngay_san_xuat', 'desc')
+            ->orderBy('buoi', 'desc');
 
         if ($this->dateFilter) {
-            $dateQuery->whereDate('ngay_xuat', $this->dateFilter);
+            $batchesQuery->whereDate('ngay_san_xuat', $this->dateFilter);
         }
 
-        $dates = $dateQuery->paginate(10);
+        $batches = $batchesQuery->get();
 
-        // 2. Get Batches for these dates
-        $dateStrings = $dates->pluck('ngay_xuat');
-        
-        $batches = PhieuXuatHangTong::whereIn('ngay_xuat', $dateStrings)
-            ->with('nguoiXuat')
-            ->withCount('phanBo')
-            ->orderBy('ngay_xuat', 'desc')
-            ->orderBy('created_at', 'desc')
-            ->get()
-            ->groupBy(function($item) {
-                return $item->ngay_xuat; // Group by date string
+        // Get all distributions with details
+        $distributionsQuery = PhanBoHangDiemBan::with(['productionBatch', 'diemBan', 'product'])
+            ->orderBy('created_at', 'desc');
+
+        if ($this->dateFilter) {
+            $distributionsQuery->whereHas('productionBatch', function($q) {
+                $q->whereDate('ngay_san_xuat', $this->dateFilter);
             });
+        }
+
+        if ($this->selectedBatchId) {
+            $distributionsQuery->where('me_san_xuat_id', $this->selectedBatchId);
+        }
+
+        $distributions = $distributionsQuery->paginate(20);
 
         return view('livewire.admin.distribution.distribution-list', [
-            'dates' => $dates,
-            'groupedBatches' => $batches
+            'batches' => $batches,
+            'distributions' => $distributions
         ]);
     }
 }

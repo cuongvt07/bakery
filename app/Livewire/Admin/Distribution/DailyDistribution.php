@@ -22,10 +22,10 @@ class DailyDistribution extends Component
     public $productionBatches = [];
     public $currentBatch = null;
     
-    // Distribution Data
+    // Distribution Data - NEW: Batch input
     public $selectedAgencyId = null;
-    public $selectedSession = 'sang'; // Morning/Afternoon
-    public $distributionQuantity = 0;
+    public $selectedSession = 'sang';
+    public $distributionData = []; // ['product_id' => quantity]
     public $agencies = [];
     
     public function mount()
@@ -42,7 +42,7 @@ class DailyDistribution extends Component
     public function loadProductionBatches($defaultBatchId = null)
     {
         // Load completed production batches for this date
-        $this->productionBatches = ProductionBatch::with(['recipe.product', 'distributions'])
+        $this->productionBatches = ProductionBatch::with(['details.product', 'distributions'])
             ->whereDate('ngay_san_xuat', $this->date)
             ->where('trang_thai', 'hoan_thanh')
             ->orderBy('buoi')
@@ -64,90 +64,89 @@ class DailyDistribution extends Component
     public function selectProductionBatch($batchId)
     {
         $this->selectedProductionBatchId = $batchId;
-        $this->currentBatch = ProductionBatch::with(['details.recipe.product', 'details.product', 'distributions'])->find($batchId);
+        $this->currentBatch = ProductionBatch::with(['details.product', 'distributions'])->find($batchId);
         
         // Reset distribution data
-        $this->distributionQuantity = 0;
+        $this->distributionData = [];
         $this->selectedAgencyId = null;
-        $this->selectedProductId = null;
-    }
-    
-    public $selectedProductId = null;
-    
-    public function selectAgency($agencyId)
-    {
-        $this->selectedAgencyId = $agencyId;
-        
-        //Load existing distribution for this agency if any
-        if ($this->currentBatch) {
-            $existing = $this->currentBatch->distributions()
-                ->where('diem_ban_id', $agencyId)
-                ->where('buoi', $this->selectedSession)
-                ->first();
-                
-            $this->distributionQuantity = $existing ? $existing->so_luong : 0;
-        }
     }
     
     public function saveAgencyDistribution()
     {
-        if (!$this->currentBatch || !$this->selectedAgencyId || !$this->selectedProductId) {
-            session()->flash('error', 'Vui lòng chọn mẻ sản xuất, sản phẩm và điểm bán!');
+        if (!$this->currentBatch || !$this->selectedAgencyId) {
+            session()->flash('error', 'Vui lòng chọn điểm bán!');
             return;
         }
         
-        $this->validate([
-            'distributionQuantity' => 'required|numeric|min:0',
-        ]);
+        // Filter out empty values
+        $toDistribute = array_filter($this->distributionData, fn($qty) => $qty > 0);
         
-        // Find the detail for selected product
-        $detail = $this->currentBatch->details()->where('san_pham_id', $this->selectedProductId)->first();
-        
-        if (!$detail) {
-            session()->flash('error', 'Không tìm thấy sản phẩm trong mẻ!');
+        if (empty($toDistribute)) {
+            session()->flash('error', 'Vui lòng nhập số lượng cho ít nhất 1 sản phẩm!');
             return;
         }
         
-        // Check available quantity for this specific product
-        $availableQty = $detail->available_quantity;
-        $existing = $this->currentBatch->distributions()
-            ->where('diem_ban_id', $this->selectedAgencyId)
-            ->where('san_pham_id', $this->selectedProductId)
-            ->where('buoi', $this->selectedSession)
-            ->first();
-        
-        $currentlyDistributed = $existing ? $existing->so_luong : 0;
-        $newTotal = $availableQty + $currentlyDistributed;
-        
-        if ($this->distributionQuantity > $newTotal) {
-            session()->flash('error', 'Vượt quá số lượng khả dụng! Còn lại: ' . $newTotal);
-            return;
+        try {
+            DB::transaction(function () use ($toDistribute) {
+                foreach ($toDistribute as $productId => $quantity) {
+                    // Find the detail for this product
+                    $detail = $this->currentBatch->details()->where('san_pham_id', $productId)->first();
+                    
+                    if (!$detail) {
+                        continue;
+                    }
+                    
+                    // Check available quantity
+                    $distributed = $this->currentBatch->distributions()
+                        ->where('san_pham_id', $productId)
+                        ->sum('so_luong');
+                    $available = $detail->so_luong_thuc_te - $distributed;
+                    
+                    if ($quantity > $available) {
+                        throw new \Exception("Sản phẩm {$detail->product->ten_san_pham} chỉ còn {$available} khả dụng!");
+                    }
+                    
+                    // Check if distribution exists
+                    $existing = PhanBoHangDiemBan::where('me_san_xuat_id', $this->currentBatch->id)
+                        ->where('diem_ban_id', $this->selectedAgencyId)
+                        ->where('san_pham_id', $productId)
+                        ->where('buoi', $this->selectedSession)
+                        ->first();
+                    
+                    if ($existing) {
+                        // Update existing
+                        $existing->update(['so_luong' => $quantity]);
+                    } else {
+                        // Create new
+                        PhanBoHangDiemBan::create([
+                            'me_san_xuat_id' => $this->currentBatch->id,
+                            'diem_ban_id' => $this->selectedAgencyId,
+                            'buoi' => $this->selectedSession,
+                            'so_luong' => $quantity,
+                            'san_pham_id' => $productId,
+                            'nguoi_nhan_id' => null,
+                            'trang_thai' => 'chua_nhan',
+                        ]);
+                    }
+                }
+            });
+            
+            // Get agency name before reset
+            $agencyName = $this->agencies->find($this->selectedAgencyId)->ten_diem_ban;
+            
+            // Reload batch
+            $this->currentBatch->refresh();
+            
+            // Only reset distributionData, keep agency selected for next distribution
+            $this->distributionData = [];
+            // DO NOT reset selectedAgencyId - user may want to continue with same agency
+            
+            session()->flash('success', "✅ Đã lưu phân bổ cho {$agencyName} thành công!");
+            
+        } catch (\Exception $e) {
+            session()->flash('error', '❌ Lỗi: ' . $e->getMessage());
+            \Log::error('Distribution save error: ' . $e->getMessage());
         }
-        
-        DB::transaction(function () use ($existing, $detail) {
-            if ($existing) {
-                // Update existing distribution
-                $existing->update([
-                    'so_luong' => $this->distributionQuantity,
-                ]);
-            } else {
-                // Create new distribution
-                PhanBoHangDiemBan::create([
-                    'me_san_xuat_id' => $this->currentBatch->id,
-                    'diem_ban_id' => $this->selectedAgencyId,
-                    'buoi' => $this->selectedSession,
-                    'so_luong' => $this->distributionQuantity,
-                    'san_pham_id' => $this->selectedProductId,
-                    'nguoi_nhan_id' => null,
-                    'trang_thai' => 'chua_nhan',
-                ]);
-            }
-        });
-        
-        // Reload batch to update available quantity
-        $this->currentBatch->refresh();
-        
-        session()->flash('success', 'Đã lưu phân bổ cho ' . $this->agencies->find($this->selectedAgencyId)->ten_diem_ban);
     }
     
     public function render()

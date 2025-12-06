@@ -22,7 +22,7 @@
                 <svg class="w-8 h-8 text-yellow-400 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                     <path d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6z"/>
                 </svg>
-                <span class="ml-3 text-xl font-bold">Bakery System</span>
+                <span class="ml-3 text-xl font-bold">Boong Cake</span>
             </div>
             
             <!-- Toggle Button -->
@@ -59,13 +59,13 @@
             </a>
             
             <!-- Quản lý Điểm bán -->
-            <a href="{{ route('admin.agencies.index') }}" 
+            <a href="{{ route('admin.agencies.dashboard') }}" 
                class="flex items-center px-4 py-3 rounded-lg transition-colors whitespace-nowrap overflow-hidden {{ request()->routeIs('admin.agencies.*') ? 'bg-indigo-700 text-white' : 'hover:bg-indigo-700/50' }}"
-               title="Điểm bán">
+               title="Dashboard Điểm bán">
                 <svg class="w-6 h-6 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"/>
                 </svg>
-                <span x-show="sidebarState === 2" class="ml-3 transition-opacity duration-300">Điểm bán</span>
+                <span x-show="sidebarState === 2" class="ml-3 transition-opacity duration-300">Dashboard ĐL</span>
             </a>
             
             <!-- Quản lý Sản phẩm -->
@@ -129,6 +129,16 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
                 </svg>
                 <span x-show="sidebarState === 2" class="ml-3 transition-opacity duration-300">Mẻ sản xuất</span>
+            </a>
+
+            <!-- Báo cáo HSD -->
+            <a href="{{ route('admin.expiry-report.index') }}" 
+               class="flex items-center px-4 py-3 rounded-lg transition-colors whitespace-nowrap overflow-hidden {{ request()->routeIs('admin.expiry-report.*') ? 'bg-indigo-700 text-white' : 'hover:bg-indigo-700/50' }}"
+               title="Báo cáo HSD">
+                <svg class="w-6 h-6 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                <span x-show="sidebarState === 2" class="ml-3 transition-opacity duration-300">Báo cáo HSD</span>
             </a>
 
             <!-- Phân bổ hàng -->

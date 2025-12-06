@@ -40,7 +40,7 @@ class ProductionBatchForm extends Component
         $this->han_su_dung = Carbon::today()->addDays(3)->format('Y-m-d');
 
         if ($id) {
-            $this->batch = ProductionBatch::with(['details.recipe.product', 'details.product'])->findOrFail($id);
+            $this->batch = ProductionBatch::with(['details.product'])->findOrFail($id);
             $this->ma_me = $this->batch->ma_me;
             $this->ngay_san_xuat = $this->batch->ngay_san_xuat->format('Y-m-d');
             $this->buoi = $this->batch->buoi;
@@ -133,6 +133,11 @@ class ProductionBatchForm extends Component
                 'han_su_dung' => $this->han_su_dung,
                 'trang_thai' => $this->trang_thai,
             ];
+            
+            // If completing, set QC user
+            if ($this->trang_thai === 'hoan_thanh') {
+                $data['nguoi_qc_id'] = Auth::id();
+            }
 
             if ($this->batch) {
                 $this->batch->update($data);
@@ -146,12 +151,29 @@ class ProductionBatchForm extends Component
             foreach ($this->products as $product) {
                 $recipe = Recipe::find($product['cong_thuc_id']);
                 
-                ProductionBatchDetail::create([
+                $detailData = [
                     'me_san_xuat_id' => $this->batch->id,
                     'cong_thuc_id' => $product['cong_thuc_id'],
                     'san_pham_id' => $recipe->san_pham_id,
                     'so_luong_du_kien' => $product['so_luong_du_kien'],
-                ]);
+                ];
+                
+                // If status is hoan_thanh, save QC data
+                if ($this->trang_thai === 'hoan_thanh') {
+                    $failedQty = $product['so_luong_that_bai'] ?? 0;
+                    $detailData['so_luong_that_bai'] = $failedQty;
+                    $detailData['so_luong_thuc_te'] = $product['so_luong_du_kien'] - $failedQty;
+                    $detailData['ti_le_hong'] = $product['so_luong_du_kien'] > 0 
+                        ? ($failedQty / $product['so_luong_du_kien']) * 100 
+                        : 0;
+                }
+                
+                ProductionBatchDetail::create($detailData);
+            }
+            
+            // If completing, deduct ingredients
+            if ($this->trang_thai === 'hoan_thanh') {
+                $this->batch->deductIngredientsFromInventory();
             }
         });
 

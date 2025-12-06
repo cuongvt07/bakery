@@ -27,6 +27,11 @@ class ShiftCheckIn extends Component
     public function mount()
     {
         $this->checkShiftStatus();
+        
+        // If already checked in, redirect to POS immediately
+        if ($this->isCheckedIn) {
+            return $this->redirect('/admin/pos', navigate: true);
+        }
     }
     
     public function checkShiftStatus()
@@ -85,20 +90,33 @@ class ShiftCheckIn extends Component
         $startTime = Carbon::parse($this->shift->gio_bat_dau);
         $session = $startTime->lt(Carbon::parse('12:00:00')) ? 'sang' : 'chieu';
         
+        // Debug logging
+        \Log::info('Loading distributed stock', [
+            'agency_id' => $agencyId,
+            'session' => $session,
+            'date' => Carbon::today()->toDateString()
+        ]);
+        
         // Find all distributions for this agency, today, and session
-        $distributions = PhanBoHangDiemBan::with(['productionBatch.recipe.product'])
+        // Load product directly via san_pham_id (multi-product batch support)
+        $distributions = PhanBoHangDiemBan::with(['product'])
             ->where('diem_ban_id', $agencyId)
             ->whereDate('created_at', Carbon::today())
             ->where('buoi', $session)
             ->where('trang_thai', 'chua_nhan')
             ->get();
             
+        \Log::info('Found distributions', [
+            'count' => $distributions->count(),
+            'distributions' => $distributions->toArray()
+        ]);
+            
         $this->products = [];
         $this->receivedStock = [];
         
         foreach ($distributions as $dist) {
-            if ($dist->productionBatch && $dist->productionBatch->recipe) {
-                $product = $dist->productionBatch->recipe->product;
+            if ($dist->product) {
+                $product = $dist->product;
                 
                 // Add to products list if not already there
                 if (!isset($this->receivedStock[$product->id])) {
@@ -110,6 +128,11 @@ class ShiftCheckIn extends Component
                 $this->receivedStock[$product->id] += $dist->so_luong;
             }
         }
+        
+        \Log::info('Loaded products', [
+            'products_count' => count($this->products),
+            'receivedStock' => $this->receivedStock
+        ]);
     }
     
     public function confirmCheckIn()
@@ -156,8 +179,10 @@ class ShiftCheckIn extends Component
                 ]);
         });
         
-        $this->checkShiftStatus();
-        session()->flash('success', 'Check-in thành công!');
+        session()->flash('success', 'Check-in thành công! Chuyển đến POS...');
+        
+        // Redirect to POS (Livewire way)
+        return $this->redirect('/admin/pos', navigate: true);
     }
     
     public function render()

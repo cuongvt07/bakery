@@ -10,11 +10,26 @@ class PhanBoHangDiemBan extends Model
     
     protected $fillable = [
         'phieu_xuat_hang_tong_id',
+        'me_san_xuat_id',  // NEW: For direct batch distribution
         'diem_ban_id',
+        'san_pham_id',     // NEW: Product ID
+        'buoi',            // NEW: Session (sang/chieu)
+        'so_luong',        // NEW: Quantity
         'nguoi_nhan_id',
         'ngay_nhan',
         'trang_thai'
     ];
+
+    // Relationships
+    public function productionBatch()
+    {
+        return $this->belongsTo(ProductionBatch::class, 'me_san_xuat_id');
+    }
+
+    public function product()
+    {
+        return $this->belongsTo(Product::class, 'san_pham_id');
+    }
 
     public function chiTiet()
     {

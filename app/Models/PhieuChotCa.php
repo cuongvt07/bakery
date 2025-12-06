@@ -59,9 +59,20 @@ class PhieuChotCa extends Model
             $model->tien_lech = $model->tong_tien_thuc_te - $model->tong_tien_ly_thuyet;
             
             // Auto calculate hang_lech
+            $tonDau = $model->ton_dau_ca;
+            $tonCuoi = $model->ton_cuoi_ca;
+            
+            // Ensure they are arrays (cast might not work in saving event)
+            if (is_string($tonDau)) {
+                $tonDau = json_decode($tonDau, true) ?? [];
+            }
+            if (is_string($tonCuoi)) {
+                $tonCuoi = json_decode($tonCuoi, true) ?? [];
+            }
+            
             $model->hang_lech = static::calculateStockDiscrepancy(
-                $model->ton_dau_ca ?? [],
-                $model->ton_cuoi_ca ?? []
+                $tonDau ?? [],
+                $tonCuoi ?? []
             );
         });
     }

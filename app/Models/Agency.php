@@ -16,6 +16,7 @@ class Agency extends Model
         'ten_diem_ban',
         'dia_chi',
         'so_dien_thoai',
+        'loai_dai_ly',
         'thong_tin_vat_dung',
         'vi_do',
         'kinh_do',
@@ -28,6 +29,12 @@ class Agency extends Model
         'vi_do' => 'decimal:8',
         'kinh_do' => 'decimal:8',
     ];
+
+    // Relationships
+    public function notes()
+    {
+        return $this->hasMany(AgencyNote::class, 'diem_ban_id');
+    }
 
     /**
      * Relationships

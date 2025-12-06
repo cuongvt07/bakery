@@ -15,6 +15,11 @@ return Application::configure(basePath: dirname(__DIR__))
             guests: '/login',
             users: '/admin/dashboard'
         );
+        
+        // Register custom middleware aliases
+        $middleware->alias([
+            'check-in-required' => \App\Http\Middleware\CheckInRequired::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

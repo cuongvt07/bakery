@@ -67,7 +67,7 @@
         <!-- Create/Edit Form -->
         <form wire:submit="save" class="bg-white rounded-lg shadow-sm p-6">
             <!-- Batch Info -->
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Mã mẻ *</label>
                     <input type="text" wire:model="ma_me" readonly class="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50">
@@ -82,6 +82,16 @@
                         <option value="sang">Sáng</option>
                         <option value="trua">Trưa</option>
                         <option value="chieu">Chiều</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Trạng thái</label>
+                    <select wire:model="trang_thai" class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                        <option value="ke_hoach">Kế hoạch</option>
+                        <option value="dang_san_xuat">Đang sản xuất</option>
+                        <option value="qc">QC</option>
+                        <option value="hoan_thanh">Hoàn thành</option>
+                        <option value="huy">Hủy</option>
                     </select>
                 </div>
             </div>
@@ -126,6 +136,22 @@
                                             <input type="number" wire:model.live="products.{{ $index }}.so_luong_du_kien" min="1" class="w-full px-3 py-2 text-sm border border-gray-300 rounded" placeholder="100">
                                         </div>
                                     </div>
+                                    
+                                    @if($trang_thai === 'hoan_thanh' && $batch)
+                                        <div class="grid grid-cols-2 gap-3 mt-3 pt-3 border-t border-gray-200">
+                                            <div>
+                                                <label class="block text-xs font-medium text-red-600 mb-1">SL lỗi</label>
+                                                <input type="number" wire:model="products.{{ $index }}.so_luong_that_bai" min="0" max="{{ $product['so_luong_du_kien'] ?? 0 }}" 
+                                                       class="w-full px-3 py-2 text-sm border border-red-300 rounded bg-red-50" placeholder="0">
+                                            </div>
+                                            <div>
+                                                <label class="block text-xs font-medium text-green-600 mb-1">SL thực tế OK</label>
+                                                <input type="number" readonly 
+                                                       value="{{ ($product['so_luong_du_kien'] ?? 0) - ($product['so_luong_that_bai'] ?? 0) }}"
+                                                       class="w-full px-3 py-2 text-sm border border-green-300 rounded bg-green-50 font-semibold">
+                                            </div>
+                                        </div>
+                                    @endif
                                 </div>
                             @endforeach
                         </div>

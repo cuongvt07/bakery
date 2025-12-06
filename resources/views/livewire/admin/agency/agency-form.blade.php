@@ -37,6 +37,16 @@
                     @error('so_dien_thoai') <span class="text-red-500 text-sm mt-1">{{ $message }}</span> @enderror
                 </div>
 
+                <!-- Loại đại lý -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Loại đại lý</label>
+                    <select wire:model="loai_dai_ly" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500">
+                        <option value="via_he">📍 Vỉa hè (Không tủ lạnh)</option>
+                        <option value="rieng_tu">🏠 Riêng tư (Có tủ lạnh)</option>
+                    </select>
+                    <p class="text-xs text-gray-500 mt-1">Vỉa hè: Xe bán, bàn ghế. Riêng tư: Có tủ lạnh, bảo quản được</p>
+                </div>
+
                 <!-- Trạng thái -->
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Trạng thái</label>

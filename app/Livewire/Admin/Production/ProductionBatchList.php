@@ -59,7 +59,7 @@ class ProductionBatchList extends Component
 
     public function render()
     {
-        $query = ProductionBatch::with(['recipe.product', 'creator']);
+        $query = ProductionBatch::with(['details.product', 'creator']);
 
         if ($this->search) {
             $query->where('ma_me', 'like', '%' . $this->search . '%');

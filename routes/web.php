@@ -10,6 +10,7 @@ use App\Livewire\Admin\ProductCategory\CategoryList;
 use App\Livewire\Admin\NguoiDung\DanhSach as NguoiDungDanhSach;
 use App\Livewire\Admin\DiemBan\DanhSach as DiemBanDanhSach;
 use App\Livewire\Admin\Shift\ShiftClosing;
+use App\Livewire\Admin\Shift\QuickSale;
 use App\Livewire\Admin\Distribution\DailyDistribution;
 
 use App\Livewire\Auth\Login;
@@ -17,6 +18,14 @@ use App\Livewire\Auth\Login;
 Route::get('/', function () {
     if (auth()->check()) {
         if (auth()->user()->vai_tro === 'nhan_vien') {
+            // Check if employee has checked in
+            $shift = \App\Models\CaLamViec::where('nguoi_dung_id', auth()->id())
+                ->where('trang_thai', 'dang_lam')
+                ->first();
+            
+            if ($shift && $shift->trang_thai_checkin) {
+                return redirect('/admin/pos');
+            }
             return redirect()->route('admin.shift.check-in');
         }
         return redirect()->route('admin.dashboard');
@@ -47,6 +56,10 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     Route::get('/agencies', AgencyList::class)->name('agencies.index');
     Route::get('/agencies/create', App\Livewire\Admin\Agency\AgencyForm::class)->name('agencies.create');
     Route::get('/agencies/{id}/edit', App\Livewire\Admin\Agency\AgencyForm::class)->name('agencies.edit');
+    Route::get('/agencies/dashboard', App\Livewire\Admin\Agency\AgencyDashboard::class)->name('agencies.dashboard');
+    Route::get('/agencies/{id}/detail', App\Livewire\Admin\Agency\AgencyDetail::class)->name('agencies.detail');
+    Route::get('/agencies/{agencyId}/notes/create', App\Livewire\Admin\Agency\NoteForm::class)->name('agencies.notes.create');
+    Route::get('/agencies/{agencyId}/notes/{noteId}/edit', App\Livewire\Admin\Agency\NoteForm::class)->name('agencies.notes.edit');
 
     // Products
     Route::get('/products', ProductList::class)->name('products.index');
@@ -76,10 +89,15 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     Route::get('/production-batches', App\Livewire\Admin\Production\ProductionBatchList::class)->name('production-batches.index');
     Route::get('/production-batches/create', App\Livewire\Admin\Production\ProductionBatchForm::class)->name('production-batches.create');
     Route::get('/production-batches/{id}/edit', App\Livewire\Admin\Production\ProductionBatchForm::class)->name('production-batches.edit');
+    Route::get('/expiry-report', App\Livewire\Admin\Production\ExpiryReport::class)->name('expiry-report.index');
     
     // Core Flow
     Route::get('/distribution', \App\Livewire\Admin\Distribution\DistributionList::class)->name('distribution.index');
     Route::get('/distribution/daily', DailyDistribution::class)->name('distribution.daily');
     Route::get('/shift/check-in', App\Livewire\Admin\Shift\ShiftCheckIn::class)->name('shift.check-in');
     Route::get('/shift/closing', ShiftClosing::class)->name('shift.closing');
+    
+    // POS Routes (components handle their own check-in validation)
+    Route::get('/pos', QuickSale::class)->name('admin.pos.quick-sale');
+    Route::get('/pos/pending', App\Livewire\Admin\Shift\PendingSalesList::class)->name('admin.pos.pending');
 });

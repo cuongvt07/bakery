@@ -76,17 +76,25 @@
                     @forelse ($batches as $batch)
                         <tr class="hover:bg-gray-50 transition-colors">
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-indigo-600">{{ $batch->ma_me }}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $batch->recipe->product->ten_san_pham }}</td>
+                            <td class="px-6 py-4 text-sm text-gray-900">
+                                @if($batch->details->isNotEmpty())
+                                    @foreach($batch->details as $detail)
+                                        <div class="py-0.5">{{ $detail->product->ten_san_pham }} ({{ $detail->so_luong_du_kien }})</div>
+                                    @endforeach
+                                @else
+                                    <span class="text-gray-400">-</span>
+                                @endif
+                            </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                 {{ \Carbon\Carbon::parse($batch->ngay_san_xuat)->format('d/m/Y') }}
                                 <span class="ml-1 px-2 py-0.5 bg-blue-100 text-blue-700 rounded text-xs">{{ ucfirst($batch->buoi) }}</span>
                             </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{{ $batch->so_luong_du_kien }}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm font-semibold {{ $batch->so_luong_thuc_te > 0 ? 'text-green-600' : 'text-gray-400' }}">
-                                {{ $batch->so_luong_thuc_te > 0 ? $batch->so_luong_thuc_te : '-' }}
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{{ $batch->total_expected_quantity }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-semibold {{ $batch->total_actual_quantity > 0 ? 'text-green-600' : 'text-gray-400' }}">
+                                {{ $batch->total_actual_quantity > 0 ? $batch->total_actual_quantity : '-' }}
                             </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm {{ $batch->so_luong_that_bai > 0 ? 'text-red-600 font-semibold' : 'text-gray-400' }}">
-                                {{ $batch->so_luong_that_bai > 0 ? $batch->so_luong_that_bai . ' (' . number_format($batch->ti_le_hong, 1) . '%)' : '-' }}
+                            <td class="px-6 py-4 whitespace-nowrap text-sm {{ $batch->total_failed_quantity > 0 ? 'text-red-600 font-semibold' : 'text-gray-400' }}">
+                                {{ $batch->total_failed_quantity > 0 ? $batch->total_failed_quantity . ' (' . number_format($batch->average_defect_rate, 1) . '%)' : '-' }}
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">
                                 @php

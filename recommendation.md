@@ -1,4 +1,7 @@
-# HỆ THỐNG QUẢN LÝ CHUỖI CỬA HÀNG BÁNH & ĐỒ ĂN NHANH
+# HỆ THỐNG QUẢN LÝ BOONG CAKE
+
+> **Cập nhật**: 04/12/2024  
+> **Trạng thái**: 75% MVP Complete - Production & Distribution Integrated
 
 ## I. TỔNG QUAN DỰ ÁN
 ### 1. Mục tiêu
@@ -27,6 +30,56 @@ Xây dựng hệ thống quản lý toàn diện cho chuỗi cửa hàng bán l�
 ### Giải pháp "Real-time"
 -   **Dashboard Data**: Sử dụng `wire:poll` của Livewire để tự động refresh số liệu (Doanh thu, Sự cố, Chốt ca) mà không cần reload trang.
 -   **Thông báo (Notifications)**: Tích hợp **Lark Webhook** để bắn thông báo tức thì (Sự cố mới, Lệch tiền, Chốt ca xong) vào nhóm chat quản lý.
+
+---
+
+## II.B. TRẠNG THÁI TRIỂN KHAI (04/12/2024)
+
+### ✅ ĐÃ HOÀN THÀNH (75% MVP)
+
+#### 1. Module Sản xuất (Production Management) ⭐ HOÀN CHỈNH
+- **Công thức sản xuất**: CRUD, Dynamic ingredients, Auto cost calculation
+- **Mẻ sản xuất đa sản phẩm** ⭐ BREAKTHROUGH:
+  - 1 mẻ → Nhiều sản phẩm (thay vì 1-1 mapping cũ)
+  - Tính định lượng nguyên liệu theo tỷ lệ tự động
+  - Layout 2 cột: Products (60%) | Ingredients realtime (40%)
+  - QC từng sản phẩm riêng biệt
+- **Quản lý nguyên liệu thông minh**:
+  - Cảnh báo 3 cấp: ✓ Đủ | ⚠️ Dùng ≥70% | ❌ Thiếu
+  - Hiển thị % sử dụng realtime
+  - **Tự động trừ kho** khi QC complete
+
+#### 2. Module Phân bổ (Distribution) ⭐ HOÀN CHỈNH
+- **Tích hợp với Mẻ sản xuất**:
+  - Chọn mẻ đã hoàn thành QC
+  - Hiển thị tất cả sản phẩm từ mẻ
+  - Phân bổ từng sản phẩm cho điểm bán
+  - Validation số lượng khả dụng
+  - **Full traceability**: Mẻ SX → Phân bổ → Check-in nhận hàng
+
+#### 3. Module Ca làm việc (Shift Management) ⭐ HOÀN CHỈNH
+- **Check-in**: Tự động load hàng từ mẻ sản xuất theo buổi
+- **Chốt ca**: Upload ảnh, tính chênh lệch tự động
+
+#### 4. Data Seeding ✅
+- 15 nguyên liệu thực tế (Bột, sữa, trứng...)
+- 3 công thức với định lượng
+- 8 sản phẩm bánh ngọt
+- Login credentials sẵn sàng
+
+### ⏳ CHƯA LÀM (Ưu tiên cao)
+
+#### 1. POS Mobile (NEXT PRIORITY)
+- Giao diện siêu tối giản
+- Nút Cộng/Trừ số lượng
+- Thanh toán Tiền mặt/CK
+
+#### 2. Dashboard Admin (NEXT PRIORITY)
+- Cards tổng quan
+- Danh sách phiếu chốt ca
+- Duyệt/Từ chối phiếu
+
+---
 
 ## III. CHI TIẾT CHỨC NĂNG THEO ROLE (MA TRẬN PHÂN QUYỀN)
 

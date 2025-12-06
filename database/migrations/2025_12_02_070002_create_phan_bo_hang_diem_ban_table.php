@@ -11,7 +11,7 @@ return new class extends Migration
         // Bảng: Phân bổ hàng ĐẾN TỪNG ĐIỂM (Tự động từ setting)
         Schema::create('phan_bo_hang_diem_ban', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('phieu_xuat_hang_tong_id')->constrained('phieu_xuat_hang_tong')->onDelete('cascade');
+            $table->foreignId('phieu_xuat_hang_tong_id')->nullable()->constrained('phieu_xuat_hang_tong')->onDelete('cascade');
             $table->foreignId('diem_ban_id')->constrained('diem_ban');
             $table->foreignId('nguoi_nhan_id')->nullable()->constrained('nguoi_dung'); // Nhân viên nhận hàng
             

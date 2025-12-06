@@ -56,6 +56,7 @@
                         </x-sort-icon>
                     </th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Địa chỉ</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Loại ĐL</th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Trạng thái</th>
                     <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Thao tác</th>
                 </tr>
@@ -67,6 +68,17 @@
                         <td class="px-6 py-4 text-sm text-gray-900">{{ $agency->ten_diem_ban }}</td>
                         <td class="px-6 py-4 text-sm text-gray-500">{{ $agency->dia_chi }}</td>
                         <td class="px-6 py-4">
+                            @if($agency->loai_dai_ly === 'rieng_tu')
+                                <span class="px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-800">
+                                    🏠 Riêng tư
+                                </span>
+                            @else
+                                <span class="px-2 py-1 text-xs rounded-full bg-orange-100 text-orange-800">
+                                    📍 Vỉa hè
+                                </span>
+                            @endif
+                        </td>
+                        <td class="px-6 py-4">
                             <span class="px-2 py-1 text-xs rounded-full {{ $agency->trang_thai === 'hoat_dong' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800' }}">
                                 {{ $agency->trang_thai === 'hoat_dong' ? 'Hoạt động' : 'Đóng cửa' }}
                             </span>
@@ -77,7 +89,7 @@
                         </td>
                     </tr>
                 @empty
-                    <tr><td colspan="5" class="px-6 py-12 text-center text-gray-500">Không có điểm bán nào</td></tr>
+                    <tr><td colspan="6" class="px-6 py-12 text-center text-gray-500">Không có điểm bán nào</td></tr>
                 @endforelse
             </tbody>
         </table>

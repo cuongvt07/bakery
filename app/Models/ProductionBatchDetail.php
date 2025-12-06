@@ -18,6 +18,7 @@ class ProductionBatchDetail extends Model
         'so_luong_thuc_te',
         'ti_le_hong',
         'ghi_chu',
+        'han_su_dung',
     ];
 
     protected $casts = [
@@ -25,6 +26,7 @@ class ProductionBatchDetail extends Model
         'so_luong_that_bai' => 'integer',
         'so_luong_thuc_te' => 'integer',
         'ti_le_hong' => 'decimal:2',
+        'han_su_dung' => 'date',
     ];
 
     // Relationships
@@ -79,5 +81,41 @@ class ProductionBatchDetail extends Model
             ->sum('so_luong');
         
         return $this->so_luong_thuc_te - $distributed;
+    }
+
+    public function calculateAndSetHSD(): void
+    {
+        if (!$this->product || !$this->batch) {
+            return;
+        }
+
+        $ngaySanXuat = $this->batch->ngay_san_xuat;
+        $soNgayHSD = $this->product->so_ngay_hsd ?? 3;
+        
+        $this->han_su_dung = $ngaySanXuat->copy()->addDays($soNgayHSD);
+        $this->save();
+    }
+
+    public function isExpired(): bool
+    {
+        if (!$this->han_su_dung) {
+            return false;
+        }
+
+        return now()->greaterThan($this->han_su_dung);
+    }
+
+    public function daysUntilExpiry(): int
+    {
+        if (!$this->han_su_dung) {
+            return 999; // Arbitrarily large number
+        }
+
+        return (int) now()->diffInDays($this->han_su_dung, false);
+    }
+
+    public function isNearExpiry(): bool
+    {
+        return $this->daysUntilExpiry() <= 1 && !$this->isExpired();
     }
 }

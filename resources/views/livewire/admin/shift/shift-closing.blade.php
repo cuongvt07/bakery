@@ -45,18 +45,9 @@
                 </div>
                 <div class="p-4 space-y-4">
                     <div>
-                        <label class="block text-sm font-medium text-gray-600 mb-1">Tiền mặt thực tế</label>
+                        <label class="block text-sm font-medium text-gray-600 mb-1">Tổng tiền mặt đang giữ</label>
                         <div class="relative">
                             <input type="number" inputmode="numeric" wire:model.live="tienMat" class="block w-full pl-4 pr-12 py-3 text-lg border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 shadow-sm" placeholder="0">
-                            <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-                                <span class="text-gray-500 font-bold">đ</span>
-                            </div>
-                        </div>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-600 mb-1">Tiền chuyển khoản</label>
-                        <div class="relative">
-                            <input type="number" inputmode="numeric" wire:model.live="tienChuyenKhoan" class="block w-full pl-4 pr-12 py-3 text-lg border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 shadow-sm" placeholder="0">
                             <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
                                 <span class="text-gray-500 font-bold">đ</span>
                             </div>
@@ -86,6 +77,28 @@
                             </div>
                         @endif
                     </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- SECTION 1.5: THỐNG KÊ ĐƠN HÀNG -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                <div class="bg-gray-50 px-4 py-3 border-b border-gray-100">
+                    <h3 class="font-bold text-gray-800 text-sm">📊 Thống Kê Đơn Hàng</h3>
+                </div>
+                <div class="p-4 space-y-2">
+                    <div class="flex justify-between items-center text-sm">
+                        <span class="text-gray-600">💵 Đơn tiền mặt:</span>
+                        <span class="font-semibold text-green-600">{{ $cashSalesCount }} đơn - {{ number_format($cashSalesTotal) }}đ</span>
+                    </div>
+                    <div class="flex justify-between items-center text-sm">
+                        <span class="text-gray-600">💳 Đơn chuyển khoản:</span>
+                        <span class="font-semibold text-blue-600">{{ $transferSalesCount }} đơn - {{ number_format($transferSalesTotal) }}đ</span>
+                    </div>
+                    <div class="pt-2 mt-2 border-t flex justify-between items-center font-bold">
+                        <span class="text-gray-800">Tổng:</span>
+                        <span class="text-indigo-600">{{ $cashSalesCount + $transferSalesCount }} đơn - {{ number_format($cashSalesTotal + $transferSalesTotal) }}đ</span>
+                    </div>
                 </div>
             </div>
 
@@ -94,23 +107,42 @@
                 <div class="bg-gray-50 px-4 py-3 border-b border-gray-100 flex items-center justify-between">
                     <div class="flex items-center">
                         <span class="bg-indigo-100 text-indigo-800 text-xs font-bold px-2 py-1 rounded mr-2">2</span>
-                        <h2 class="font-bold text-gray-800">Kiểm Kê Kho</h2>
+                        <h2 class="font-bold text-gray-800">Kiểm Kê Số Lượng</h2>
                     </div>
-                    <span class="text-xs text-gray-500">{{ count($products) }} sản phẩm</span>
+                    <button 
+                        onclick="copyReport()" 
+                        class="bg-blue-500 hover:bg-blue-600 text-white text-xs font-semibold px-3 py-1.5 rounded-lg flex items-center gap-1 active:scale-95 transition-all"
+                    >
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                        </svg>
+                        Copy
+                    </button>
                 </div>
+                
+                <script>
+                function copyReport() {
+                    const report = @js($this->generateReport());
+                    navigator.clipboard.writeText(report).then(() => {
+                        alert('✅ Đã copy báo cáo!');
+                    }).catch(() => {
+                        alert('❌ Không thể copy. Vui lòng thử lại!');
+                    });
+                }
+                </script>
                 <div class="divide-y divide-gray-100">
                     @foreach($products as $p)
                         <div class="p-4 flex items-center justify-between">
                             <div class="flex-1 pr-4">
-                                <h3 class="font-medium text-gray-900">{{ $p->ten_san_pham }}</h3>
+                                <h3 class="font-medium text-gray-900">{{ $p['ten_san_pham'] }}</h3>
                                 <div class="flex text-xs text-gray-500 mt-1 space-x-3">
-                                    <span>Đầu ca: <strong class="text-gray-700">{{ $p->ton_dau_ca }}</strong></span>
-                                    <span>Giá: {{ number_format($p->gia_ban/1000) }}k</span>
+                                    <span>Đầu ca: <strong class="text-gray-700">{{ $p['ton_dau_ca'] }}</strong></span>
+                                    <span>Giá: {{ number_format($p['gia_ban']/1000) }}k</span>
                                 </div>
                             </div>
                             <div class="flex flex-col items-end">
                                 <label class="text-xs text-gray-500 mb-1">Tồn cuối</label>
-                                <input type="number" inputmode="numeric" wire:model.live="closingStock.{{ $p->id }}" class="w-20 text-center border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 py-2 text-lg font-bold" placeholder="0">
+                                <input type="number" inputmode="numeric" step="0.01" wire:model="closingStock.{{ $p['id'] }}" class="w-20 text-center border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 py-2 text-lg font-bold" placeholder="0">
                             </div>
                         </div>
                     @endforeach

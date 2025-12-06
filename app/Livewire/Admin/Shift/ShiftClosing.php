@@ -38,12 +38,25 @@ class ShiftClosing extends Component
             ->first();
             
         if (!$this->shift) {
-            return;
+            session()->flash('error', 'Không có ca làm việc nào đang hoạt động!');
+            return $this->redirect(route('admin.shift.check-in'));
+        }
+        
+        // 2. If checked in but not explicitly closing, redirect to POS
+        // User should be at POS selling, not at closing page by accident
+        if ($this->shift->trang_thai_checkin && !request()->has('confirm_closing')) {
+            return $this->redirect('/admin/pos');
+        }
+        
+        // 3. Must be checked in to close shift
+        if (!$this->shift->trang_thai_checkin) {
+            session()->flash('error', 'Vui lòng check-in trước khi chốt ca!');
+            return $this->redirect(route('admin.shift.check-in'));
         }
         
         $this->shiftId = $this->shift->id;
         
-        // 2. Load products and opening stock from ChiTietCaLam (Confirmed at Check-in)
+        // 4. Load products and their current remaining stock
         $details = ChiTietCaLam::where('ca_lam_viec_id', $this->shiftId)
             ->join('san_pham', 'chi_tiet_ca_lam.san_pham_id', '=', 'san_pham.id')
             ->select(
@@ -51,23 +64,62 @@ class ShiftClosing extends Component
                 'san_pham.ten_san_pham', 
                 'san_pham.ma_san_pham', 
                 'san_pham.gia_ban',
-                'chi_tiet_ca_lam.so_luong_nhan_ca as ton_dau_ca'
+                'chi_tiet_ca_lam.so_luong_nhan_ca as ton_dau_ca',
+                'chi_tiet_ca_lam.so_luong_con_lai as so_luong_con_lai'
             )
-            ->get();
+            ->get()
+            ->map(function($item) {
+                return [
+                    'id' => $item->id,
+                    'ten_san_pham' => $item->ten_san_pham,
+                    'ma_san_pham' => $item->ma_san_pham,
+                    'gia_ban' => $item->gia_ban,
+                    'ton_dau_ca' => $item->ton_dau_ca,
+                    'so_luong_con_lai' => $item->so_luong_con_lai,
+                ];
+            })
+            ->toArray();
             
         $this->products = $details;
         
-        // 3. Initialize inputs
-        foreach ($this->products as $p) {
-            $this->closingStock[$p->id] = $p->ton_dau_ca; // Default to opening stock
+        // 5. Auto-fill with remaining stock ONLY if not already set
+        // This prevents resetting user's manual edits
+        if (empty($this->closingStock)) {
+            foreach ($this->products as $p) {
+                $this->closingStock[$p['id']] = $p['so_luong_con_lai']; // Auto-fill with current remaining
+            }
         }
+        
+        // 6. Load sales summary
+        $this->loadSalesSummary();
         
         $this->calculate();
     }
     
+    public $cashSalesCount = 0;
+    public $transferSalesCount = 0;
+    public $cashSalesTotal = 0;
+    public $transferSalesTotal = 0;
+    
+    public function loadSalesSummary()
+    {
+        // Get all confirmed pending sales for this shift
+        $sales = \App\Models\PendingSale::where('ca_lam_viec_id', $this->shiftId)
+            ->where('trang_thai', 'confirmed')
+            ->get();
+        
+        $this->cashSalesCount = $sales->where('phuong_thuc_thanh_toan', 'tien_mat')->count();
+        $this->transferSalesCount = $sales->where('phuong_thuc_thanh_toan', 'chuyen_khoan')->count();
+        $this->cashSalesTotal = $sales->where('phuong_thuc_thanh_toan', 'tien_mat')->sum('tong_tien');
+        $this->transferSalesTotal = $sales->where('phuong_thuc_thanh_toan', 'chuyen_khoan')->sum('tong_tien');
+    }
+    
     public function updated($propertyName)
     {
-        $this->calculate();
+        // Only recalculate when money-related fields change, NOT when stock changes
+        if (str_starts_with($propertyName, 'tienMat') || str_starts_with($propertyName, 'tienChuyenKhoan')) {
+            $this->calculate();
+        }
     }
     
     public function calculate()
@@ -76,18 +128,64 @@ class ShiftClosing extends Component
         $this->soldQuantities = [];
         
         foreach ($this->products as $p) {
-            $opening = $p->ton_dau_ca;
-            $closing = (float) ($this->closingStock[$p->id] ?? 0);
+            $opening = $p['ton_dau_ca'];
+            $closing = (float) ($this->closingStock[$p['id']] ?? 0);
             
             $sold = $opening - $closing;
-            $this->soldQuantities[$p->id] = $sold;
+            $this->soldQuantities[$p['id']] = $sold;
             
-            $revenue = $sold * $p->gia_ban;
+            $revenue = $sold * $p['gia_ban'];
             $this->totalTheoretical += $revenue;
         }
         
-        $this->totalActual = (float)$this->tienMat + (float)$this->tienChuyenKhoan;
+        // Actual = (Cash holding - Opening cash) + Transfer sales total
+        // Transfer payments are already recorded, we just add them to reconciliation
+        $cashHolding = (float)$this->tienMat;
+        $openingCash = (float)($this->shift->tien_mat_dau_ca ?? 0);
+        $transferTotal = (float)$this->transferSalesTotal;
+        
+        $this->totalActual = ($cashHolding - $openingCash) + $transferTotal;
+        
         $this->discrepancy = $this->totalActual - $this->totalTheoretical;
+    }
+    
+    // Generate text report for easy copy-paste
+    public function generateReport()
+    {
+        $cashHolding = (float)($this->tienMat ?? 0);
+        $openingCash = (float)($this->shift->tien_mat_dau_ca ?? 0);
+        $cashRevenue = $cashHolding - $openingCash;
+        
+        $report = "📊 BÁO CÁO CHỐT CA\n\n";
+        
+        // Cash breakdown
+        $report .= "💰 TIỀN MẶT:\n";
+        $report .= "- Tiền đầu ca: " . number_format($openingCash/1000, 0) . "k\n";
+        $report .= "- Tiền đang giữ: " . number_format($cashHolding/1000, 0) . "k\n";
+        $report .= "- Doanh thu TM: " . number_format($cashRevenue/1000, 0) . "k\n";
+        
+        // Transfer info
+        if ($this->transferSalesCount > 0) {
+            $report .= "\n💳 CHUYỂN KHOẢN:\n";
+            $report .= "- " . $this->transferSalesCount . " đơn - " . number_format($this->transferSalesTotal/1000, 0) . "k\n";
+        }
+        
+        // Stock list
+        $report .= "\n📦 TỒN KHO:\n";
+        foreach ($this->products as $p) {
+            $remaining = intval($this->closingStock[$p['id']] ?? 0);
+            if ($remaining > 0) {
+                $report .= "Còn {$remaining} " . $p['ten_san_pham'] . "\n";
+            }
+        }
+        
+        // Total reconciliation
+        $report .= "\n📝 ĐỐI SOÁT:\n";
+        $report .= "- Lý thuyết: " . number_format($this->totalTheoretical/1000, 0) . "k\n";
+        $report .= "- Thực tế: " . number_format($this->totalActual/1000, 0) . "k\n";
+        $report .= "- Chênh lệch: " . number_format($this->discrepancy/1000, 0) . "k" . ($this->discrepancy == 0 ? " ✅" : "") . "\n";
+        
+        return $report;
     }
     
     use \Livewire\WithFileUploads;
@@ -138,8 +236,8 @@ class ShiftClosing extends Component
             $tonDau = [];
             $tonCuoi = [];
             foreach ($this->products as $p) {
-                $tonDau[$p->id] = $p->ton_dau_ca;
-                $tonCuoi[$p->id] = $this->closingStock[$p->id];
+                $tonDau[$p['id']] = $p['ton_dau_ca'];
+                $tonCuoi[$p['id']] = $this->closingStock[$p['id']];
             }
             
             $phieu->ton_dau_ca = json_encode($tonDau);
@@ -155,20 +253,20 @@ class ShiftClosing extends Component
             
             // 3. Update ChiTietCaLam (Closing Stock & Sold)
             foreach ($this->products as $p) {
-                $sold = $this->soldQuantities[$p->id] ?? 0;
+                $sold = $this->soldQuantities[$p['id']] ?? 0;
                 ChiTietCaLam::where('ca_lam_viec_id', $this->shiftId)
-                    ->where('san_pham_id', $p->id)
+                    ->where('san_pham_id', $p['id'])
                     ->update([
-                        'so_luong_giao_ca' => $this->closingStock[$p->id],
+                        'so_luong_giao_ca' => $this->closingStock[$p['id']],
                         'so_luong_ban' => $sold
                     ]);
                     
                 // Update Daily Stock (TonKhoDiemBan) as well to keep it in sync
                 DB::table('ton_kho_diem_ban')
                     ->where('diem_ban_id', $this->shift->diem_ban_id)
-                    ->where('san_pham_id', $p->id)
+                    ->where('san_pham_id', $p['id'])
                     ->where('ngay', Carbon::today())
-                    ->update(['ton_cuoi_ca' => $this->closingStock[$p->id]]);
+                    ->update(['ton_cuoi_ca' => $this->closingStock[$p['id']]]);
             }
         });
         
@@ -189,8 +287,8 @@ class ShiftClosing extends Component
         
         $text .= "📦 TỒN KHO:\n";
         foreach ($this->products as $p) {
-            $sold = $this->soldQuantities[$p->id] ?? 0;
-            $text .= "- {$p->ten_san_pham}: Bán $sold (Còn {$this->closingStock[$p->id]})\n";
+            $sold = $this->soldQuantities[$p['id']] ?? 0;
+            $text .= "- {$p['ten_san_pham']}: Bán $sold (Còn {$this->closingStock[$p['id']]})\n";
         }
         
         $text .= "\n💰 DOANH THU:\n";
