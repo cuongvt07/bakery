@@ -8,8 +8,8 @@
 </head>
 <body class="bg-gray-100 font-sans antialiased">
     <div class="min-h-screen flex">
-        <!-- Sidebar (hidden for employees) -->
-        @if(auth()->check() && auth()->user()->vai_tro !== 'nhan_vien')
+        <!-- Sidebar (always visible, can be toggled) -->
+        @if(auth()->check())
             <x-admin.sidebar />
         @endif
         
