@@ -8,7 +8,12 @@
                 </svg>
                 Chốt Ca Làm Việc
             </h1>
-            <span class="text-xs bg-indigo-500 px-2 py-1 rounded-full">{{ now()->format('d/m') }}</span>
+            <a href="/admin/pos" class="bg-white text-indigo-600 px-3 py-1.5 rounded-lg font-semibold text-sm hover:bg-indigo-50 transition-colors flex items-center gap-1">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                </svg>
+                POS
+            </a>
         </div>
         @if($shift)
             <div class="mt-2 text-indigo-100 text-xs flex justify-between">
@@ -53,32 +58,7 @@
                             </div>
                         </div>
                     </div>
-                    
-                    <!-- Upload Ảnh Két Tiền -->
-                    <div>
-                        <label class="block text-sm font-medium text-gray-600 mb-1">Ảnh két tiền / Bill CK</label>
-                        <div class="flex items-center justify-center w-full">
-                            <label class="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100">
-                                <div class="flex flex-col items-center justify-center pt-5 pb-6">
-                                    <svg class="w-8 h-8 mb-4 text-gray-500" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 16">
-                                        <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 13h3a3 3 0 0 0 0-6h-.025A5.56 5.56 0 0 0 16 6.5 5.5 5.5 0 0 0 5.207 5.021C5.137 5.017 5.071 5 5 5a4 4 0 0 0 0 8h2.167M10 15V6m0 0L8 8m2-2 2 2"/>
-                                    </svg>
-                                    <p class="text-xs text-gray-500"><span class="font-semibold">Chạm để tải ảnh</span></p>
-                                    <p class="text-xs text-gray-500">Tối đa 5 ảnh</p>
-                                </div>
-                                <input type="file" wire:model="photosCash" multiple class="hidden" accept="image/*" />
-                            </label>
-                        </div>
-                        @if($photosCash)
-                            <div class="mt-2 flex gap-2 overflow-x-auto">
-                                @foreach($photosCash as $photo)
-                                    <img src="{{ $photo->temporaryUrl() }}" class="h-16 w-16 object-cover rounded border">
-                                @endforeach
-                            </div>
-                        @endif
-                    </div>
-                    </div>
-                </div>
+                </div> 
             </div>
             
             <!-- SECTION 1.5: THỐNG KÊ ĐƠN HÀNG -->
@@ -185,35 +165,43 @@
                     </button>
                 </div>
                 <div class="p-4">
-                    <div class="grid grid-cols-2 gap-4 mb-4">
-                        <div class="bg-gray-50 p-3 rounded-lg">
-                            <p class="text-xs text-gray-500 mb-1">Lý thuyết</p>
-                            <p class="text-lg font-bold text-gray-900">{{ number_format($totalTheoretical) }}</p>
-                        </div>
-                        <div class="bg-blue-50 p-3 rounded-lg">
-                            <p class="text-xs text-blue-500 mb-1">Thực tế</p>
-                            <p class="text-lg font-bold text-blue-700">{{ number_format($totalActual) }}</p>
+                    
+                    <!-- Expected Cash Display -->
+                    <div class="bg-yellow-50 p-3 rounded-lg mb-4 border border-yellow-200">
+                        <div class="flex justify-between items-center">
+                            <div>
+                                <p class="text-xs text-yellow-600 font-medium mb-1">💰 TM lý thuyết phải có</p>
+                                <p class="text-xs text-gray-500">
+                                    Đầu ca: {{ number_format($shift->tien_mat_dau_ca ?? 0) }}đ + 
+                                    Đơn TM: {{ number_format($cashSalesTotal) }}đ
+                                </p>
+                            </div>
+                            <p class="text-2xl font-bold text-yellow-700">{{ number_format($expectedCash) }}</p>
                         </div>
                     </div>
                     
-                    <div class="border-t border-dashed pt-4">
-                        <div class="flex justify-between items-center">
-                            <span class="text-sm font-medium text-gray-700">Chênh lệch:</span>
-                            <span class="text-xl font-bold {{ $discrepancy < 0 ? 'text-red-600' : ($discrepancy > 0 ? 'text-green-600' : 'text-gray-900') }}">
-                                {{ number_format($discrepancy) }} đ
-                            </span>
+                    @php
+                        $cashDiscrepancy = (float)($tienMat ?: 0) - $expectedCash;
+                    @endphp
+                    
+                    @if(abs($cashDiscrepancy) > 0)
+                        <div class="mt-3 bg-red-50 border border-red-200 rounded-lg p-3">
+                            <div class="flex justify-between items-center">
+                                <span class="text-sm font-medium text-red-700">⚠️ Chênh lệch:</span>
+                                <span class="text-xl font-bold text-red-600">{{ number_format($cashDiscrepancy) }}đ</span>
+                            </div>
+                            <p class="text-xs text-red-600 mt-1">
+                                {{ $cashDiscrepancy < 0 ? 'Thiếu tiền' : 'Thừa tiền' }} - Vui lòng kiểm tra lại hoặc ghi chú lý do
+                            </p>
                         </div>
-                        @if($discrepancy != 0)
-                            <p class="text-right text-xs mt-1 {{ $discrepancy < 0 ? 'text-red-500' : 'text-green-500' }}">
-                                {{ $discrepancy < 0 ? 'Thiếu tiền' : 'Thừa tiền' }}
+                    @else
+                        <div class="mt-3 bg-green-50 border border-green-200 rounded-lg p-3">
+                            <p class="text-sm font-medium text-green-700 flex items-center">
+                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                ✅ Đúng số tiền
                             </p>
-                        @else
-                            <p class="text-right text-xs mt-1 text-green-600 flex items-center justify-end">
-                                <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                                Khớp số liệu
-                            </p>
-                        @endif
-                    </div>
+                        </div>
+                    @endif
 
                     <div class="mt-4">
                         <textarea wire:model="ghiChu" rows="2" class="w-full border-gray-300 rounded-lg text-sm focus:ring-indigo-500 focus:border-indigo-500" placeholder="Ghi chú (nếu có)..."></textarea>

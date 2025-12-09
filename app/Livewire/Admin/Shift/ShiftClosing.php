@@ -27,6 +27,7 @@ class ShiftClosing extends Component
     // Calculated
     public $totalTheoretical = 0;
     public $totalActual = 0;
+    public $expectedCash = 0; // Opening cash + cash sales
     public $discrepancy = 0;
     public $soldQuantities = []; // [product_id => quantity]
 
@@ -56,26 +57,19 @@ class ShiftClosing extends Component
         
         $this->shiftId = $this->shift->id;
         
-        // 4. Load products and their current remaining stock
+        // 4. Load products using Eloquent with accessor
         $details = ChiTietCaLam::where('ca_lam_viec_id', $this->shiftId)
-            ->join('san_pham', 'chi_tiet_ca_lam.san_pham_id', '=', 'san_pham.id')
-            ->select(
-                'san_pham.id', 
-                'san_pham.ten_san_pham', 
-                'san_pham.ma_san_pham', 
-                'san_pham.gia_ban',
-                'chi_tiet_ca_lam.so_luong_nhan_ca as ton_dau_ca',
-                'chi_tiet_ca_lam.so_luong_con_lai as so_luong_con_lai'
-            )
+            ->with('sanPham')
             ->get()
             ->map(function($item) {
                 return [
-                    'id' => $item->id,
-                    'ten_san_pham' => $item->ten_san_pham,
-                    'ma_san_pham' => $item->ma_san_pham,
-                    'gia_ban' => $item->gia_ban,
-                    'ton_dau_ca' => $item->ton_dau_ca,
-                    'so_luong_con_lai' => $item->so_luong_con_lai,
+                    'id' => $item->san_pham_id,
+                    'ten_san_pham' => $item->sanPham->ten_san_pham,
+                    'ma_san_pham' => $item->sanPham->ma_san_pham,
+                    'gia_ban' => $item->sanPham->gia_ban,
+                    'ton_dau_ca' => $item->so_luong_nhan_ca,
+                    'so_luong_ban' => $item->so_luong_ban,
+                    'so_luong_con_lai' => $item->so_luong_con_lai, // Use accessor
                 ];
             })
             ->toArray();
@@ -138,13 +132,16 @@ class ShiftClosing extends Component
             $this->totalTheoretical += $revenue;
         }
         
-        // Actual = (Cash holding - Opening cash) + Transfer sales total
-        // Transfer payments are already recorded, we just add them to reconciliation
-        $cashHolding = (float)$this->tienMat;
+        // Expected Cash = Opening Cash + Cash Sales Total (from confirmed orders)
         $openingCash = (float)($this->shift->tien_mat_dau_ca ?? 0);
+        $cashSalesTotal = (float)$this->cashSalesTotal; // From confirmed pending sales
+        $this->expectedCash = $openingCash + $cashSalesTotal;
+        
+        // Actual Total = Cash Holding + Transfer Total
+        $cashHolding = (float)$this->tienMat;
         $transferTotal = (float)$this->transferSalesTotal;
         
-        $this->totalActual = ($cashHolding - $openingCash) + $transferTotal;
+        $this->totalActual = $cashHolding + $transferTotal;
         
         $this->discrepancy = $this->totalActual - $this->totalTheoretical;
     }
@@ -280,30 +277,37 @@ class ShiftClosing extends Component
         $shiftName = "Ca " . ($this->shift->gio_bat_dau < '12:00:00' ? 'Sáng' : 'Chiều');
         $userName = Auth::user()->ho_ten;
         
-        $text = "BÁO CÁO CHỐT CA - $date\n";
-        $text .= "--------------------------------\n";
+        $text = "📊 BÁO CÁO CHỐT CA - $date\n";
+        $text .= "━━━━━━━━━━━━━━━━━━━━\n";
         $text .= "👤 Nhân viên: $userName\n";
         $text .= "🕒 $shiftName\n\n";
         
-        $text .= "📦 TỒN KHO:\n";
+        $text .= "💰 TIỀN MẶT\n";
+        $text .= "Hiện tại: " . number_format($this->tienMat) . "đ\n\n";
+        
+        $text .= "📝 ĐƠN HÀNG\n";
+        $text .= "💵 TM: {$this->cashSalesCount} đơn - " . number_format($this->cashSalesTotal) . "đ\n";
+        $text .= "💳 CK: {$this->transferSalesCount} đơn - " . number_format($this->transferSalesTotal) . "đ\n\n";
+        
+        $text .= "📦 TỒN KHO (So với đầu ca)\n";
         foreach ($this->products as $p) {
-            $sold = $this->soldQuantities[$p['id']] ?? 0;
-            $text .= "- {$p['ten_san_pham']}: Bán $sold (Còn {$this->closingStock[$p['id']]})\n";
+            $dauCa = $p['ton_dau_ca'];
+            $cuoiCa = $this->closingStock[$p['id']] ?? 0;
+            $ban = $dauCa - $cuoiCa;
+            
+            $text .= "• {$p['ten_san_pham']}: {$cuoiCa} (bán {$ban})\n";
         }
         
-        $text .= "\n💰 DOANH THU:\n";
-        $text .= "- Tiền mặt: " . number_format($this->tienMat) . " đ\n";
-        $text .= "- Chuyển khoản: " . number_format($this->tienChuyenKhoan) . " đ\n";
-        $text .= "- Tổng thực tế: " . number_format($this->totalActual) . " đ\n";
-        
-        if ($this->discrepancy != 0) {
-            $status = $this->discrepancy > 0 ? "DƯ" : "THIẾU";
-            $text .= "\n⚠️ LỆCH: " . number_format(abs($this->discrepancy)) . " đ ($status)\n";
-        } else {
-            $text .= "\n✅ Khớp doanh thu\n";
+        if (!empty($this->ghiChu)) {
+            $text .= "\n📌 GHI CHÚ\n";
+            $text .= $this->ghiChu . "\n";
         }
         
         $this->dispatch('copy-to-clipboard', text: $text);
+        $this->dispatch('show-alert', [
+            'type' => 'success',
+            'message' => 'Đã copy báo cáo!'
+        ]);
     }
 
     public function render()

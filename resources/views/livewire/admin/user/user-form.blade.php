@@ -9,6 +9,20 @@
     <div class="bg-white rounded-lg shadow overflow-hidden p-6">
         <form wire:submit="save">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Mã nhân viên (Auto-generated, Readonly) -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        Mã nhân viên 
+                        <span class="text-xs text-gray-500">(Tự động)</span>
+                    </label>
+                    <input 
+                        type="text" 
+                        wire:model="ma_nhan_vien" 
+                        readonly
+                        class="w-full px-4 py-2 border border-gray-300 rounded-md bg-gray-100 text-gray-600 cursor-not-allowed"
+                    >
+                </div>
+
                 <!-- Họ tên -->
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Họ Tên</label>

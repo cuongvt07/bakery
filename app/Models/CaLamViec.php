@@ -17,11 +17,17 @@ class CaLamViec extends Model
         'gio_bat_dau',
         'gio_ket_thuc',
         'trang_thai',
+        'trang_thai_checkin',
+        'thoi_gian_checkin',
+        'tien_mat_dau_ca',
         'ghi_chu',
     ];
 
     protected $casts = [
         'ngay_lam' => 'date',
+        'trang_thai_checkin' => 'boolean',
+        'thoi_gian_checkin' => 'datetime',
+        'tien_mat_dau_ca' => 'decimal:2',
     ];
 
     /**

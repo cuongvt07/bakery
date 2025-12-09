@@ -4,10 +4,11 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Traits\HasUniqueCode;
 
 class Product extends Model
 {
-    use HasFactory;
+    use HasFactory, HasUniqueCode;
 
     protected $table = 'san_pham';
 
@@ -28,6 +29,19 @@ class Product extends Model
         'gia_ban' => 'decimal:2',
         'so_luong_quy_doi' => 'integer',
     ];
+
+    /**
+     * Code generation config
+     */
+    public function getCodePrefix(): string
+    {
+        return 'SP'; // Sản phẩm
+    }
+
+    public function getCodeLength(): int
+    {
+        return 4; // SP0001, SP0002, ...
+    }
 
     public function category()
     {

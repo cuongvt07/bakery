@@ -18,7 +18,7 @@
     </div>
 
     <div class="bg-white rounded-lg shadow-sm p-4 mb-6">
-        <x-search-bar placeholder="Tìm theo tên, mã, SĐT, email..." />
+        <x-search-bar placeholder="Tìm theo tên, mã, người đại diện, SĐT, Zalo..." />
     </div>
 
     <div class="bg-white rounded-lg shadow-sm overflow-hidden relative">
@@ -33,43 +33,110 @@
             <div class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4">{{ session('message') }}</div>
         @endif
         
-        <table class="min-w-full divide-y divide-gray-200">
-            <thead class="bg-gray-50">
-                <tr>
-                    <th class="px-6 py-3 text-left">
-                        <x-sort-icon field="ma_ncc" :currentField="$sortField" :direction="$sortDirection">
-                            <span class="text-xs font-medium text-gray-500 uppercase">Mã NCC</span>
-                        </x-sort-icon>
-                    </th>
-                    <th class="px-6 py-3 text-left">
-                        <x-sort-icon field="ten_ncc" :currentField="$sortField" :direction="$sortDirection">
-                            <span class="text-xs font-medium text-gray-500 uppercase">Tên NCC</span>
-                        </x-sort-icon>
-                    </th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">SĐT</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
-                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Thao tác</th>
-                </tr>
-            </thead>
-            <tbody class="bg-white divide-y divide-gray-200">
-                @forelse ($suppliers as $supplier)
-                    <tr class="hover:bg-gray-50">
-                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-indigo-600">{{ $supplier->ma_ncc }}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $supplier->ten_ncc }}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ $supplier->so_dien_thoai ?? '-' }}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ $supplier->email ?? '-' }}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                            <a href="{{ route('admin.suppliers.edit', $supplier->id) }}" class="text-yellow-600 hover:text-yellow-900 mr-3">Sửa</a>
-                            <button wire:click="delete({{ $supplier->id }})" wire:confirm="Xóa NCC này?" class="text-red-600 hover:text-red-900">Xóa</button>
-                        </td>
-                    </tr>
-                @empty
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
                     <tr>
-                        <td colspan="5" class="px-6 py-12 text-center text-gray-500">Không có nhà cung cấp nào</td>
+                        <th class="px-3 py-3 text-left w-24">
+                            <x-sort-icon field="ma_ncc" :currentField="$sortField" :direction="$sortDirection">
+                                <span class="text-xs font-medium text-gray-500 uppercase">Mã NCC</span>
+                            </x-sort-icon>
+                        </th>
+                        <th class="px-3 py-3 text-left">
+                            <x-sort-icon field="ten_ncc" :currentField="$sortField" :direction="$sortDirection">
+                                <span class="text-xs font-medium text-gray-500 uppercase">Tên NCC</span>
+                            </x-sort-icon>
+                        </th>
+                        <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase w-32">Người đại diện</th>
+                        <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase w-32">SĐT Zalo</th>
+                        <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Sản phẩm</th>
+                        <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nội dung thỏa thuận</th>
+                        <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ghi chú</th>
+                        <th class="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase w-24">Thao tác</th>
                     </tr>
-                @endforelse
-            </tbody>
-        </table>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    @forelse ($suppliers as $supplier)
+                        <tr class="hover:bg-gray-50">
+                            <!-- Mã NCC -->
+                            <td class="px-3 py-3 whitespace-nowrap text-sm font-mono text-indigo-600">
+                                {{ $supplier->ma_ncc }}
+                            </td>
+                            
+                            <!-- Tên NCC -->
+                            <td class="px-3 py-3 text-sm">
+                                <div class="font-medium text-gray-900">{{ $supplier->ten_ncc }}</div>
+                            </td>
+                            
+                            <!-- Người đại diện -->
+                            <td class="px-3 py-3 text-sm text-gray-600">
+                                {{ $supplier->nguoi_dai_dien ?? '-' }}
+                            </td>
+                            
+                            <!-- SĐT Zalo -->
+                            <td class="px-3 py-3 text-sm text-gray-600">
+                                @if($supplier->so_dien_thoai_zalo)
+                                    <div class="flex items-center gap-1">
+                                        <span>💬</span>
+                                        <span>{{ $supplier->so_dien_thoai_zalo }}</span>
+                                    </div>
+                                @elseif($supplier->so_dien_thoai)
+                                    <div class="flex items-center gap-1">
+                                        <span>📞</span>
+                                        <span>{{ $supplier->so_dien_thoai }}</span>
+                                    </div>
+                                @else
+                                    <span class="text-gray-400">-</span>
+                                @endif
+                            </td>
+                            
+                            <!-- Sản phẩm -->
+                            <td class="px-3 py-3 text-sm text-gray-600">
+                                @if($supplier->san_pham_cung_cap)
+                                    <div class="max-w-xs truncate" title="{{ $supplier->san_pham_cung_cap }}">
+                                        {{ $supplier->san_pham_cung_cap }}
+                                    </div>
+                                @else
+                                    <span class="text-gray-400">-</span>
+                                @endif
+                            </td>
+                            
+                            <!-- Nội dung thỏa thuận -->
+                            <td class="px-3 py-3 text-sm text-gray-600">
+                                @if($supplier->noi_dung_thoa_thuan)
+                                    <span title="{{ $supplier->noi_dung_thoa_thuan }}">
+                                        {{ Str::limit($supplier->noi_dung_thoa_thuan, 25) }}
+                                    </span>
+                                @else
+                                    <span class="text-gray-400">-</span>
+                                @endif
+                            </td>
+                            
+                            <!-- Ghi chú -->
+                            <td class="px-3 py-3 text-sm text-gray-500">
+                                @if($supplier->ghi_chu)
+                                    <span title="{{ $supplier->ghi_chu }}">
+                                        {{ Str::limit($supplier->ghi_chu, 25) }}
+                                    </span>
+                                @else
+                                    <span class="text-gray-400">-</span>
+                                @endif
+                            </td>
+                            
+                            <!-- Thao tác -->
+                            <td class="px-3 py-3 whitespace-nowrap text-right text-sm font-medium">
+                                <a href="{{ route('admin.suppliers.edit', $supplier->id) }}" class="text-yellow-600 hover:text-yellow-900 mr-3">Sửa</a>
+                                <button wire:click="delete({{ $supplier->id }})" wire:confirm="Xóa NCC này?" class="text-red-600 hover:text-red-900">Xóa</button>
+                            </td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="8" class="px-6 py-12 text-center text-gray-500">Không có nhà cung cấp nào</td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
         <div class="px-4 py-3 border-t">
             <x-pagination-controls :paginator="$suppliers" />
         </div>

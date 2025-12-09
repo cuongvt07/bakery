@@ -16,6 +16,10 @@ class PendingSalesList extends Component
     public $pendingSales = [];
     public $selected = [];
     public $selectAll = false;
+    
+    // For cumulative cash calculation
+    public $openingCash = 0;
+    public $confirmedCashTotal = 0;
 
     public function mount()
     {
@@ -28,6 +32,15 @@ class PendingSalesList extends Component
             session()->flash('error', 'Bạn chưa có ca làm việc nào!');
             return redirect()->route('admin.shift.check-in');
         }
+        
+        // Calculate opening cash
+        $this->openingCash = $this->shift->tien_mat_dau_ca ?? 0;
+        
+        // Calculate total confirmed cash sales (already confirmed)
+        $this->confirmedCashTotal = PendingSale::where('ca_lam_viec_id', $this->shift->id)
+            ->where('trang_thai', 'confirmed')
+            ->where('phuong_thuc_thanh_toan', 'tien_mat')
+            ->sum('tong_tien');
 
         $this->loadPendingSales();
     }
@@ -100,6 +113,9 @@ class PendingSalesList extends Component
                 'type' => 'success',
                 'message' => 'Đã chốt ' . count($this->selected) . ' đơn hàng!'
             ]);
+            
+            // Dispatch event to refresh inventory in QuickSale
+            $this->dispatch('inventory-updated');
 
             // Reset selection
             $this->selected = [];
@@ -131,9 +147,12 @@ class PendingSalesList extends Component
             BatchBanHang::createFromPending($allIds, Auth::id());
 
             session()->flash('success', 'Đã chốt tất cả ' . count($allIds) . ' đơn hàng!');
+            
+            // Dispatch event to refresh inventory (will execute on redirect target page)
+            $this->dispatch('inventory-updated');
 
-            // Reload
-            $this->loadPendingSales();
+            // Redirect back to POS to continue selling
+            return $this->redirect('/admin/pos', navigate: true);
 
         } catch (\Exception $e) {
             session()->flash('error', 'Có lỗi xảy ra: ' . $e->getMessage());
@@ -145,17 +164,9 @@ class PendingSalesList extends Component
         try {
             $sale = PendingSale::find($saleId);
             if ($sale && $sale->ca_lam_viec_id == $this->shift->id) {
-                // Restore inventory before deleting
-                foreach ($sale->chi_tiet as $item) {
-                    $chiTietCaLam = ChiTietCaLam::where('ca_lam_viec_id', $this->shift->id)
-                        ->where('san_pham_id', $item['product_id'])
-                        ->first();
-                    
-                    if ($chiTietCaLam) {
-                        // Return the reserved quantity back to available stock
-                        $chiTietCaLam->increment('so_luong_con_lai', $item['so_luong']);
-                    }
-                }
+                // NOTE: Do NOT restore inventory here!
+                // Pending sales are not counted in so_luong_ban anymore
+                // Inventory is only updated when batch is confirmed
                 
                 $sale->update(['trang_thai' => 'cancelled']);
                 
@@ -183,22 +194,8 @@ class PendingSalesList extends Component
         try {
             $count = count($this->selected);
             
-            // Restore inventory for all selected sales
-            $sales = PendingSale::whereIn('id', $this->selected)
-                ->where('ca_lam_viec_id', $this->shift->id)
-                ->get();
-            
-            foreach ($sales as $sale) {
-                foreach ($sale->chi_tiet as $item) {
-                    $chiTietCaLam = ChiTietCaLam::where('ca_lam_viec_id', $this->shift->id)
-                        ->where('san_pham_id', $item['product_id'])
-                        ->first();
-                    
-                    if ($chiTietCaLam) {
-                        $chiTietCaLam->increment('so_luong_con_lai', $item['so_luong']);
-                    }
-                }
-            }
+            // NOTE: Do NOT restore inventory!
+            // Pending sales don't affect so_luong_ban until confirmed
             
             // Mark as cancelled
             PendingSale::whereIn('id', $this->selected)

@@ -24,9 +24,13 @@ class SupplierList extends BaseListComponent
             return [
                 'Mã NCC' => $supplier->ma_ncc,
                 'Tên nhà cung cấp' => $supplier->ten_ncc,
+                'Người đại diện' => $supplier->nguoi_dai_dien ?? '-',
                 'Số điện thoại' => $supplier->so_dien_thoai ?? '-',
+                'SĐT Zalo' => $supplier->so_dien_thoai_zalo ?? '-',
                 'Email' => $supplier->email ?? '-',
                 'Địa chỉ' => $supplier->dia_chi ?? '-',
+                'Sản phẩm cung cấp' => $supplier->san_pham_cung_cap ?? '-',
+                'Nội dung thỏa thuận' => $supplier->noi_dung_thoa_thuan ?? '-',
                 'Ghi chú' => $supplier->ghi_chu ?? '-',
             ];
         });
@@ -34,7 +38,7 @@ class SupplierList extends BaseListComponent
         return ExcelExportService::export($data, [
             'title' => 'Danh Sách Nhà Cung Cấp',
             'filename' => 'DanhSach_NhaCungCap',
-            'columns' => ['Mã NCC', 'Tên nhà cung cấp', 'Số điện thoại', 'Email', 'Địa chỉ', 'Ghi chú'],
+            'columns' => ['Mã NCC', 'Tên nhà cung cấp', 'Người đại diện', 'Số điện thoại', 'SĐT Zalo', 'Email', 'Địa chỉ', 'Sản phẩm cung cấp', 'Nội dung thỏa thuận', 'Ghi chú'],
             'filters' => 'Tất cả',
         ]);
     }
@@ -42,7 +46,7 @@ class SupplierList extends BaseListComponent
     private function getQuery()
     {
         $query = Supplier::query();
-        $query = $this->applySearch($query, ['ten_ncc', 'ma_ncc', 'so_dien_thoai', 'email']);
+        $query = $this->applySearch($query, ['ten_ncc', 'ma_ncc', 'nguoi_dai_dien', 'so_dien_thoai', 'so_dien_thoai_zalo', 'email']);
         $query = $this->applySort($query);
         return $query;
     }

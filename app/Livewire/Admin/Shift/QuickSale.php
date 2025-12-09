@@ -20,6 +20,9 @@ class QuickSale extends Component
     public $total = 0;
     public $pendingCount = 0;
     public $paymentMethod = 'tien_mat'; // tien_mat or chuyen_khoan
+    
+    // Listen for inventory updates
+    protected $listeners = ['inventory-updated' => 'refreshInventory'];
 
     public function mount()
     {
@@ -63,6 +66,12 @@ class QuickSale extends Component
         foreach ($this->shiftDetails as $detail) {
             $this->cart[$detail['id']] = 0;
         }
+    }
+    
+    public function refreshInventory()
+    {
+        // Reload products when inventory is updated (after batch confirm)
+        $this->loadShiftProducts();
     }
 
     public function increment($productId)
@@ -144,15 +153,8 @@ class QuickSale extends Component
                                 'thanh_tien' => $product->gia_ban * $qty,
                             ];
                             
-                            // IMPORTANT: Deduct inventory immediately when creating pending sale
-                            // This reserves the products for this order
-                            $chiTietCaLam = ChiTietCaLam::where('ca_lam_viec_id', $this->shift->id)
-                                ->where('san_pham_id', $productId)
-                                ->first();
-                            
-                            if ($chiTietCaLam) {
-                                $chiTietCaLam->decrement('so_luong_con_lai', $qty);
-                            }
+                            // NOTE: Do NOT increment so_luong_ban here!
+                            // It will be counted when batch is confirmed in BatchBanHang::updateInventory()
                         }
                     }
                 }

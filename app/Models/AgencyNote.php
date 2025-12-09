@@ -12,6 +12,7 @@ class AgencyNote extends Model
     protected $fillable = [
         'diem_ban_id',
         'loai',
+        'vi_tri_id',
         'tieu_de',
         'noi_dung',
         'metadata',
@@ -33,6 +34,11 @@ class AgencyNote extends Model
     public function agency(): BelongsTo
     {
         return $this->belongsTo(Agency::class, 'diem_ban_id');
+    }
+
+    public function location(): BelongsTo
+    {
+        return $this->belongsTo(AgencyLocation::class, 'vi_tri_id');
     }
 
     public function creator(): BelongsTo
@@ -88,6 +94,16 @@ class AgencyNote extends Model
 
     public function getTypeLabelAttribute(): string
     {
+        // Try to get from NoteType table
+        $noteType = NoteType::where('diem_ban_id', $this->diem_ban_id)
+            ->where('ma_loai', $this->loai)
+            ->first();
+        
+        if ($noteType) {
+            return $noteType->display_label;
+        }
+        
+        // Fallback to hardcoded (for backward compatibility)
         return match($this->loai) {
             'hop_dong' => '📄 Hợp đồng',
             'chi_phi' => '💰 Chi phí',
@@ -95,7 +111,15 @@ class AgencyNote extends Model
             'vat_dung' => '🪑 Vật dụng',
             'bien_bao' => '🪧 Biển bảo',
             'khac' => '📝 Khác',
-            default => '',
+            default => '📝 ' . $this->loai,
         };
+    }
+    
+    /**
+     * Check if this note is for "vat_dung" type
+     */
+    public function isItemNote(): bool
+    {
+        return $this->loai === 'vat_dung';
     }
 }

@@ -19,6 +19,8 @@ class ChiTietCaLam extends Model
         'so_luong_ban',
     ];
 
+    protected $appends = ['so_luong_con_lai'];
+
     public function caLamViec()
     {
         return $this->belongsTo(CaLamViec::class);
@@ -27,5 +29,14 @@ class ChiTietCaLam extends Model
     public function sanPham()
     {
         return $this->belongsTo(Product::class, 'san_pham_id');
+    }
+
+    /**
+     * Accessor: Calculate remaining quantity
+     * Remaining = Received - Sold
+     */
+    public function getSoLuongConLaiAttribute()
+    {
+        return ($this->so_luong_nhan_ca ?? 0) - ($this->so_luong_ban ?? 0);
     }
 }

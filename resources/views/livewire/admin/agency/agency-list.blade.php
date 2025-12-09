@@ -64,10 +64,12 @@
             <tbody class="bg-white divide-y divide-gray-200">
                 @forelse ($agencies as $agency)
                     <tr class="hover:bg-gray-50">
-                        <td class="px-6 py-4 text-sm font-medium text-indigo-600">{{ $agency->ma_diem_ban }}</td>
-                        <td class="px-6 py-4 text-sm text-gray-900">{{ $agency->ten_diem_ban }}</td>
-                        <td class="px-6 py-4 text-sm text-gray-500">{{ $agency->dia_chi }}</td>
-                        <td class="px-6 py-4">
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-indigo-600">{{ $agency->ma_diem_ban }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $agency->ten_diem_ban }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            <div class="max-w-md overflow-hidden text-ellipsis" title="{{ $agency->dia_chi }}">{{ $agency->dia_chi }}</div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
                             @if($agency->loai_dai_ly === 'rieng_tu')
                                 <span class="px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-800">
                                     🏠 Riêng tư
@@ -78,12 +80,12 @@
                                 </span>
                             @endif
                         </td>
-                        <td class="px-6 py-4">
+                        <td class="px-6 py-4 whitespace-nowrap">
                             <span class="px-2 py-1 text-xs rounded-full {{ $agency->trang_thai === 'hoat_dong' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800' }}">
                                 {{ $agency->trang_thai === 'hoat_dong' ? 'Hoạt động' : 'Đóng cửa' }}
                             </span>
                         </td>
-                        <td class="px-6 py-4 text-right text-sm">
+                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm">
                             <a href="{{ route('admin.agencies.edit', $agency->id) }}" class="text-yellow-600 hover:text-yellow-900 mr-3">Sửa</a>
                             <button wire:click="delete({{ $agency->id }})" wire:confirm="Xóa điểm bán?" class="text-red-600 hover:text-red-900">Xóa</button>
                         </td>

@@ -60,6 +60,8 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     Route::get('/agencies/{id}/detail', App\Livewire\Admin\Agency\AgencyDetail::class)->name('agencies.detail');
     Route::get('/agencies/{agencyId}/notes/create', App\Livewire\Admin\Agency\NoteForm::class)->name('agencies.notes.create');
     Route::get('/agencies/{agencyId}/notes/{noteId}/edit', App\Livewire\Admin\Agency\NoteForm::class)->name('agencies.notes.edit');
+    Route::get('/agencies/{agencyId}/locations', App\Livewire\Admin\Agency\LocationList::class)->name('agencies.locations');
+    Route::get('/agencies/{agencyId}/note-types', App\Livewire\Admin\Agency\NoteTypeList::class)->name('agencies.note-types');
 
     // Products
     Route::get('/products', ProductList::class)->name('products.index');
@@ -100,4 +102,5 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     // POS Routes (components handle their own check-in validation)
     Route::get('/pos', QuickSale::class)->name('admin.pos.quick-sale');
     Route::get('/pos/pending', App\Livewire\Admin\Shift\PendingSalesList::class)->name('admin.pos.pending');
+    Route::get('/pos/confirmed', App\Livewire\Admin\Shift\ConfirmedSalesList::class)->name('admin.pos.confirmed');
 });

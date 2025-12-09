@@ -10,9 +10,16 @@
         <form wire:submit="save">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Mã sản phẩm</label>
-                    <input type="text" wire:model="ma_san_pham" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500" placeholder="VD: SP001">
-                    @error('ma_san_pham') <span class="text-red-500 text-sm mt-1">{{ $message }}</span> @enderror
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        Mã sản phẩm
+                        <span class="text-xs text-gray-500">(Tự động)</span>
+                    </label>
+                    <input 
+                        type="text" 
+                        wire:model="ma_san_pham" 
+                        readonly
+                        class="w-full px-4 py-2 border border-gray-300 rounded-md bg-gray-100 text-gray-600 cursor-not-allowed"
+                    >
                 </div>
 
                 <div>

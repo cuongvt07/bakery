@@ -4,6 +4,7 @@ namespace App\Livewire\Admin\Agency;
 
 use App\Models\Agency;
 use App\Models\AgencyNote;
+use App\Models\NoteType;
 use Livewire\Component;
 use Livewire\Attributes\Layout;
 
@@ -12,6 +13,8 @@ class AgencyDetail extends Component
 {
     public Agency $agency;
     public $activeTab = 'all';
+    public $showTypeModal = false;
+    public $showLocationModal = false;
 
     public function mount($id)
     {
@@ -31,6 +34,12 @@ class AgencyDetail extends Component
 
     public function render()
     {
+        // Load dynamic note types for this agency
+        $noteTypes = NoteType::where('diem_ban_id', $this->agency->id)
+            ->where('hien_thi', true)
+            ->orderBy('thu_tu')
+            ->get();
+
         $query = $this->agency->notes();
 
         // Filter by tab
@@ -45,6 +54,7 @@ class AgencyDetail extends Component
 
         return view('livewire.admin.agency.agency-detail', [
             'notes' => $notes,
+            'noteTypes' => $noteTypes,
         ]);
     }
 }

@@ -80,11 +80,26 @@
                                 </div>
                                 
                                 {{-- Total & Payment Method --}}
-                                <div class="mt-2 pt-2 border-t flex justify-between items-center">
-                                    <span class="text-xs font-medium px-2 py-1 rounded {{ $sale['phuong_thuc_thanh_toan'] === 'tien_mat' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700' }}">
-                                        {{ $sale['phuong_thuc_thanh_toan'] === 'tien_mat' ? '💵 TM' : '💳 CK' }}
-                                    </span>
-                                    <span class="text-base font-bold text-purple-600">{{ number_format($sale['tong_tien']) }}đ</span>
+                                <div class="mt-2 pt-2 border-t space-y-1">
+                                    <div class="flex justify-between items-center">
+                                        <span class="text-xs font-medium px-2 py-1 rounded {{ $sale['phuong_thuc_thanh_toan'] === 'tien_mat' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700' }}">
+                                            {{ $sale['phuong_thuc_thanh_toan'] === 'tien_mat' ? '💵 TM' : '💳 CK' }}
+                                        </span>
+                                        <span class="text-base font-bold text-purple-600">{{ number_format($sale['tong_tien']) }}đ</span>
+                                    </div>
+                                    
+                                    @if($sale['phuong_thuc_thanh_toan'] === 'tien_mat')
+                                        @php
+                                            $expectedCash = $openingCash + $confirmedCashTotal + $sale['tong_tien'];
+                                        @endphp
+                                        <div class="flex justify-between items-center text-xs">
+                                            <span class="text-gray-600">💰 TM lý thuyết phải có:</span>
+                                            <span class="font-bold text-green-600">{{ number_format($expectedCash) }}đ</span>
+                                        </div>
+                                        <div class="text-xs text-gray-500 mt-0.5">
+                                            (Đầu ca: {{ number_format($openingCash) }}đ + Đã chốt: {{ number_format($confirmedCashTotal) }}đ + Đơn này: {{ number_format($sale['tong_tien']) }}đ)
+                                        </div>
+                                    @endif
                                 </div>
                             </div>
                         </div>
@@ -96,14 +111,38 @@
 
     {{-- Sticky Footer --}}
     @if(!empty($pendingSales))
+    @php
+        $totalCash = 0;
+        $totalTransfer = 0;
+        foreach($pendingSales as $sale) {
+            if($sale['phuong_thuc_thanh_toan'] === 'tien_mat') {
+                $totalCash += $sale['tong_tien'];
+            } else {
+                $totalTransfer += $sale['tong_tien'];
+            }
+        }
+    @endphp
     <div class="fixed bottom-0 left-0 right-0 bg-white shadow-2xl border-t-4 border-purple-500">
         <div class="px-3 py-3">
             <div class="mb-2 text-center">
                 <p class="text-sm text-gray-600">Tổng số đơn chờ</p>
                 <p class="text-2xl font-bold text-purple-600">{{ count($pendingSales) }} đơn</p>
             </div>
-            <div class="mb-3 text-center">
-                <p class="text-xs text-gray-600">Tổng tiền tất cả đơn</p>
+            
+            <div class="mb-3 grid grid-cols-2 gap-2 text-center">
+                <div class="bg-green-50 rounded-lg p-2">
+                    <p class="text-xs text-gray-600">💵 TM lý thuyết phải có</p>
+                    <p class="text-lg font-bold text-green-600">{{ number_format($openingCash + $confirmedCashTotal + $totalCash) }}đ</p>
+                    <p class="text-xs text-gray-500">({{ number_format($openingCash) }} + {{ number_format($confirmedCashTotal) }} + {{ number_format($totalCash) }})</p>
+                </div>
+                <div class="bg-blue-50 rounded-lg p-2">
+                    <p class="text-xs text-gray-600">💳 Chuyển khoản</p>
+                    <p class="text-lg font-bold text-blue-600">{{ number_format($totalTransfer) }}đ</p>
+                </div>
+            </div>
+            
+            <div class="mb-3 text-center bg-purple-50 rounded-lg p-2">
+                <p class="text-xs text-gray-600">Tổng tất cả đơn</p>
                 <p class="text-xl font-bold text-purple-600">{{ number_format(array_sum(array_column($pendingSales, 'tong_tien'))) }}đ</p>
             </div>
             
