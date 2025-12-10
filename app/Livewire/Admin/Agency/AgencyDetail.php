@@ -124,6 +124,7 @@ class AgencyDetail extends Component
     {
         // Load dynamic note types for this agency
         $noteTypes = NoteType::where('diem_ban_id', $this->agency->id)
+            ->where('ma_loai', '!=', 'vat_dung') // Hide material tab as it's now a separate module
             ->where('hien_thi', true)
             ->orderBy('thu_tu')
             ->get();
