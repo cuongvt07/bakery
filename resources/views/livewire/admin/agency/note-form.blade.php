@@ -18,7 +18,9 @@
                         <select wire:model.live="loai" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg">
                             <option value="">-- Chọn loại --</option>
                             @foreach($noteTypes as $type)
-                                <option value="{{ $type->ma_loai }}">{{ $type->display_label }}</option>
+                                @if($type->ma_loai !== 'vat_dung')
+                                    <option value="{{ $type->ma_loai }}">{{ $type->display_label }}</option>
+                                @endif
                             @endforeach
                         </select>
                         @error('loai') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror

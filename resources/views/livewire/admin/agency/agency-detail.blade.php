@@ -6,27 +6,19 @@
             <p class="text-sm text-gray-500">{{ $agency->ma_diem_ban }} • {{ $agency->dia_chi }}</p>
         </div>
         <div class="flex gap-3 items-center">
-            <!-- Quick Settings Buttons (Inline Modals) -->
-            <button wire:click="$set('showTypeModal', true)" 
-               class="px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm flex items-center gap-1" 
-               title="Quản lý loại ghi chú">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"/>
+            <div class="flex flex-wrap gap-3 items-center">
+            <!-- Note Type Management Button - BIG -->
+            <button wire:click="$toggle('showTypeModal')" 
+                    class="bg-white border-2 border-indigo-600 text-indigo-700 hover:bg-indigo-50 px-6 py-3 rounded-lg flex items-center gap-2 shadow-md hover:shadow-lg transition-all transform hover:scale-105">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
                 </svg>
-                <span class="hidden md:inline">Loại ghi chú</span>
-            </button>
-            <button wire:click="$set('showLocationModal', true)" 
-               class="px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm flex items-center gap-1" 
-               title="Quản lý vị trí vật dụng">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
-                </svg>
-                <span class="hidden md:inline">Vị trí</span>
+                <span class="font-semibold">Thêm Tab Ghi chú</span>
             </button>
             <a href="{{ route('admin.agencies.dashboard') }}" class="text-indigo-600 hover:text-indigo-800 text-sm">
                 ← Dashboard
             </a>
+        </div>
         </div>
     </div>
 
@@ -53,9 +45,9 @@
 
     <!-- Add Note Button -->
     <div class="mb-4">
-        <a href="{{ route('admin.agencies.notes.create', $agency->id) }}" class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 inline-block">
+        <button wire:click="openAddNoteModal" class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 inline-block">
             + Thêm ghi chú mới
-        </a>
+        </button>
     </div>
 
     @if(session('success'))
@@ -110,7 +102,8 @@
                                 @endif
                             </td>
                             <td class="px-4 py-3 whitespace-nowrap text-right text-sm">
-                                <a href="{{ route('admin.agencies.notes.edit', [$agency->id, $note->id]) }}" class="text-blue-600 hover:text-blue-800 mr-2">Sửa</a>
+                                <button wire:click="openEditNoteModal({{ $note->id }})" class="text-blue-600 hover:text-blue-800 mr-2">Sửa</button>
+                                <button wire:click="deleteNote({{ $note->id }})" wire:confirm="Xóa ghi chú này?" class="text-red-600 hover:text-red-800 mr-2">Xóa</button>
                                 <button wire:click="toggleComplete({{ $note->id }})" class="text-{{ $note->da_xu_ly ? 'yellow' : 'green' }}-600 hover:text-{{ $note->da_xu_ly ? 'yellow' : 'green' }}-800 text-sm">
                                     {{ $note->da_xu_ly ? '↻' : '✓' }}
                                 </button>
@@ -126,10 +119,89 @@
         </div>
     @endif
 
+    <!-- Note Form Modal -->
+    @if($showNoteModal)
+        <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" wire:click="$set('showNoteModal', false)">
+            <div class="bg-white rounded-xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto" wire:click.stop>
+                <!-- Header -->
+                <div class="bg-indigo-600 rounded-t-xl px-6 py-4 flex justify-between items-center sticky top-0">
+                    <h3 class="text-lg font-bold text-white">{{ $editingNoteId ? '✏️ Sửa ghi chú' : '➕ Thêm ghi chú' }}</h3>
+                    <button wire:click="$set('showNoteModal', false)" class="text-white hover:bg-white/20 rounded-lg p-1.5">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                    </button>
+                </div>
+
+                <!-- Form -->
+                <form wire:submit="saveNote" class="p-6">
+                    <div class="space-y-4">
+                        <!-- Loại ghi chú -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1.5">Loại ghi chú *</label>
+                            <select wire:model.live="loai" class="w-full px-3 py-2 border rounded-lg">
+                                <option value="">-- Chọn loại --</option>
+                                @foreach($noteTypes as $type)
+                                    @if($type->ma_loai !== 'vat_dung')
+                                        <option value="{{ $type->ma_loai }}">{{ $type->display_label }}</option>
+                                    @endif
+                                @endforeach
+                            </select>
+                            @error('loai') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
+                        </div>
+
+                        <!-- Tiêu đề -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1.5">Tiêu đề *</label>
+                            <input type="text" wire:model="tieu_de" class="w-full px-3 py-2 border rounded-lg" placeholder="Nhập tiêu đề...">
+                            @error('tieu_de') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
+                        </div>
+
+                        <!-- Grid 2 cột -->
+                        <div class="grid grid-cols-2 gap-4">
+                            <!-- Mức độ -->
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1.5">Mức độ</label>
+                                <select wire:model="muc_do_quan_trong" class="w-full px-3 py-2 border rounded-lg">
+                                    <option value="thap">Thấp</option>
+                                    <option value="trung_binh">Trung bình</option>
+                                    <option value="cao">Cao</option>
+                                    <option value="khan_cap">Khẩn cấp</option>
+                                </select>
+                            </div>
+
+                            <!-- Ngày nhắc nhở -->
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1.5">Ngày nhắc nhở</label>
+                                <input type="date" wire:model="ngay_nhac_nho" class="w-full px-3 py-2 border rounded-lg">
+                            </div>
+                        </div>
+
+                        <!-- Nội dung -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1.5">Nội dung</label>
+                            <textarea wire:model="noi_dung" rows="3" class="w-full px-3 py-2 border rounded-lg" placeholder="Mô tả chi tiết..."></textarea>
+                        </div>
+                    </div>
+
+                    <!-- Actions -->
+                    <div class="mt-6 flex gap-3">
+                        <button type="button" wire:click="$set('showNoteModal', false)" class="flex-1 px-4 py-2.5 bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium rounded-lg">
+                            Hủy
+                        </button>
+                        <button type="submit" class="flex-1 px-4 py-2.5 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg">
+                            {{ $editingNoteId ? 'Cập nhật' : 'Thêm ghi chú' }}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    @endif
+
     <!-- Inline Modal: Note Type Management -->
     @if($showTypeModal)
-        <div class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50" wire:click="$set('showTypeModal', false)">
-            <div class="relative top-10 mx-auto p-0 border w-full max-w-4xl shadow-lg rounded-md bg-white" wire:click.stop>
+        <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" wire:click="$set('showTypeModal', false)">
+            <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto" wire:click.stop>
                 <livewire:admin.agency.note-type-list :agencyId="$agency->id" :key="'types-'.$agency->id" />
             </div>
         </div>
@@ -137,8 +209,8 @@
 
     <!-- Inline Modal: Location Management -->
     @if($showLocationModal)
-        <div class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50" wire:click="$set('showLocationModal', false)">
-            <div class="relative top-10 mx-auto p-0 border w-full max-w-4xl shadow-lg rounded-md bg-white" wire:click.stop>
+        <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" wire:click="$set('showLocationModal', false)">
+            <div class="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto" wire:click.stop>
                 <livewire:admin.agency.location-list :agencyId="$agency->id" :key="'locs-'.$agency->id" />
             </div>
         </div>
