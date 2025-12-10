@@ -12,10 +12,17 @@ use Livewire\Attributes\Layout;
 #[Layout('components.layouts.app')]
 class AgencyDetail extends Component
 {
+    use \Livewire\WithPagination;
+
     public Agency $agency;
     public $activeTab = 'all';
     public $showTypeModal = false;
     public $showLocationModal = false;
+    
+    // Filter & Search
+    public $search = '';
+    public $statusFilter = ''; // '', 'processed', 'pending'
+    public $dateFilter = '';
     
     // Note form modal
     public $showNoteModal = false;
@@ -34,8 +41,14 @@ class AgencyDetail extends Component
 
     public function mount($id)
     {
-        $this->agency = Agency::with('notes')->findOrFail($id);
+        $this->agency = Agency::find($id); // Remove 'notes' eager load as we query manually
+        if (!$this->agency) abort(404);
     }
+    
+    // Reset pagination when filtering
+    public function updatedSearch() { $this->resetPage(); }
+    public function updatedStatusFilter() { $this->resetPage(); }
+    public function updatedActiveTab() { $this->resetPage(); }
 
     public function openAddNoteModal()
     {
@@ -73,7 +86,7 @@ class AgencyDetail extends Component
             'loai' => $this->loai,
             'tieu_de' => $this->tieu_de,
             'noi_dung' => $this->noi_dung,
-            'ngay_nhac_nho' => $this->ngay_nhac_nho,
+            'ngay_nhac_nho' => $this->ngay_nhac_nho ?: null,
             'muc_do_quan_trong' => $this->muc_do_quan_trong,
             'da_xu_ly' => false,
             'nguoi_tao_id' => auth()->id(),
@@ -136,10 +149,30 @@ class AgencyDetail extends Component
             $query->where('loai', $this->activeTab);
         }
 
+        // Filter by search
+        if ($this->search) {
+            $query->where(function($q) {
+                $q->where('tieu_de', 'like', '%' . $this->search . '%')
+                  ->orWhere('noi_dung', 'like', '%' . $this->search . '%');
+            });
+        }
+
+        // Filter by status
+        if ($this->statusFilter === 'processed') {
+            $query->where('da_xu_ly', true);
+        } elseif ($this->statusFilter === 'pending') {
+            $query->where('da_xu_ly', false);
+        }
+        
+        // Filter by date (approximate filter for created_at or reminder)
+        if ($this->dateFilter) {
+            $query->whereDate('created_at', $this->dateFilter);
+        }
+
         $notes = $query->orderBy('da_xu_ly')
                       ->orderBy('muc_do_quan_trong', 'desc')
                       ->orderBy('ngay_nhac_nho')
-                      ->get();
+                      ->paginate(10);
 
         $locations = AgencyLocation::where('diem_ban_id', $this->agency->id)
             ->orderBy('ma_vi_tri')

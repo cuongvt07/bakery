@@ -35,10 +35,10 @@
         <thead class="bg-gray-50">
             <tr>
                 <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase w-28"><button wire:click="sortBy('ma_vat_tu')" class="flex items-center gap-1 hover:text-gray-700">Mã @if($sortField === 'ma_vat_tu')<span>{{ $sortDirection === 'asc' ? '↑' : '↓' }}</span>@endif</button></th>
-                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase"><button wire:click="sortBy('ten_vat_tu')" class="flex items-center gap-1 hover:text-gray-700">Tên vật tư @if($sortField === 'ten_vat_tu')<span>{{ $sortDirection === 'asc' ? '↑' : '↓' }}</span>@endif</button></th>
-                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase w-48"><button wire:click="sortBy('dai_ly')" class="flex items-center gap-1 hover:text-gray-700">Đại lý @if($sortField === 'dai_ly')<span>{{ $sortDirection === 'asc' ? '↑' : '↓' }}</span>@endif</button></th>
-                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase w-40">Vị trí</th>
-                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase w-32"><button wire:click="sortBy('created_at')" class="flex items-center gap-1 hover:text-gray-700">Ngày tạo @if($sortField === 'created_at')<span>{{ $sortDirection === 'asc' ? '↑' : '↓' }}</span>@endif</button></th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase"><button wire:click="sortBy('ten_vat_tu')" class="flex items-center gap-1 hover:text-gray-700">Tên @if($sortField === 'ten_vat_tu')<span>{{ $sortDirection === 'asc' ? '↑' : '↓' }}</span>@endif</button></th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase w-32">Vị trí</th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Mô tả vị trí</th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase w-48"><button wire:click="sortBy('dai_ly')" class="flex items-center gap-1 hover:text-gray-700">Địa điểm @if($sortField === 'dai_ly')<span>{{ $sortDirection === 'asc' ? '↑' : '↓' }}</span>@endif</button></th>
                 <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase w-28">Thao tác</th>
             </tr>
         </thead>
@@ -47,9 +47,9 @@
                 <tr class="hover:bg-gray-50">
                     <td class="px-4 py-3 whitespace-nowrap text-sm font-mono font-semibold text-indigo-600">{{ $material->metadata['ma_vat_dung'] ?? '-' }}</td>
                     <td class="px-4 py-3 text-sm text-gray-900">{{ $material->tieu_de }}</td>
-                    <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">{{ $material->agency ? $material->agency->ten_diem_ban : '-' }}</td>
                     <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-600">{{ $material->location ? $material->location->ma_vi_tri : '-' }}</td>
-                    <td class="px-4 py-3 whitespace-nowrap text-xs text-gray-500">{{ $material->created_at->format('d/m/Y') }}</td>
+                    <td class="px-4 py-3 text-sm text-gray-500">{{ $material->location ? $material->location->mo_ta : '-' }}</td>
+                    <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">{{ $material->agency ? $material->agency->ten_diem_ban : '-' }}</td>
                     <td class="px-4 py-3 whitespace-nowrap text-right text-sm">
                         <a href="{{ route('admin.materials.edit', $material->id) }}" class="text-yellow-600 hover:text-yellow-900 mr-2">Sửa</a>
                         <button wire:click="delete({{ $material->id }})" wire:confirm="Xóa vật tư này?" class="text-red-600 hover:text-red-900">Xóa</button>
