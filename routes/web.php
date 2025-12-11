@@ -98,13 +98,14 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     Route::get('/production-batches/{id}/edit', App\Livewire\Admin\Production\ProductionBatchForm::class)->name('production-batches.edit');
     Route::get('/expiry-report', App\Livewire\Admin\Production\ExpiryReport::class)->name('expiry-report.index');
     
-    // Core Flow
     Route::get('/distribution', \App\Livewire\Admin\Distribution\DistributionList::class)->name('distribution.index');
     Route::get('/distribution/daily', DailyDistribution::class)->name('distribution.daily');
-    Route::get('/shift/check-in', App\Livewire\Admin\Shift\ShiftCheckIn::class)->name('shift.check-in');
-    Route::get('/shift/closing', ShiftClosing::class)->name('shift.closing');
     
-    // POS Routes (components handle their own check-in validation)
+    // Shift Management & Operations
+    Route::get('/shift/management', \App\Livewire\Admin\Shift\ShiftManagement::class)->name('shift.management'); // Admin view
+    Route::get('/shift/new', \App\Livewire\Admin\Shift\ShiftManagementNew::class)->name('shift.new'); // New tab-based UI
+    Route::get('/shift/closing', ShiftClosing::class)->name('shift.closing'); // Employee closing
+    Route::get('/shift/check-in', \App\Livewire\Admin\Shift\ShiftCheckIn::class)->name('shift.check-in'); // Employee check-in
     Route::get('/pos', QuickSale::class)->name('admin.pos.quick-sale');
     Route::get('/pos/pending', App\Livewire\Admin\Shift\PendingSalesList::class)->name('admin.pos.pending');
     Route::get('/pos/confirmed', App\Livewire\Admin\Shift\ConfirmedSalesList::class)->name('admin.pos.confirmed');

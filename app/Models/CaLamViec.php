@@ -48,9 +48,14 @@ class CaLamViec extends Model
         return $this->hasMany(ChamCong::class, 'ca_lam_viec_id');
     }
 
-    public function phieuChotCa(): HasMany
+    public function phieuChotCa()
     {
-        return $this->hasMany(PhieuChotCa::class, 'ca_lam_viec_id');
+        return $this->hasOne(PhieuChotCa::class, 'ca_lam_viec_id');
+    }
+
+    public function chiTietCaLam(): HasMany
+    {
+        return $this->hasMany(ChiTietCaLam::class, 'ca_lam_viec_id');
     }
 
     /**

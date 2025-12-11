@@ -1,0 +1,63 @@
+    public function registerShift()
+    {
+        // Validate at least one day is selected
+        if (empty($this->selectedDays)) {
+            session()->flash('error', 'Vui lòng chọn ít nhất một ngày!');
+            return;
+        }
+
+        $registeredCount = 0;
+        $errors = [];
+
+        // Process each selected day
+        foreach ($this->selectedDays as $dayIndex) {
+            $dayData = $this->weekDays[$dayIndex];
+            
+            // Validate day data
+            if (!$dayData['agencyId']) {
+                $errors[] = "Ngày {$dayData['dayShort']} chưa chọn điểm bán";
+                continue;
+            }
+            
+            if (!$dayData['templateId']) {
+                $errors[] = "Ngày {$dayData['dayShort']} chưa chọn mẫu ca";
+                continue;
+            }
+
+            // Get template details
+            $template = ShiftTemplate::find($dayData['templateId']);
+            if (!$template) {
+                continue;
+            }
+
+            // Create shift
+            ShiftSchedule::create([
+                'nguoi_dung_id' => Auth::id(),
+                'diem_ban_id' => $dayData['agencyId'],
+                'shift_template_id' => $template->id,
+                'ngay_lam' => $dayData['date'],
+                'gio_bat_dau' => $template->start_time,
+                'gio_ket_thuc' => $template->end_time,
+                'trang_thai' => 'chua_bat_dau',
+            ]);
+
+            $registeredCount++;
+        }
+
+        // Show results
+        if ($registeredCount > 0) {
+            $message = "Đã đăng ký {$registeredCount} ca làm việc!";
+            if (!empty($errors)) {
+                $message .= " (Có " . count($errors) . " lỗi)";
+            }
+            session()->flash('success', $message);
+        }
+        
+        if (!empty($errors) && $registeredCount == 0) {
+            session()->flash('error', implode(", ", $errors));
+            return;
+        }
+
+        $this->showRegistrationModal = false;
+        $this->resetPage();
+    }

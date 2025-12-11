@@ -105,6 +105,22 @@ class User extends Authenticatable
     }
 
     /**
+     * Check if user is admin
+     */
+    public function isAdmin(): bool
+    {
+        return $this->vai_tro === 'admin';
+    }
+
+    /**
+     * Check if user is employee
+     */
+    public function isEmployee(): bool
+    {
+        return $this->vai_tro === 'nhan_vien';
+    }
+
+    /**
      * Get contract status badge
      */
     public function getContractStatusBadgeAttribute(): string
