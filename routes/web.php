@@ -43,9 +43,7 @@ Route::post('/logout', function () {
 })->name('logout');
 
 Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
-    Route::get('/dashboard', function () {
-        return view('dashboard');
-    })->name('dashboard');
+    Route::get('/dashboard', App\Livewire\Admin\Dashboard::class)->name('dashboard');
 
     // Users
     Route::get('/users', UserList::class)->name('users.index');

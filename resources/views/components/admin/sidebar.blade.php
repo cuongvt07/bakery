@@ -35,8 +35,9 @@
         }
     </style>
 
-    <!-- Floating Open Button (when hidden) -->
+    <!-- Floating Open Button (only when completely hidden) -->
     <button x-show="sidebarState === 0" 
+            x-cloak
             @click="sidebarState = 2"
             x-transition
             class="fixed top-4 left-4 z-50 p-2 bg-gray-900 text-white rounded-xl shadow-2xl hover:bg-gray-800 transition-all animate-pulse hover:animate-none">
@@ -60,8 +61,9 @@
                 <span class="ml-3 text-lg font-bold text-gray-800">Boong Cake</span>
             </div>
             
-            <!-- Toggle Button -->
-            <button @click="sidebarState = sidebarState === 2 ? 1 : (sidebarState === 1 ? 0 : 2)" 
+            <!-- Toggle Button (show in icon mode and full mode, hide when completely hidden) -->
+            <button x-show="sidebarState > 0"
+                    @click="sidebarState = sidebarState === 2 ? 1 : (sidebarState === 1 ? 0 : 2)" 
                     class="p-2 rounded-lg hover:bg-gray-100 transition-colors"
                     :title="sidebarState === 2 ? 'Thu gọn (Icon)' : (sidebarState === 1 ? 'Ẩn hẳn' : 'Mở rộng')">
                 <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
