@@ -164,7 +164,7 @@
                 </summary>
                 <div class="pl-8 mt-1 space-y-0.5 border-l-2 border-amber-200 ml-6">
                     <a href="{{ route('admin.products.index') }}" class="flex items-center px-3 py-2 rounded-md text-sm transition-all {{ request()->routeIs('admin.products.*') ? 'text-amber-700 bg-amber-50 font-medium' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">Sản phẩm</a>
-                    <a href="{{ route('admin.categories.index') }}" class="flex items-center px-3 py-2 rounded-md text-sm transition-all {{ request()->routeIs('admin.categories.*') ? 'text-amber-700 bg-amber-50 font-medium' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">Danh mục</a>
+                    <a href="{{ route('admin.categories.index') }}" class="flex items-center px-3 py-2 rounded-md text-sm transition-all {{ request()->routeIs('admin.categories.*') ? 'text-amber-700 bg-amber-50 font-medium' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">Size bánh</a>
                     <a href="{{ route('admin.ingredients.index') }}" class="flex items-center px-3 py-2 rounded-md text-sm transition-all {{ request()->routeIs('admin.ingredients.*') ? 'text-amber-700 bg-amber-50 font-medium' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">Nguyên liệu</a>
                     <a href="{{ route('admin.suppliers.index') }}" class="flex items-center px-3 py-2 rounded-md text-sm transition-all {{ request()->routeIs('admin.suppliers.*') ? 'text-amber-700 bg-amber-50 font-medium' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">Nhà cung cấp</a>
                 </div>

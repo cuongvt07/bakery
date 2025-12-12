@@ -11,8 +11,15 @@
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Mã nguyên liệu</label>
-                    <input type="text" wire:model="ma_nguyen_lieu" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500" placeholder="VD: NL001">
-                    @error('ma_nguyen_lieu') <span class="text-red-500 text-sm mt-1">{{ $message }}</span> @enderror
+                    @if($ingredient)
+                        <input type="text" value="{{ $ingredient->ma_nguyen_lieu }}" disabled 
+                               class="w-full px-4 py-2 border border-gray-300 rounded-md bg-gray-100 cursor-not-allowed">
+                        <p class="text-xs text-gray-500 mt-1">Mã không thể thay đổi</p>
+                    @else
+                        <input type="text" value="Tự động tạo (NL####)" disabled 
+                               class="w-full px-4 py-2 border border-gray-300 rounded-md bg-gray-100 cursor-not-allowed">
+                        <p class="text-xs text-gray-500 mt-1">Mã sẽ được tự động tạo khi lưu</p>
+                    @endif
                 </div>
 
                 <div>
@@ -20,6 +27,7 @@
                     <input type="text" wire:model="ten_nguyen_lieu" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500">
                     @error('ten_nguyen_lieu') <span class="text-red-500 text-sm mt-1">{{ $message }}</span> @enderror
                 </div>
+
 
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Đơn vị tính</label>
@@ -31,6 +39,12 @@
                     <label class="block text-sm font-medium text-gray-700 mb-2">Tồn kho hiện tại</label>
                     <input type="number" step="0.01" wire:model="ton_kho_hien_tai" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500">
                     @error('ton_kho_hien_tai') <span class="text-red-500 text-sm mt-1">{{ $message }}</span> @enderror
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Giá nhập (đ/đơn vị)</label>
+                    <input type="number" step="1" wire:model="gia_nhap" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500" placeholder="VD: 50000">
+                    @error('gia_nhap') <span class="text-red-500 text-sm mt-1">{{ $message }}</span> @enderror
                 </div>
 
                 <div>

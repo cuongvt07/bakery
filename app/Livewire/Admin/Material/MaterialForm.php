@@ -19,6 +19,10 @@ class MaterialForm extends Component
     public $mo_ta_vi_tri = '';
     public $dia_diem = '';
     public $mo_ta = '';
+    
+    // Bulk add mode
+    public $bulkMode = false;
+    public $bulk_materials = '';
 
     public function mount($id = null)
     {
@@ -120,6 +124,51 @@ class MaterialForm extends Component
             session()->flash('message', 'Thêm vật tư thành công');
         }
 
+        return redirect()->route('admin.materials.index');
+    }
+    
+    public function saveBulk()
+    {
+        $this->validate([
+            'diem_ban_id' => 'required|exists:diem_ban,id',
+            'vi_tri_id' => 'required|exists:vi_tri_diem_ban,id',
+            'bulk_materials' => 'required|string',
+        ]);
+        
+        // Split by newlines and filter empty
+        $names = array_filter(array_map('trim', explode("\n", $this->bulk_materials)));
+        
+        if (empty($names)) {
+            session()->flash('error', 'Vui lòng nhập ít nhất một tên vật tư');
+            return;
+        }
+        
+        $created = 0;
+        foreach ($names as $name) {
+            if (empty($name)) continue;
+            
+            $code = $this->generateMaterialCode($name);
+            
+            AgencyNote::create([
+                'diem_ban_id' => $this->diem_ban_id,
+                'loai' => 'vat_dung',
+                'tieu_de' => $name,
+                'noi_dung' => '',
+                'vi_tri_id' => $this->vi_tri_id,
+                'metadata' => [
+                    'ma_vat_dung' => $code,
+                    'mo_ta_vi_tri' => $this->mo_ta_vi_tri,
+                    'dia_diem' => $this->dia_diem,
+                ],
+                'da_xu_ly' => false,
+                'muc_do_quan_trong' => 'trung_binh',
+                'nguoi_tao_id' => auth()->id(),
+            ]);
+            
+            $created++;
+        }
+        
+        session()->flash('message', "Đã thêm {$created} vật tư thành công");
         return redirect()->route('admin.materials.index');
     }
 

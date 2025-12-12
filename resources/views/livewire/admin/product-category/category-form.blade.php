@@ -1,6 +1,6 @@
 <div>
     <div class="flex justify-between items-center mb-6">
-        <h1 class="text-2xl font-bold text-gray-800">{{ $category ? 'Cập nhật Danh mục' : 'Thêm mới Danh mục' }}</h1>
+        <h1 class="text-2xl font-bold text-gray-800">{{ $category ? 'Cập nhật Size bánh' : 'Thêm mới Size bánh' }}</h1>
         <a href="{{ route('admin.categories.index') }}" class="text-gray-600 hover:text-gray-900">
             &larr; Quay lại
         </a>
@@ -10,7 +10,7 @@
         <form wire:submit="save">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Tên danh mục</label>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Tên size bánh</label>
                     <input type="text" wire:model="ten_danh_muc" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500">
                     @error('ten_danh_muc') <span class="text-red-500 text-sm mt-1">{{ $message }}</span> @enderror
                 </div>

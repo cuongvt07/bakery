@@ -49,18 +49,37 @@ class User extends Authenticatable
 
     protected $appends = ['luong_hien_tai'];
 
-    protected function casts(): array
+    protected $casts = [
+        'mat_khau' => 'hashed',
+        'email_verified_at' => 'datetime',
+        'ngay_cap_cmnd' => 'date',
+        'ngay_vao_lam' => 'date',
+        'ngay_ky_hop_dong' => 'date',
+        'ngay_het_han_hop_dong' => 'date',
+        'luong_co_ban' => 'decimal:2',
+        'luong_thu_viec' => 'decimal:2',
+        'luong_chinh_thuc' => 'decimal:2',
+    ];
+
+    // Mutators to handle empty date strings
+    public function setNgayKyHopDongAttribute($value)
     {
-        return [
-            'mat_khau' => 'hashed',
-            'ngay_vao_lam' => 'date',
-            'ngay_ky_hop_dong' => 'date',
-            'ngay_het_han_hop_dong' => 'date',
-            'ngay_cap_cmnd' => 'date',
-            'luong_co_ban' => 'decimal:2',
-            'luong_thu_viec' => 'decimal:2',
-            'luong_chinh_thuc' => 'decimal:2',
-        ];
+        $this->attributes['ngay_ky_hop_dong'] = ($value === '' || $value === null) ? null : $value;
+    }
+
+    public function setNgayHetHanHopDongAttribute($value)
+    {
+        $this->attributes['ngay_het_han_hop_dong'] = ($value === '' || $value === null) ? null : $value;
+    }
+
+    public function setNgayCapCmndAttribute($value)
+    {
+        $this->attributes['ngay_cap_cmnd'] = ($value === '' || $value === null) ? null : $value;
+    }
+
+    public function setNgayVaoLamAttribute($value)
+    {
+        $this->attributes['ngay_vao_lam'] = ($value === '' || $value === null) ? null : $value;
     }
 
     public function getAuthPassword()

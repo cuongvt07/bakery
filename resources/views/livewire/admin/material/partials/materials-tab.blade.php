@@ -34,12 +34,27 @@
     <table class="min-w-full divide-y divide-gray-200">
         <thead class="bg-gray-50">
             <tr>
-                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase w-28"><button wire:click="sortBy('ma_vat_tu')" class="flex items-center gap-1 hover:text-gray-700">Mã @if($sortField === 'ma_vat_tu')<span>{{ $sortDirection === 'asc' ? '↑' : '↓' }}</span>@endif</button></th>
-                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase"><button wire:click="sortBy('ten_vat_tu')" class="flex items-center gap-1 hover:text-gray-700">Tên @if($sortField === 'ten_vat_tu')<span>{{ $sortDirection === 'asc' ? '↑' : '↓' }}</span>@endif</button></th>
-                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase w-32">Vị trí</th>
-                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Mô tả vị trí</th>
-                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase w-48"><button wire:click="sortBy('dai_ly')" class="flex items-center gap-1 hover:text-gray-700">Địa điểm @if($sortField === 'dai_ly')<span>{{ $sortDirection === 'asc' ? '↑' : '↓' }}</span>@endif</button></th>
-                <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase w-28">Thao tác</th>
+                <th class="px-4 py-3 text-left">
+                    <button wire:click="sortBy('ma_vat_tu')" class="flex items-center gap-1 hover:text-gray-700">
+                        <span class="text-xs font-bold text-gray-500 uppercase">Mã</span>
+                        @if($sortField === 'ma_vat_tu')<span>{{ $sortDirection === 'asc' ? '↑' : '↓' }}</span>@endif
+                    </button>
+                </th>
+                <th class="px-4 py-3 text-left">
+                    <button wire:click="sortBy('ten_vat_tu')" class="flex items-center gap-1 hover:text-gray-700">
+                        <span class="text-xs font-bold text-gray-500 uppercase">Tên</span>
+                        @if($sortField === 'ten_vat_tu')<span>{{ $sortDirection === 'asc' ? '↑' : '↓' }}</span>@endif
+                    </button>
+                </th>
+                <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase w-32">Vị trí</th>
+                <th class="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Mô tả vị trí</th>
+                <th class="px-4 py-3 text-left w-48">
+                    <button wire:click="sortBy('dai_ly')" class="flex items-center gap-1 hover:text-gray-700">
+                        <span class="text-xs font-bold text-gray-500 uppercase">Địa điểm</span>
+                        @if($sortField === 'dai_ly')<span>{{ $sortDirection === 'asc' ? '↑' : '↓' }}</span>@endif
+                    </button>
+                </th>
+                <th class="px-4 py-3 text-right text-xs font-bold text-gray-500 uppercase w-28">Thao tác</th>
             </tr>
         </thead>
         <tbody class="bg-white divide-y divide-gray-200">

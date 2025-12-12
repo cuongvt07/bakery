@@ -70,6 +70,42 @@ class RecipeForm extends Component
         $this->ingredients = array_values($this->ingredients);
     }
 
+    public function updatedIngredients($value, $key)
+    {
+        // Parse key to get index and field name
+        // Format: "0.nguyen_lieu_id" or "1.so_luong"
+        $parts = explode('.', $key);
+        if (count($parts) === 2 && $parts[1] === 'nguyen_lieu_id') {
+            $index = $parts[0];
+            $ingredientId = $value;
+            
+            if ($ingredientId) {
+                $ingredient = Ingredient::find($ingredientId);
+                if ($ingredient) {
+                    // Auto-fill unit and price
+                    $this->ingredients[$index]['don_vi'] = $ingredient->don_vi_tinh;
+                    $this->ingredients[$index]['don_gia'] = $ingredient->gia_nhap ?? 0;
+                }
+            }
+        }
+    }
+
+    // Computed properties for cost calculation
+    public function getTotalCostProperty()
+    {
+        return collect($this->ingredients)->sum(function($ing) {
+            return ($ing['so_luong'] ?? 0) * ($ing['don_gia'] ?? 0);
+        });
+    }
+
+    public function getCostPerUnitProperty()
+    {
+        if ($this->so_luong_san_xuat > 0) {
+            return $this->totalCost / $this->so_luong_san_xuat;
+        }
+        return 0;
+    }
+
     public function save()
     {
         $this->validate([

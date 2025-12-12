@@ -87,6 +87,9 @@ abstract class BaseListComponent extends Component
 
     /**
      * Áp dụng search cho query builder
+     * Tìm kiếm thông minh: 
+     * - Search ngắn (1-2 ký tự): chỉ tìm trong 2 fields đầu (mã NV + tên)
+     * - Search dài (>= 3 ký tự): tìm trong tất cả fields
      */
     protected function applySearch($query, array $searchFields)
     {
@@ -94,9 +97,22 @@ abstract class BaseListComponent extends Component
             return $query;
         }
 
-        return $query->where(function ($q) use ($searchFields) {
-            foreach ($searchFields as $field) {
-                $q->orWhere($field, 'LIKE', '%' . $this->search . '%');
+        // Split search term into words
+        $searchWords = array_filter(explode(' ', trim($this->search)));
+
+        return $query->where(function ($q) use ($searchFields, $searchWords) {
+            foreach ($searchWords as $word) {
+                $q->where(function ($subQ) use ($searchFields, $word) {
+                    // Nếu từ ngắn (1-2 ký tự), chỉ tìm trong 2 fields đầu (mã NV + tên)
+                    // để tránh match với email (@bakery.com có 'b'), SĐT, v.v.
+                    $fieldsToSearch = (mb_strlen($word) <= 2) 
+                        ? array_slice($searchFields, 0, 2) 
+                        : $searchFields;
+                    
+                    foreach ($fieldsToSearch as $field) {
+                        $subQ->orWhere($field, 'LIKE', '%' . $word . '%');
+                    }
+                });
             }
         });
     }

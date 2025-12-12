@@ -1,6 +1,6 @@
 <div>
     <div class="flex justify-between items-center mb-6">
-        <h2 class="text-2xl font-semibold text-gray-800">Danh sách Danh mục sản phẩm</h2>
+        <h2 class="text-2xl font-semibold text-gray-800">Danh sách Size bánh</h2>
         <div class="flex gap-3">
             <button wire:click="exportExcel" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center">
                 <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -12,13 +12,13 @@
                 <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
                 </svg>
-                Thêm danh mục
+                Thêm size bánh
             </a>
         </div>
     </div>
 
     <div class="bg-white rounded-lg shadow-sm p-4 mb-6">
-        <x-search-bar placeholder="Tìm theo tên, mã danh mục..." />
+        <x-search-bar placeholder="Tìm theo tên size bánh..." />
     </div>
 
     @if (session('message'))
@@ -42,7 +42,7 @@
                     </th>
                     <th class="px-6 py-3 text-left">
                         <x-sort-icon field="ten_danh_muc" :currentField="$sortField" :direction="$sortDirection">
-                            <span class="text-xs font-medium text-gray-500 uppercase">Tên danh mục</span>
+                            <span class="text-xs font-medium text-gray-500 uppercase">Tên size</span>
                         </x-sort-icon>
                     </th>
                     <th class="px-6 py-3 text-left">
@@ -61,11 +61,11 @@
                         <td class="px-6 py-4 text-sm text-gray-500">{{ $category->thu_tu }}</td>
                         <td class="px-6 py-4 text-right text-sm">
                             <a href="{{ route('admin.categories.edit', $category->id) }}" class="text-yellow-600 hover:text-yellow-900 mr-3">Sửa</a>
-                            <button wire:click="delete({{ $category->id }})" wire:confirm="Xóa danh mục?" class="text-red-600 hover:text-red-900">Xóa</button>
+                            <button wire:click="delete({{ $category->id }})" wire:confirm="Xóa size bánh này?" class="text-red-600 hover:text-red-900">Xóa</button>
                         </td>
                     </tr>
                 @empty
-                    <tr><td colspan="4" class="px-6 py-12 text-center text-gray-500">Không có danh mục nào</td></tr>
+                    <tr><td colspan="4" class="px-6 py-12 text-center text-gray-500">Không có size bánh nào</td></tr>
                 @endforelse
             </tbody>
         </table>

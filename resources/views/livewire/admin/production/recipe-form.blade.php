@@ -35,7 +35,7 @@
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Số lượng/mẻ</label>
                     <div class="flex gap-2">
-                        <input type="number" wire:model="so_luong_san_xuat" class="flex-1 px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500" min="1">
+                        <input type="number" wire:model.live="so_luong_san_xuat" class="flex-1 px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500" min="1">
                         <input type="text" wire:model="don_vi_san_xuat" class="w-24 px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500" placeholder="cái">
                     </div>
                     @error('so_luong_san_xuat') <span class="text-red-500 text-sm mt-1">{{ $message }}</span> @enderror
@@ -59,11 +59,22 @@
                     </button>
                 </div>
 
+                <!-- Header Row -->
+                <div class="grid grid-cols-12 gap-2 mb-2 px-3">
+                    <div class="col-span-5 text-xs font-semibold text-gray-600 uppercase">Nguyên liệu</div>
+                    <div class="col-span-2 text-xs font-semib
+
+old text-gray-600 uppercase">Số lượng</div>
+                    <div class="col-span-2 text-xs font-semibold text-gray-600 uppercase">Đơn vị</div>
+                    <div class="col-span-2 text-xs font-semibold text-gray-600 uppercase">Đơn giá</div>
+                    <div class="col-span-1"></div>
+                </div>
+
                 <div class="space-y-3">
                     @foreach($ingredients as $index => $ingredient)
                         <div class="grid grid-cols-12 gap-2 bg-white p-3 rounded border border-gray-200">
-                            <div class="col-span-4">
-                                <select wire:model="ingredients.{{ $index }}.nguyen_lieu_id" class="w-full px-2 py-1 text-sm border border-gray-300 rounded">
+                            <div class="col-span-5">
+                                <select wire:model.live="ingredients.{{ $index }}.nguyen_lieu_id" class="w-full px-2 py-1 text-sm border border-gray-300 rounded">
                                     <option value="">-- Chọn nguyên liệu --</option>
                                     @foreach($allIngredients as $ing)
                                         <option value="{{ $ing->id }}">{{ $ing->ten_nguyen_lieu }}</option>
@@ -73,17 +84,16 @@
                             </div>
                             
                             <div class="col-span-2">
-                                <input type="number" wire:model="ingredients.{{ $index }}.so_luong" step="0.01" class="w-full px-2 py-1 text-sm border border-gray-300 rounded" placeholder="SL">
+                                <input type="number" wire:model.live="ingredients.{{ $index }}.so_luong" step="0.01" class="w-full px-2 py-1 text-sm border border-gray-300 rounded" placeholder="0.00">
                                 @error("ingredients.{$index}.so_luong") <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
                             </div>
                             
                             <div class="col-span-2">
-                                <input type="text" wire:model="ingredients.{{ $index }}.don_vi" class="w-full px-2 py-1 text-sm border border-gray-300 rounded" placeholder="kg">
+                                <input type="text" wire:model="ingredients.{{ $index }}.don_vi" readonly class="w-full px-2 py-1 text-sm border border-gray-300 rounded bg-gray-100" placeholder="--">
                             </div>
                             
-                            <div class="col-span-3">
-                                <input type="number" wire:model="ingredients.{{ $index }}.don_gia" class="w-full px-2 py-1 text-sm border border-gray-300 rounded" placeholder="Đơn giá">
-                                @error("ingredients.{$index}.don_gia") <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
+                            <div class="col-span-2">
+                                <input type="number" wire:model="ingredients.{{ $index }}.don_gia" readonly class="w-full px-2 py-1 text-sm border border-gray-300 rounded bg-gray-100" placeholder="0">
                             </div>
                             
                             <div class="col-span-1 flex items-center justify-center">
@@ -98,20 +108,11 @@
                 </div>
 
                 @if(count($ingredients) > 0)
-                    @php
-                        $totalCost = collect($ingredients)->sum(fn($ing) => ($ing['so_luong'] ?? 0) * ($ing['don_gia'] ?? 0));
-                        $costPerUnit = $so_luong_san_xuat > 0 ? $totalCost / $so_luong_san_xuat : 0;
-                    @endphp
                     <div class="mt-4 p-3 bg-white border-l-4 border-blue-600 rounded">
-                        <div class="text-sm font-semibold text-gray-800">TỔNG CHI PHÍ: <span class="text-blue-600">{{ number_format($totalCost, 0, ',', '.') }} đ</span></div>
-                        <div class="text-xs text-gray-600 mt-1">Chi phí/{{ $don_vi_san_xuat }}: {{ number_format($costPerUnit, 0, ',', '.') }} đ</div>
+                        <div class="text-sm font-semibold text-gray-800">TỔNG CHI PHÍ: <span class="text-blue-600">{{ number_format($this->totalCost, 0, ',', '.') }} đ</span></div>
+                        <div class="text-xs text-gray-600 mt-1">Chi phí/{{ $don_vi_san_xuat }}: {{ number_format($this->costPerUnit, 0, ',', '.') }} đ</div>
                     </div>
                 @endif
-            </div>
-
-            <div class="mt-6">
-                <label class="block text-sm font-medium text-gray-700 mb-2">Mô tả</label>
-                <textarea wire:model="mo_ta" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500" rows="3"></textarea>
             </div>
 
             <div class="mt-6 flex justify-end gap-3">
