@@ -29,7 +29,7 @@ class ShiftRequests extends Component
     public function loadRequests()
     {
         $query = YeuCauCaLam::where('nguoi_dung_id', Auth::id())
-            ->with('shift');
+            ->with('caLamViec');
         
         if ($this->filterStatus) {
             $query->where('trang_thai', $this->filterStatus);

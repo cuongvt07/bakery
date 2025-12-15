@@ -196,8 +196,8 @@ class ShiftClosing extends Component
             'tienMat' => 'required|numeric|min:0',
             'tienChuyenKhoan' => 'required|numeric|min:0',
             'closingStock.*' => 'required|numeric|min:0',
-            'photosCash.*' => 'image|max:2048',
-            'photosStock.*' => 'image|max:2048',
+            'photosCash.*' => 'image|max:10240',
+            'photosStock.*' => 'image|max:10240',
         ]);
         
         DB::transaction(function () {
@@ -216,16 +216,18 @@ class ShiftClosing extends Component
             $phieu->tong_tien_ly_thuyet = $this->totalTheoretical;
             $phieu->tien_lech = $this->discrepancy;
             
-            // Handle Image Uploads
+            // Handle Image Uploads with Resizing
+            $manager = new \Intervention\Image\ImageManager(new \Intervention\Image\Drivers\Gd\Driver());
+
             $cashPaths = [];
             foreach ($this->photosCash as $photo) {
-                $cashPaths[] = $photo->store('shift-closing/cash', 'public');
+                $cashPaths[] = $this->resizeAndStore($photo, 'shift-closing/cash', $manager);
             }
             $phieu->anh_tien_mat = json_encode($cashPaths);
 
             $stockPaths = [];
             foreach ($this->photosStock as $photo) {
-                $stockPaths[] = $photo->store('shift-closing/stock', 'public');
+                $stockPaths[] = $this->resizeAndStore($photo, 'shift-closing/stock', $manager);
             }
             $phieu->anh_hang_hoa = json_encode($stockPaths);
             
@@ -313,5 +315,28 @@ class ShiftClosing extends Component
     public function render()
     {
         return view('livewire.admin.shift.shift-closing');
+    }
+
+    private function resizeAndStore($photo, $folder, $manager)
+    {
+        $filename = md5($photo->getClientOriginalName() . time()) . '.jpg';
+        $path = $folder . '/' . $filename;
+        $fullPath = storage_path('app/public/' . $path);
+        
+        // Ensure directory exists
+        if (!file_exists(dirname($fullPath))) {
+            mkdir(dirname($fullPath), 0755, true);
+        }
+
+        // Read image from temporary file
+        $image = $manager->read($photo->getRealPath());
+
+        // Resize: Max width 1024, constrain aspect ratio
+        $image->scale(width: 1024);
+
+        // Encode to JPG with 75% quality and save
+        $image->toJpeg(75)->save($fullPath);
+
+        return $path;
     }
 }

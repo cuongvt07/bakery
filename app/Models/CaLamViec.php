@@ -21,6 +21,7 @@ class CaLamViec extends Model
         'thoi_gian_checkin',
         'tien_mat_dau_ca',
         'ghi_chu',
+        'shift_template_id',
     ];
 
     protected $casts = [
@@ -56,6 +57,11 @@ class CaLamViec extends Model
     public function chiTietCaLam(): HasMany
     {
         return $this->hasMany(ChiTietCaLam::class, 'ca_lam_viec_id');
+    }
+
+    public function shiftTemplate(): BelongsTo
+    {
+        return $this->belongsTo(ShiftTemplate::class, 'shift_template_id');
     }
 
     /**

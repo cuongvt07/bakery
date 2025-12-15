@@ -107,4 +107,35 @@
             </div>
         @endif
     </div>
+
+    <!-- SHIFT SELECTION MODAL -->
+    @if($showShiftSelection)
+    <div class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden">
+            <div class="bg-indigo-600 px-6 py-4">
+                <h3 class="text-white font-bold text-lg">Chọn Ca Làm Việc</h3>
+                <p class="text-indigo-100 text-sm">Bạn có nhiều ca trong ngày hôm nay</p>
+            </div>
+            <div class="p-6 space-y-3">
+                @foreach($todayShifts as $s)
+                    <button wire:click="selectShift({{ $s->id }})" class="w-full text-left bg-gray-50 hover:bg-indigo-50 border border-gray-200 hover:border-indigo-300 rounded-lg p-4 transition-all">
+                        <div class="flex justify-between items-center mb-1">
+                            <span class="font-bold text-gray-900">{{ $s->agency->ten_diem_ban ?? 'Unknown Agency' }}</span>
+                            <span class="text-xs font-bold px-2 py-0.5 rounded bg-blue-100 text-blue-700">
+                                {{ \Carbon\Carbon::parse($s->gio_bat_dau)->format('H:i') }} - {{ \Carbon\Carbon::parse($s->gio_ket_thuc)->format('H:i') }}
+                            </span>
+                        </div>
+                        <div class="text-sm text-gray-600">
+                            {{ $s->shiftTemplate->name ?? 'Ca tùy chỉnh' }}
+                        </div>
+                    </button>
+                @endforeach
+                
+                <button wire:click="$set('showShiftSelection', false)" class="w-full mt-4 py-3 text-gray-500 font-medium hover:text-gray-700">
+                    Hủy bỏ
+                </button>
+            </div>
+        </div>
+    </div>
+    @endif
 </div>

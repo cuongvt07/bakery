@@ -23,6 +23,10 @@ class CheckIn extends Component
     public $openingCash = 0;
     public $receivedStock = []; // [product_id => quantity]
     public $products = [];
+
+    // Multi-shift selection
+    public $todayShifts = [];
+    public $showShiftSelection = false;
     
     public function mount()
     {
@@ -34,7 +38,8 @@ class CheckIn extends Component
         $user = Auth::user();
         
         // 1. Check for active shift
-        $this->shift = CaLamViec::where('nguoi_dung_id', $user->id)
+        $this->shift = CaLamViec::with('shiftTemplate')
+            ->where('nguoi_dung_id', $user->id)
             ->where('trang_thai', 'dang_lam')
             ->first();
             
@@ -45,44 +50,91 @@ class CheckIn extends Component
             if (!$this->isCheckedIn) {
                 $this->loadDistributedStock();
             }
+        } else {
+            $this->checkTodayShifts();
+        }
+    }
+
+    public function checkTodayShifts() 
+    {
+        $shifts = \App\Models\ShiftSchedule::with(['agency', 'shiftTemplate'])
+            ->where('nguoi_dung_id', Auth::id())
+            ->whereDate('ngay_lam', Carbon::today())
+            ->whereIn('trang_thai', ['approved', 'pending'])
+            ->orderBy('gio_bat_dau')
+            ->get();
+
+        if ($shifts->count() > 1) {
+            $this->todayShifts = $shifts;
+            $this->showShiftSelection = true;
         }
     }
     
     public function startShift()
     {
-        // Find assigned agency
-        $assignment = NhanVienDiemBan::where('nguoi_dung_id', Auth::id())
-            ->where('ngay_bat_dau', '<=', now())
-            ->where(function($q) {
-                $q->whereNull('ngay_ket_thuc')
-                  ->orWhere('ngay_ket_thuc', '>=', now());
-            })
-            ->first();
+        // 1. Find ALL registered shifts for TODAY
+        $shifts = \App\Models\ShiftSchedule::with(['agency', 'shiftTemplate'])
+            ->where('nguoi_dung_id', Auth::id())
+            ->whereDate('ngay_lam', Carbon::today())
+            ->whereIn('trang_thai', ['approved', 'pending'])
+            ->orderBy('gio_bat_dau')
+            ->get();
             
-        if (!$assignment) {
-            session()->flash('error', 'Bạn chưa được phân công vào điểm bán nào!');
+        if ($shifts->isEmpty()) {
+            session()->flash('error', 'Bạn chưa đăng ký ca làm việc cho ngày hôm nay!');
             return;
         }
         
+        // 2. Multi-shift handling
+        if ($shifts->count() > 1) {
+            $this->todayShifts = $shifts;
+            $this->showShiftSelection = true;
+            return;
+        }
+        
+        // 3. Single shift handling
+        $this->createSession($shifts->first());
+    }
+
+    public function selectShift($shiftId)
+    {
+        $selectedShift = \App\Models\ShiftSchedule::find($shiftId);
+        if ($selectedShift) {
+            $this->createSession($selectedShift);
+        }
+    }
+    
+    private function createSession($schedule)
+    {
+        // Create Active Shift (Session)
         $shift = CaLamViec::create([
-            'diem_ban_id' => $assignment->diem_ban_id,
+            'diem_ban_id' => $schedule->diem_ban_id,
             'nguoi_dung_id' => Auth::id(),
             'ngay_lam' => now(),
             'gio_bat_dau' => now(),
             'gio_ket_thuc' => now()->addHours(8), // Estimated
             'trang_thai' => 'dang_lam',
             'trang_thai_checkin' => false,
+            // 'shift_schedule_id' => $schedule->id,
+            'shift_template_id' => $schedule->shift_template_id,
         ]);
         
+        $this->showShiftSelection = false; 
+        $this->todayShifts = [];
         $this->checkShiftStatus();
     }
-    
+
     public function loadDistributedStock()
     {
         $agencyId = $this->shift->diem_ban_id;
         
-        // Determine Session based on Shift Start Time
-        $startTime = Carbon::parse($this->shift->gio_bat_dau);
+        // Determine Session based on Shift Template OR Start Time
+        if ($this->shift->shiftTemplate) {
+            $startTime = Carbon::parse($this->shift->shiftTemplate->start_time);
+        } else {
+            $startTime = Carbon::parse($this->shift->gio_bat_dau);
+        }
+        
         $session = $startTime->lt(Carbon::parse('12:00:00')) ? 'sang' : 'chieu';
         
         // Find all distributions for this agency, today, and session
