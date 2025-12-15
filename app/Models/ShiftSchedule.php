@@ -63,4 +63,9 @@ class ShiftSchedule extends Model
     {
         return $query->where('trang_thai', 'approved');
     }
+    public function user()
+    {
+        return $this->nguoiDung();
+    }
+
 }

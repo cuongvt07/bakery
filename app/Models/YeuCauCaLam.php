@@ -69,3 +69,4 @@ class YeuCauCaLam extends Model
         return $query->where('loai_yeu_cau', $loai);
     }
 }
+

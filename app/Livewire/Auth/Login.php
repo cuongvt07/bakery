@@ -24,7 +24,7 @@ class Login extends Component
             session()->regenerate();
 
             if (Auth::user()->vai_tro === 'nhan_vien') {
-                return redirect()->route('admin.shift.check-in');
+                return redirect()->route('employee.dashboard');
             }
 
             return redirect()->intended(route('admin.dashboard'));
@@ -38,3 +38,4 @@ class Login extends Component
         return view('livewire.auth.login');
     }
 }
+

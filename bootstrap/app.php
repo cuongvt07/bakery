@@ -19,8 +19,12 @@ return Application::configure(basePath: dirname(__DIR__))
         // Register custom middleware aliases
         $middleware->alias([
             'check-in-required' => \App\Http\Middleware\CheckInRequired::class,
+            'employee' => \App\Http\Middleware\EnsureUserIsEmployee::class,
+            'admin' => \App\Http\Middleware\EnsureUserIsAdmin::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //
     })->create();
+
+

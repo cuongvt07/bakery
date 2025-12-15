@@ -18,15 +18,8 @@ use App\Livewire\Auth\Login;
 Route::get('/', function () {
     if (auth()->check()) {
         if (auth()->user()->vai_tro === 'nhan_vien') {
-            // Check if employee has checked in
-            $shift = \App\Models\CaLamViec::where('nguoi_dung_id', auth()->id())
-                ->where('trang_thai', 'dang_lam')
-                ->first();
-            
-            if ($shift && $shift->trang_thai_checkin) {
-                return redirect('/admin/pos');
-            }
-            return redirect()->route('admin.shift.check-in');
+            // Redirect employee to employee dashboard
+            return redirect()->route('employee.dashboard');
         }
         return redirect()->route('admin.dashboard');
     }
@@ -42,7 +35,7 @@ Route::post('/logout', function () {
     return redirect()->route('login');
 })->name('logout');
 
-Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
+Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/dashboard', App\Livewire\Admin\Dashboard::class)->name('dashboard');
 
     // Users
@@ -103,8 +96,28 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     Route::get('/shift/management', \App\Livewire\Admin\Shift\ShiftManagement::class)->name('shift.management'); // Admin view
     Route::get('/shift/new', \App\Livewire\Admin\Shift\ShiftManagementNew::class)->name('shift.new'); // New tab-based UI
     Route::get('/shift/closing', ShiftClosing::class)->name('shift.closing'); // Employee closing
+    Route::get('/shift/requests', \App\Livewire\Admin\Shift\AdminShiftRequests::class)->name('shift.requests');
     Route::get('/shift/check-in', \App\Livewire\Admin\Shift\ShiftCheckIn::class)->name('shift.check-in'); // Employee check-in
     Route::get('/pos', QuickSale::class)->name('admin.pos.quick-sale');
     Route::get('/pos/pending', App\Livewire\Admin\Shift\PendingSalesList::class)->name('admin.pos.pending');
     Route::get('/pos/confirmed', App\Livewire\Admin\Shift\ConfirmedSalesList::class)->name('admin.pos.confirmed');
 });
+
+// Employee Routes (Mobile-First)
+Route::middleware(['auth', 'employee'])->prefix('employee')->name('employee.')->group(function () {
+    Route::get('/dashboard', App\Livewire\Employee\Dashboard::class)->name('dashboard');
+    
+    // Shift Management
+    Route::get('/shifts/schedule', App\Livewire\Employee\Shift\ShiftSchedule::class)->name('shifts.schedule');
+    Route::get('/shifts/register', App\Livewire\Employee\Shift\ShiftRegistration::class)->name('shifts.register');
+    Route::get('/shifts/requests', App\Livewire\Employee\Shift\ShiftRequests::class)->name('shifts.requests');
+    Route::get('/shifts/check-in', App\Livewire\Employee\Shift\CheckIn::class)->name('shifts.check-in');
+    
+    // Support
+    Route::get('/support/ticket', App\Livewire\Employee\SupportTicket::class)->name('support.ticket');
+});
+
+
+
+
+

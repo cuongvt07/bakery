@@ -51,6 +51,16 @@ class Agency extends Model
         return $this->hasMany(CaLamViec::class, 'diem_ban_id');
     }
 
+    public function shiftSchedules()
+    {
+        return $this->hasMany(ShiftSchedule::class, 'diem_ban_id');
+    }
+
+    public function shiftTemplates()
+    {
+        return $this->hasMany(ShiftTemplate::class, 'diem_ban_id');
+    }
+
     public function chamCong()
     {
         return $this->hasMany(ChamCong::class, 'diem_ban_id');
