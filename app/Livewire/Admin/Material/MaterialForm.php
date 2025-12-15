@@ -44,6 +44,8 @@ class MaterialForm extends Component
         if ($value) {
             $location = AgencyLocation::find($value);
             if ($location) {
+                // Auto-assign agency from location
+                $this->diem_ban_id = $location->diem_ban_id;
                 $this->mo_ta_vi_tri = $location->mo_ta ?? '';
                 $this->dia_diem = $location->dia_chi ?? '';
             }
@@ -94,7 +96,6 @@ class MaterialForm extends Component
     public function save()
     {
         $this->validate([
-            'diem_ban_id' => 'required|exists:diem_ban,id',
             'ten_vat_tu' => 'required|string|max:200',
             'ma_vat_tu' => 'required|string|max:50',
             'vi_tri_id' => 'required|exists:vi_tri_diem_ban,id',
@@ -130,7 +131,6 @@ class MaterialForm extends Component
     public function saveBulk()
     {
         $this->validate([
-            'diem_ban_id' => 'required|exists:diem_ban,id',
             'vi_tri_id' => 'required|exists:vi_tri_diem_ban,id',
             'bulk_materials' => 'required|string',
         ]);
@@ -174,16 +174,13 @@ class MaterialForm extends Component
 
     public function render()
     {
-        $agencies = Agency::orderBy('ten_diem_ban')->get();
-        $locations = AgencyLocation::query()
-            ->when($this->diem_ban_id, function ($q) {
-                $q->where('diem_ban_id', $this->diem_ban_id);
-            })
+        // Get all locations ordered by agency and location code
+        $locations = AgencyLocation::with('agency')
+            ->orderBy('diem_ban_id')
             ->orderBy('ma_vi_tri')
             ->get();
 
         return view('livewire.admin.material.material-form', [
-            'agencies' => $agencies,
             'locations' => $locations,
         ]);
     }

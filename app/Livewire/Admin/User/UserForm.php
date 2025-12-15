@@ -6,10 +6,12 @@ use App\Models\User;
 use Illuminate\Support\Facades\Hash;
 use Livewire\Component;
 use Livewire\Attributes\Layout;
+use Livewire\WithFileUploads;
 
 #[Layout('components.layouts.app')]
 class UserForm extends Component
 {
+    use WithFileUploads;
     public ?User $user = null;
     
     // Basic info
@@ -25,6 +27,13 @@ class UserForm extends Component
     public $loai_hop_dong = 'thu_viec';
     public $ngay_ky_hop_dong = '';
     public $ngay_het_han_hop_dong = '';
+    public $ngay_thu_viec = '';
+    public $ngay_chinh_thuc = '';
+    public $ghi_chu_hop_dong = '';
+    
+    // File upload
+    public $file_hop_dong = null;
+    public $existing_file = null;
     
     // Salary
     public $luong_thu_viec = 0;
@@ -48,6 +57,10 @@ class UserForm extends Component
             $this->loai_hop_dong = $this->user->loai_hop_dong ?? 'thu_viec';
             $this->ngay_ky_hop_dong = $this->user->ngay_ky_hop_dong?->format('Y-m-d');
             $this->ngay_het_han_hop_dong = $this->user->ngay_het_han_hop_dong?->format('Y-m-d');
+            $this->ngay_thu_viec = $this->user->ngay_thu_viec?->format('Y-m-d');
+            $this->ngay_chinh_thuc = $this->user->ngay_chinh_thuc?->format('Y-m-d');
+            $this->ghi_chu_hop_dong = $this->user->ghi_chu_hop_dong;
+            $this->existing_file = $this->user->file_hop_dong;
             $this->luong_thu_viec = $this->user->luong_thu_viec ?? 0;
             $this->luong_chinh_thuc = $this->user->luong_chinh_thuc ?? 0;
             $this->loai_luong = $this->user->loai_luong ?? 'theo_ngay';
@@ -68,6 +81,7 @@ class UserForm extends Component
             'vai_tro' => 'required|in:admin,nhan_vien',
             'trang_thai' => 'required|in:hoat_dong,khoa',
             'loai_hop_dong' => 'nullable|in:thu_viec,chinh_thuc,hop_tac',
+            'file_hop_dong' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120', // 5MB max
         ]);
 
         $data = [
@@ -79,6 +93,9 @@ class UserForm extends Component
             'loai_hop_dong' => $this->loai_hop_dong,
             'ngay_ky_hop_dong' => $this->ngay_ky_hop_dong,
             'ngay_het_han_hop_dong' => $this->ngay_het_han_hop_dong,
+            'ngay_thu_viec' => $this->ngay_thu_viec,
+            'ngay_chinh_thuc' => $this->ngay_chinh_thuc,
+            'ghi_chu_hop_dong' => $this->ghi_chu_hop_dong,
             'luong_thu_viec' => $this->luong_thu_viec,
             'luong_chinh_thuc' => $this->luong_chinh_thuc,
             'loai_luong' => $this->loai_luong,
@@ -88,6 +105,18 @@ class UserForm extends Component
 
         if ($this->password) {
             $data['mat_khau'] = Hash::make($this->password);
+        }
+        
+        // Handle file upload
+        if ($this->file_hop_dong) {
+            $maNhanVien = $this->user ? $this->user->ma_nhan_vien : $this->ma_nhan_vien;
+            $filename = 'hop-dong-' . time() . '.' . $this->file_hop_dong->extension();
+            $path = $this->file_hop_dong->storeAs(
+                'contracts/' . $maNhanVien,
+                $filename,
+                'public'
+            );
+            $data['file_hop_dong'] = $path;
         }
 
         if ($this->user) {

@@ -40,32 +40,24 @@
             <!-- BULK ADD MODE -->
             <form wire:submit="saveBulk">
                 <div class="space-y-4">
-                    <!-- Đại lý -->
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Đại lý *</label>
-                        <select wire:model.live="diem_ban_id" class="w-full px-3 py-2 border rounded-lg">
-                            <option value="">-- Chọn đại lý --</option>
-                            @foreach($agencies as $agency)
-                                <option value="{{ $agency->id }}">{{ $agency->ten_diem_ban }}</option>
-                            @endforeach
-                        </select>
-                        @error('diem_ban_id') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
-                    </div>
-
-                    <!-- Vị trí (locked) -->
+                    <!-- Vị trí (will auto-assign agency) -->
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Vị trí * (cố định cho tất cả)</label>
                         <select wire:model.live="vi_tri_id" class="w-full px-3 py-2 border rounded-lg">
                             <option value="">-- Chọn vị trí --</option>
-                            @foreach($locations as $location)
-                                <option value="{{ $location->id }}">{{ $location->ma_vi_tri }} - {{ $location->ten_vi_tri }}</option>
+                            @php
+                                $groupedLocations = $locations->groupBy('diem_ban_id');
+                            @endphp
+                            @foreach($groupedLocations as $agencyId => $agencyLocations)
+                                <optgroup label="{{ $agencyLocations->first()->agency->ten_diem_ban }}">
+                                    @foreach($agencyLocations as $location)
+                                        <option value="{{ $location->id }}">{{ $location->ma_vi_tri }} - {{ $location->ten_vi_tri }}</option>
+                                    @endforeach
+                                </optgroup>
                             @endforeach
                         </select>
                         @error('vi_tri_id') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
-                        
-                        @if(!$diem_ban_id)
-                            <p class="text-xs text-gray-500 mt-1">Vui lòng chọn đại lý trước</p>
-                        @endif
+                        <p class="text-xs text-gray-500 mt-1">💡 Đại lý sẽ tự động được gán dựa trên vị trí bạn chọn</p>
                     </div>
 
                     <!-- Bulk Material Names -->
@@ -96,18 +88,6 @@
             <!-- SINGLE ADD MODE -->
             <form wire:submit="save">
                 <div class="space-y-4">
-                    <!-- Đại lý -->
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Đại lý *</label>
-                        <select wire:model.live="diem_ban_id" class="w-full px-3 py-2 border rounded-lg" {{ $materialId ? 'disabled' : '' }}>
-                            <option value="">-- Chọn đại lý --</option>
-                            @foreach($agencies as $agency)
-                                <option value="{{ $agency->id }}">{{ $agency->ten_diem_ban }}</option>
-                            @endforeach
-                        </select>
-                        @error('diem_ban_id') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
-                    </div>
-
                     <!-- Grid 2 columns -->
                     <div class="grid grid-cols-2 gap-4">
                         <!-- Tên vật tư -->
@@ -131,20 +111,24 @@
                         </div>
                     </div>
 
-                    <!-- Vị trí -->
+                    <!-- Vị trí (will auto-assign agency) -->
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Vị trí *</label>
                         <select wire:model.live="vi_tri_id" class="w-full px-3 py-2 border rounded-lg">
                             <option value="">-- Chọn vị trí --</option>
-                            @foreach($locations as $location)
-                                <option value="{{ $location->id }}">{{ $location->ma_vi_tri }} - {{ $location->ten_vi_tri }}</option>
+                            @php
+                                $groupedLocations = $locations->groupBy('diem_ban_id');
+                            @endphp
+                            @foreach($groupedLocations as $agencyId => $agencyLocations)
+                                <optgroup label="{{ $agencyLocations->first()->agency->ten_diem_ban }}">
+                                    @foreach($agencyLocations as $location)
+                                        <option value="{{ $location->id }}">{{ $location->ma_vi_tri }} - {{ $location->ten_vi_tri }}</option>
+                                    @endforeach
+                                </optgroup>
                             @endforeach
                         </select>
                         @error('vi_tri_id') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
-                        
-                        @if(!$diem_ban_id)
-                            <p class="text-xs text-gray-500 mt-1">Vui lòng chọn đại lý trước</p>
-                        @endif
+                        <p class="text-xs text-gray-500 mt-1">💡 Đại lý sẽ tự động được gán dựa trên vị trí bạn chọn</p>
                     </div>
 
                     <!-- Mô tả vị trí - EDITABLE -->

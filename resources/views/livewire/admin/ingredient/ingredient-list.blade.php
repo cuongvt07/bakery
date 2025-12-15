@@ -18,14 +18,11 @@
     </div>
 
     <div class="bg-white rounded-lg shadow-sm p-4 mb-6">
-        <!-- Row 1: Search (Limited Width) -->
         <div class="mb-4 max-w-lg">
             <x-search-bar placeholder="Tìm theo tên, mã nguyên liệu..." />
         </div>
         
-        <!-- Row 2: Filters Grid (Max 4 columns) -->
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <!-- Filter 1: Low Stock Checkbox -->
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Bộ lọc đặc biệt</label>
                 <label class="flex items-center h-10 px-3 py-2 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50">
@@ -34,11 +31,9 @@
                 </label>
             </div>
             
-            <!-- Filter 2-3: Empty -->
             <div></div>
             <div></div>
             
-            <!-- Filter 4: Reset Button (Compact) -->
             <div class="flex items-end">
                 <x-reset-button wire:click="$set('lowStock', false)" />
             </div>
@@ -76,6 +71,11 @@
                             <span class="text-xs font-medium text-gray-500 uppercase">Tồn kho</span>
                         </x-sort-icon>
                     </th>
+                    <th class="px-6 py-3 text-left">
+                        <x-sort-icon field="gia_nhap" :currentField="$sortField" :direction="$sortDirection">
+                            <span class="text-xs font-medium text-gray-500 uppercase">Giá nhập</span>
+                        </x-sort-icon>
+                    </th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tồn tối thiểu</th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Trạng thái</th>
                     <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Thao tác</th>
@@ -92,6 +92,9 @@
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ $ingredient->don_vi_tinh }}</td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm {{ $isLowStock ? 'text-red-600 font-bold' : 'text-gray-900' }}">
                             {{ number_format($ingredient->ton_kho_hien_tai, 2) }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-semibold text-green-700">
+                            {{ number_format($ingredient->gia_nhap, 0, ',', '.') }}đ
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ number_format($ingredient->ton_kho_toi_thieu, 2) }}</td>
                         <td class="px-6 py-4 whitespace-nowrap">
@@ -112,7 +115,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="7" class="px-6 py-12 text-center text-gray-500">
+                        <td colspan="8" class="px-6 py-12 text-center text-gray-500">
                             Không có nguyên liệu nào
                             @if($lowStock)
                                 <button wire:click="$set('lowStock', false)" class="block mt-2 text-blue-600 hover:text-blue-800 mx-auto">

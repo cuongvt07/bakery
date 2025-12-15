@@ -34,6 +34,10 @@ class MaterialList extends Component
     public $location_diem_ban_id = '';
     public $mo_ta = '';
     public $dia_chi = '';
+    
+    // Duplicate tracking
+    public $isDuplicate = false;
+    public $duplicateMessage = '';
 
     protected $queryString = [
         'activeTab' => ['except' => 'materials'],
@@ -122,12 +126,60 @@ class MaterialList extends Component
 
     public function updatedMaViTri($value)
     {
-        // Auto uppercase
-        $this->ma_vi_tri = strtoupper($value);
+        // Auto uppercase and trim
+        $this->ma_vi_tri = strtoupper(trim($value));
+        
+        // Check for duplicates
+        $this->checkDuplicate();
+    }
+    
+    private function checkDuplicate()
+    {
+        // If empty but was duplicate before, keep the warning
+        if (empty($this->ma_vi_tri)) {
+            if (!$this->isDuplicate) {
+                $this->duplicateMessage = '';
+            }
+            return;
+        }
+        
+        if (empty($this->location_diem_ban_id)) {
+            // Can't check without agency selected
+            $this->isDuplicate = false;
+            $this->duplicateMessage = '';
+            return;
+        }
+        
+        $query = AgencyLocation::where('diem_ban_id', $this->location_diem_ban_id)
+            ->where('ma_vi_tri', $this->ma_vi_tri);
+        
+        // If editing, exclude current location from check
+        if ($this->editingLocation) {
+            $query->where('id', '!=', $this->editingLocation);
+        }
+        
+        $exists = $query->exists();
+        
+        if ($exists) {
+            $this->isDuplicate = true;
+            $this->duplicateMessage = 'Mã vị trí "' . $this->ma_vi_tri . '" đã tồn tại trong đại lý này. Vui lòng nhập mã khác.';
+            // Clear input to force re-entry
+            $this->ma_vi_tri = '';
+        } else {
+            // Only reset when valid unique code entered
+            $this->isDuplicate = false;
+            $this->duplicateMessage = '';
+        }
     }
 
     public function saveLocation()
     {
+        // Prevent save if duplicate
+        if ($this->isDuplicate) {
+            session()->flash('error', 'Không thể lưu: Mã vị trí đã tồn tại trong đại lý.');
+            return;
+        }
+        
         $this->validate([
             'location_diem_ban_id' => 'required|exists:diem_ban,id',
             'ma_vi_tri' => 'required|string|max:20',
@@ -151,7 +203,7 @@ class MaterialList extends Component
         }
 
         $this->showLocationModal = false;
-        $this->reset(['ma_vi_tri', 'ten_vi_tri', 'mo_ta', 'dia_chi', 'location_diem_ban_id', 'editingLocation']);
+        $this->reset(['ma_vi_tri', 'ten_vi_tri', 'mo_ta', 'dia_chi', 'location_diem_ban_id', 'editingLocation', 'isDuplicate', 'duplicateMessage']);
     }
 
     public function deleteLocation($id)

@@ -75,14 +75,13 @@
                             </x-sort-icon>
                         </th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Liên hệ</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Địa chỉ</th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Loại HĐ</th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Lương TV</th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Lương CT</th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Loại lương</th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ngày ký HĐ</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Hết hạn HĐ</th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Vai trò</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Trạng thái</th>
                         <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Thao tác</th>
                     </tr>
                 </thead>
@@ -103,9 +102,6 @@
                                         👤 Facebook
                                     </a>
                                 @endif
-                            </td>
-                            <td class="px-4 py-3 text-sm text-gray-600 max-w-xs truncate" title="{{ $user->dia_chi }}">
-                                {{ $user->vai_tro === 'admin' ? '-' : ($user->dia_chi ?? '-') }}
                             </td>
                             <td class="px-4 py-3">
                                 @if($user->loai_hop_dong && $user->vai_tro !== 'admin')
@@ -133,19 +129,40 @@
                                 {{ $user->vai_tro === 'admin' ? '-' : ($user->luong_chinh_thuc ? number_format($user->luong_chinh_thuc, 0, ',', '.') . 'đ' : '-') }}
                             </td>
                             <td class="px-4 py-3 text-sm text-gray-600">
-                                {{ $user->vai_tro === 'admin' ? '-' : ($user->loai_luong ?? '-') }}
+                                @if($user->vai_tro === 'admin')
+                                    -
+                                @else
+                                    <span class="px-2 py-1 text-xs rounded-full bg-indigo-50 text-indigo-700">
+                                        {{ match($user->loai_luong) {
+                                            'theo_ngay' => 'Theo ngày',
+                                            'theo_gio' => 'Theo giờ',
+                                            default => '-',
+                                        } }}
+                                    </span>
+                                @endif
                             </td>
                             <td class="px-4 py-3 text-sm text-gray-600">
                                 {{ $user->vai_tro === 'admin' ? '-' : ($user->ngay_ky_hop_dong?->format('d/m/Y') ?? '-') }}
                             </td>
+                            <td class="px-4 py-3 text-sm">
+                                @if($user->vai_tro === 'admin')
+                                    -
+                                @elseif($user->ngay_het_han_hop_dong)
+                                    <div class="flex flex-col">
+                                        <span class="text-gray-900">{{ $user->ngay_het_han_hop_dong->format('d/m/Y') }}</span>
+                                        @if($user->isContractExpired())
+                                            <span class="text-xs text-red-600 font-medium">⚠️ Hết hạn</span>
+                                        @elseif($user->ngay_het_han_hop_dong->diffInDays(now()) <= 30)
+                                            <span class="text-xs text-orange-600">Sắp hết</span>
+                                        @endif
+                                    </div>
+                                @else
+                                    <span class="text-gray-400">-</span>
+                                @endif
+                            </td>
                             <td class="px-4 py-3">
                                 <span class="px-2 py-1 text-xs rounded-full {{ $user->vai_tro === 'admin' ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800' }}">
                                     {{ $user->vai_tro === 'admin' ? 'Admin' : 'NV' }}
-                                </span>
-                            </td>
-                            <td class="px-4 py-3">
-                                <span class="px-2 py-1 text-xs rounded-full {{ $user->trang_thai === 'hoat_dong' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800' }}">
-                                    {{ $user->trang_thai === 'hoat_dong' ? 'Hoạt động' : 'Khóa' }}
                                 </span>
                             </td>
                             <td class="px-4 py-3 text-right text-sm whitespace-nowrap">
@@ -154,7 +171,7 @@
                             </td>
                         </tr>
                     @empty
-                        <tr><td colspan="12" class="px-6 py-12 text-center text-gray-500">Không có nhân viên nào</td></tr>
+                        <tr><td colspan="11" class="px-6 py-12 text-center text-gray-500">Không có nhân viên nào</td></tr>
                     @endforelse
                 </tbody>
             </table>

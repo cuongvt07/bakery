@@ -141,7 +141,7 @@
 
     {{-- Edit Modal --}}
     @if($showEditModal && $editingBatch)
-    <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" wire:click="closeEdit">
+    <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
         <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-hidden" wire:click.stop>
             <div class="bg-green-600 text-white px-6 py-4 flex items-center justify-between rounded-t-lg">
                 <h3 class="text-lg font-bold">Chỉnh sửa đơn đã chốt</h3>

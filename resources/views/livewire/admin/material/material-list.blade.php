@@ -56,7 +56,7 @@
 
     <!-- Location Modal - Clean & Simple -->
     @if($showLocationModal)
-        <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" wire:click="$set('showLocationModal', false)">
+        <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
             <div class="bg-white rounded-xl shadow-2xl w-full max-w-md" wire:click.stop>
                 <!-- Header -->
                 <div class="bg-indigo-600 rounded-t-xl px-6 py-4 flex justify-between items-center">
@@ -98,12 +98,29 @@
                         <!-- Mã vị trí -->
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1.5">Mã vị trí * (IN HOA)</label>
-                            <input type="text" 
-                                   wire:model.live="ma_vi_tri" 
-                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg font-mono uppercase focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" 
-                                   placeholder="K1"
-                                   maxlength="20">
+                            <div class="relative">
+                                <input type="text" 
+                                       wire:model.live="ma_vi_tri" 
+                                       class="w-full px-3 py-2 border rounded-lg font-mono uppercase focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 {{ $isDuplicate ? 'border-red-500 bg-red-50' : 'border-gray-300' }}" 
+                                       placeholder="K1"
+                                       maxlength="20">
+                                <!-- Loading spinner -->
+                                <div wire:loading wire:target="ma_vi_tri" class="absolute right-3 top-2.5">
+                                    <svg class="animate-spin h-5 w-5 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                    </svg>
+                                </div>
+                            </div>
                             @error('ma_vi_tri') <p class="text-red-600 text-xs mt-1">{{ $message }}</p> @enderror
+                            @if($isDuplicate)
+                                <div class="mt-1.5 flex items-center gap-1.5 text-red-600 text-sm font-medium">
+                                    <svg class="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                                    </svg>
+                                    <span>{{ $duplicateMessage }}</span>
+                                </div>
+                            @endif
                         </div>
 
                         <!-- Mô tả -->
@@ -130,12 +147,13 @@
                     <!-- Actions -->
                     <div class="mt-6 flex gap-3">
                         <button type="button" 
-                                wire:click="$set('showLocationModal', false)" 
+                                wire:click="showLocationModal = false" 
                                 class="flex-1 px-4 py-2.5 bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium rounded-lg transition">
                             Hủy
                         </button>
                         <button type="submit" 
-                                class="flex-1 px-4 py-2.5 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition">
+                                {{ $isDuplicate ? 'disabled' : '' }}
+                                class="flex-1 px-4 py-2.5 bg-green-600 text-white font-medium rounded-lg transition {{ $isDuplicate ? 'opacity-50 cursor-not-allowed' : 'hover:bg-green-700' }}">
                             {{ $editingLocation ? 'Cập nhật' : 'Thêm mới' }}
                         </button>
                     </div>

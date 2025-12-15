@@ -203,7 +203,7 @@
 
     <!-- Registration Modal - Weekly Calendar -->
     @if($showRegistrationModal)
-        <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" wire:click="$set('showRegistrationModal', false)">
+        <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
             <div class="bg-white rounded-xl shadow-2xl w-full max-w-5xl max-h-[90vh] overflow-hidden" wire:click.stop>
                 <!-- Modal Header -->
                 <div class="bg-amber-500 rounded-t-xl px-6 py-4 flex justify-between items-center">
@@ -302,7 +302,7 @@
 
     <!-- Template Management Modal -->
     @if($showTemplateModal)
-        <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" wire:click="closeTemplateModal">
+        <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
             <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg max-h-[85vh] overflow-hidden" wire:click.stop>
                 <!-- Modal Header -->
                 <div class="bg-gray-900 rounded-t-xl px-4 py-3 flex justify-between items-center">

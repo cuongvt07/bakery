@@ -23,6 +23,10 @@ class LocationList extends Component
     public $ten_vi_tri = '';
     public $mo_ta = '';
     public $dia_chi = '';
+    
+    // Duplicate tracking
+    public $isDuplicate = false;
+    public $duplicateMessage = '';
 
     public function mount($agencyId)
     {
@@ -59,6 +63,53 @@ class LocationList extends Component
         // Auto-generate ma_vi_tri from ten_vi_tri if not editing
         if (!$this->editingLocation && $value) {
             $this->ma_vi_tri = $this->generateLocationCode($value);
+            // IMPORTANT: Check duplicate after auto-generation
+            $this->checkDuplicate();
+        }
+    }
+    
+    public function updatedMaViTri($value)
+    {
+        // Debug: Log to verify this is being called
+        \Log::info('updatedMaViTri called with value: ' . $value);
+        
+        // Normalize: trim and uppercase
+        $this->ma_vi_tri = strtoupper(trim($value));
+        
+        // Check for duplicates
+        $this->checkDuplicate();
+    }
+    
+    private function checkDuplicate()
+    {
+        // If empty but was duplicate before, keep the warning
+        if (empty($this->ma_vi_tri)) {
+            // Don't reset isDuplicate here - let it persist until user enters valid code
+            if (!$this->isDuplicate) {
+                $this->duplicateMessage = '';
+            }
+            return;
+        }
+        
+        $query = AgencyLocation::where('diem_ban_id', $this->agency->id)
+            ->where('ma_vi_tri', $this->ma_vi_tri);
+        
+        // If editing, exclude current location from check
+        if ($this->editingLocation) {
+            $query->where('id', '!=', $this->editingLocation->id);
+        }
+        
+        $exists = $query->exists();
+        
+        if ($exists) {
+            $this->isDuplicate = true;
+            $this->duplicateMessage = 'Mã vị trí "' . $this->ma_vi_tri . '" đã tồn tại. Vui lòng nhập mã khác.';
+            // Clear the input to force user to enter a different code
+            $this->ma_vi_tri = '';
+        } else {
+            // Only reset when user enters a valid unique code
+            $this->isDuplicate = false;
+            $this->duplicateMessage = '';
         }
     }
 
@@ -73,23 +124,19 @@ class LocationList extends Component
             $code = strtoupper(substr($text, 0, 3));
         }
         
-        // Ensure uniqueness by adding counter
-        $base = substr($code, 0, 10);
-        $counter = 1;
-        $finalCode = $base;
-        
-        while (AgencyLocation::where('diem_ban_id', $this->agency->id)
-                             ->where('ma_vi_tri', $finalCode)
-                             ->exists()) {
-            $finalCode = $base . $counter;
-            $counter++;
-        }
-        
-        return $finalCode;
+        // Return the generated code without auto-incrementing
+        // Let the duplicate check handle if it's duplicated
+        return substr($code, 0, 20); // Max 20 chars as per DB
     }
 
     public function save()
     {
+        // Prevent save if duplicate
+        if ($this->isDuplicate) {
+            session()->flash('error', 'Không thể lưu: Mã vị trí đã tồn tại trong đại lý.');
+            return;
+        }
+        
         $this->validate([
             'ma_vi_tri' => 'required|string|max:20',
             'ten_vi_tri' => 'required|string|max:100',
@@ -112,7 +159,7 @@ class LocationList extends Component
         }
 
         $this->showModal = false;
-        $this->reset(['ma_vi_tri', 'ten_vi_tri', 'mo_ta']);
+        $this->reset(['ma_vi_tri', 'ten_vi_tri', 'mo_ta', 'isDuplicate', 'duplicateMessage']);
     }
 
     public function delete($id)
