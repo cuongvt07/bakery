@@ -24,7 +24,9 @@ class PhieuChotCa extends Model
         'ton_dau_ca',
         'ton_cuoi_ca',
         'hang_lech',
-        'anh_chot_ket',
+        'anh_tien_mat', // New
+        'anh_hang_hoa', // New
+        'anh_chot_ket', // Legacy/Backup
         'ghi_chu',
         'trang_thai',
         'nguoi_duyet_id',
@@ -42,6 +44,9 @@ class PhieuChotCa extends Model
         'ton_dau_ca' => 'array',
         'ton_cuoi_ca' => 'array',
         'hang_lech' => 'array',
+        'anh_chot_ket' => 'array',
+        'anh_tien_mat' => 'array', // New
+        'anh_hang_hoa' => 'array', // New
     ];
 
     /**

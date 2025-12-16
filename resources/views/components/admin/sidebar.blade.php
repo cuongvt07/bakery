@@ -244,7 +244,7 @@
                 <div class="pl-8 mt-1 space-y-0.5 border-l-2 border-amber-200 ml-6">
                     <a href="{{ route('admin.shift.new') }}" class="flex items-center px-3 py-2 rounded-md text-sm transition-all {{ request()->routeIs('admin.shift.new') ? 'text-amber-700 bg-amber-50 font-medium' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">Quản lý Ca (Mới)</a>
                     <a href="{{ route('admin.shift.management') }}" class="flex items-center px-3 py-2 rounded-md text-sm transition-all {{ request()->routeIs('admin.shift.management') ? 'text-amber-700 bg-amber-50 font-medium' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">Giám sát Ca</a>
-                    <a href="{{ route('admin.shift.closing') }}" class="flex items-center px-3 py-2 rounded-md text-sm transition-all {{ request()->routeIs('admin.shift.closing') ? 'text-amber-700 bg-amber-50 font-medium' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">Chốt Ca (NV)</a>
+                    <a href="{{ route('admin.shift.reports') }}" class="flex items-center px-3 py-2 rounded-md text-sm transition-all {{ request()->routeIs('admin.shift.reports') ? 'text-amber-700 bg-amber-50 font-medium' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">Quản lý Chốt Ca</a>
                 </div>
             </details>
 

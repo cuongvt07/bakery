@@ -121,3 +121,4 @@ Route::middleware(['auth', 'employee'])->prefix('employee')->name('employee.')->
 
 
 
+Route::get('/admin/shift-reports', App\Livewire\Admin\Shift\ShiftReportList::class)->name('admin.shift.reports');
