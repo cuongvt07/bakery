@@ -60,11 +60,11 @@ class ShiftManagementNew extends Component
 
         // Load available locations based on role
         if (Auth::user()->isAdmin()) {
-            $this->availableLocations = Agency::all();
+            $this->availableLocations = Agency::where('ten_diem_ban', 'not like', '%Xưởng%')->get();
             $this->canViewAllTab = true;
         } else {
             // Employee: See all locations but filtered data
-            $this->availableLocations = Agency::all();
+            $this->availableLocations = Agency::where('ten_diem_ban', 'not like', '%Xưởng%')->get();
             $this->canViewAllTab = false;
         }
 

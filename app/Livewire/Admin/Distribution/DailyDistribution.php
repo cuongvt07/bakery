@@ -32,7 +32,9 @@ class DailyDistribution extends Component
         $this->date = request()->query('date', Carbon::today()->format('Y-m-d'));
         
         // Load active agencies
-        $this->agencies = Agency::where('trang_thai', 'hoat_dong')->get();
+        $this->agencies = Agency::where('trang_thai', 'hoat_dong')
+            ->where('ten_diem_ban', 'not like', '%Xưởng%')
+            ->get();
         
         // Default to first agency
         if ($this->agencies->isNotEmpty() && !$this->selectedAgencyId) {

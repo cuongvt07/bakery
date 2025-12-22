@@ -49,6 +49,20 @@
         </div>
     </div>
 
+    <!-- Status Flow Legend -->
+    <div class="mb-6 flex items-center gap-4 text-sm text-gray-500 overflow-x-auto pb-2">
+        <span class="font-semibold whitespace-nowrap">Quy trình:</span>
+        <div class="flex items-center gap-2 whitespace-nowrap">
+            <span class="px-2 py-1 rounded bg-gray-100 text-gray-800 border">Kế hoạch</span>
+            <span class="text-gray-400">→</span>
+            <span class="px-2 py-1 rounded bg-blue-100 text-blue-800 border-blue-200">Đang SX</span>
+            <span class="text-gray-400">→</span>
+            <span class="px-2 py-1 rounded bg-yellow-100 text-yellow-800 border-yellow-200">QC (Kiểm tra)</span>
+            <span class="text-gray-400">→</span>
+            <span class="px-2 py-1 rounded bg-green-100 text-green-800 border-green-200">Hoàn thành</span>
+        </div>
+    </div>
+
     <!-- Table -->
     <div class="bg-white rounded-lg shadow-sm overflow-hidden">
         @if (session('message'))
@@ -116,10 +130,20 @@
                                 <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full {{ $statusColors[$batch->trang_thai] ?? 'bg-gray-100 text-gray-800' }}">
                                     {{ $statusLabels[$batch->trang_thai] ?? $batch->trang_thai }}
                                 </span>
+                                
+                                @if(in_array($batch->trang_thai, ['ke_hoach', 'dang_san_xuat', 'qc']))
+                                    <button wire:click="nextStatus({{ $batch->id }})" 
+                                            class="ml-2 text-indigo-600 hover:text-indigo-900 focus:outline-none"
+                                            title="{{ $batch->trang_thai === 'ke_hoach' ? 'Chuyển: Đang SX' : ($batch->trang_thai === 'dang_san_xuat' ? 'Chuyển: QC' : 'Vào QC/Chi tiết') }}">
+                                        <svg class="w-5 h-5 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M5 5l7 7-7 7" />
+                                        </svg>
+                                    </button>
+                                @endif
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                 <a href="{{ route('admin.production-batches.edit', $batch->id) }}" class="text-yellow-600 hover:text-yellow-900 mr-3">
-                                    {{ $batch->trang_thai === 'qc' || $batch->trang_thai === 'dang_san_xuat' ? 'QC' : 'Sửa' }}
+                                    {{ $batch->trang_thai === 'qc' || $batch->trang_thai === 'dang_san_xuat' ? 'QC/Detail' : 'Sửa' }}
                                 </a>
                                 @if($batch->distributions_count == 0)
                                     <button wire:click="delete({{ $batch->id }})" wire:confirm="Bạn có chắc muốn xóa?" class="text-red-600 hover:text-red-900">Xóa</button>

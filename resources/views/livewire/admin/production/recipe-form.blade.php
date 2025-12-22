@@ -35,7 +35,7 @@
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Số lượng/mẻ</label>
                     <div class="flex gap-2">
-                        <input type="number" wire:model.live="so_luong_san_xuat" class="flex-1 px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500" min="1">
+                        <input type="number" wire:model.live="so_luong_san_xuat" class="flex-1 px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500" min="1" placeholder="0">
                         <input type="text" wire:model="don_vi_san_xuat" class="w-24 px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500" placeholder="cái">
                     </div>
                     @error('so_luong_san_xuat') <span class="text-red-500 text-sm mt-1">{{ $message }}</span> @enderror
@@ -84,7 +84,7 @@ old text-gray-600 uppercase">Số lượng</div>
                             </div>
                             
                             <div class="col-span-2">
-                                <input type="number" wire:model.live="ingredients.{{ $index }}.so_luong" step="0.01" class="w-full px-2 py-1 text-sm border border-gray-300 rounded" placeholder="0.00">
+                                <input type="number" wire:model.live="ingredients.{{ $index }}.so_luong" step="0.01" class="w-full px-2 py-1 text-sm border border-gray-300 rounded" placeholder="0">
                                 @error("ingredients.{$index}.so_luong") <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
                             </div>
                             

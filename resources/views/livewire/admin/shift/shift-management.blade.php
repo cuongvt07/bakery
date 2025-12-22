@@ -136,10 +136,23 @@
 
     @if($viewMode === 'monitoring')
         <!-- Monitoring View: Grouped by Agency -->
+        <!-- Monitoring View: Grouped by Agency -->
         <div class="grid grid-cols-1 gap-6">
+            @php
+                $agencyColors = [
+                    'bg-blue-100 text-blue-900 border-blue-200',
+                    'bg-orange-100 text-orange-900 border-orange-200', 
+                    'bg-green-100 text-green-900 border-green-200',
+                    'bg-purple-100 text-purple-900 border-purple-200',
+                    'bg-pink-100 text-pink-900 border-pink-200',
+                    'bg-teal-100 text-teal-900 border-teal-200',
+                    'bg-yellow-100 text-yellow-900 border-yellow-200'
+                ];
+            @endphp
             @foreach($groupedAgencies as $agency)
-                {{-- Only show agencies with shifts if filtered, or show all if specifically checking --}}
-                {{-- Show agency if it has shifts, OR show empty state if desired. Let's show all agencies in this tab. --}}
+                @php
+                    $themeClass = $agencyColors[$loop->index % count($agencyColors)];
+                @endphp
                 <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
                     <div class="bg-gray-50 px-4 py-3 border-b flex justify-between items-center">
                         <h3 class="font-bold text-gray-800 flex items-center gap-2">
@@ -203,21 +216,11 @@
                                                         <div class="flex flex-col gap-1">
                                                             @foreach($cellShifts as $shift)
                                                                 <div wire:click="openDetail({{ $shift->id }})" 
-                                                                     class="cursor-pointer p-1.5 rounded border shadow-sm transition-colors text-left
-                                                                     {{ match($shift->trang_thai) {
-                                                                         'completed' => 'bg-green-100 border-green-200 text-green-800',
-                                                                         'approved' => 'bg-gray-100 border-gray-200 text-gray-700', 
-                                                                         'pending' => 'bg-yellow-100 border-yellow-200 text-yellow-800',
-                                                                         'rejected' => 'bg-red-50 border-red-100 text-red-400 line-through',
-                                                                         default => 'bg-white'
-                                                                     } }}">
-                                                                    <div class="font-bold truncate">{{ $shift->user->ho_ten ?? 'Unknown' }}</div>
-                                                                    {{-- Optional: Show checkmark if completed --}}
-                                                                    @if($shift->trang_thai === 'completed')
-                                                                        <div class="text-[10px] text-green-600 mt-0.5">✓ Đã xong</div>
-                                                                    @elseif($shift->trang_thai === 'approved')
-                                                                        <div class="text-[10px] text-gray-500 mt-0.5">Sắp tới</div>
-                                                                    @endif
+                                                                     class="cursor-pointer p-1.5 rounded border shadow-sm transition-opacity text-left {{ $themeClass }}
+                                                                     {{ $shift->trang_thai == 'pending' ? 'opacity-60 border-dashed' : '' }}
+                                                                     {{ $shift->trang_thai == 'rejected' ? 'line-through bg-gray-100 text-gray-400 border-gray-200' : '' }}
+                                                                     ">
+                                                                    <div class="truncate text-sm">{{ $shift->user->ho_ten ?? 'Unknown' }}</div>
                                                                 </div>
                                                             @endforeach
                                                         </div>

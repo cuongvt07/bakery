@@ -37,15 +37,16 @@
     <!-- Agency Grid -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         @forelse($agencies as $agency)
-            <div class="bg-white rounded-lg shadow hover:shadow-lg transition-shadow border-l-4 
+            <div onclick="window.location='{{ route('admin.agencies.detail', $agency->id) }}'" 
+                 class="bg-white rounded-lg shadow hover:shadow-lg transition-shadow border-l-4 cursor-pointer
                        {{ $agency->statusColor === 'red' ? 'border-red-500' : ($agency->statusColor === 'yellow' ? 'border-yellow-500' : 'border-green-500') }}">
                 <div class="p-4">
                     <!-- Header -->
                     <div class="flex justify-between items-start mb-3">
-                        <a href="{{ route('admin.agencies.detail', $agency->id) }}" class="flex-1">
+                        <div class="flex-1">
                             <h3 class="font-bold text-gray-900 hover:text-indigo-600">{{ $agency->ten_diem_ban }}</h3>
                             <p class="text-xs text-gray-500">{{ $agency->ma_diem_ban }}</p>
-                        </a>
+                        </div>
                         <div class="flex items-center gap-2">
                             @if($agency->loai_dai_ly === 'rieng_tu')
                                 <span class="text-lg">🏠</span>
@@ -54,6 +55,7 @@
                             @endif
                             <!-- Quick Add Note Button -->
                             <button wire:click="openAddNoteModal({{ $agency->id }})" 
+                                    onclick="event.stopPropagation()"
                                     class="text-indigo-600 hover:text-indigo-800 p-1"
                                     title="Thêm ghi chú nhanh">
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

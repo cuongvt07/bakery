@@ -63,10 +63,9 @@ class ShiftRequests extends Component
     {
         $this->validate([
             'requestType' => 'required|in:xin_ca,doi_ca,xin_nghi',
-            'requestNote' => 'required|min:10',
+            'requestNote' => 'required',
         ], [
             'requestNote.required' => 'Vui lòng nhập lý do',
-            'requestNote.min' => 'Lý do phải ít nhất 10 ký tự',
         ]);
 
         $data = [

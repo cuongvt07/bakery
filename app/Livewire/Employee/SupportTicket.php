@@ -16,13 +16,12 @@ class SupportTicket extends Component
     {
         $this->validate([
             'subject' => 'required|min:5',
-            'description' => 'required|min:20',
+            'description' => 'required',
             'category' => 'required',
         ], [
             'subject.required' => 'Vui lòng nhập tiêu đề',
             'subject.min' => 'Tiêu đề phải ít nhất 5 ký tự',
             'description.required' => 'Vui lòng mô tả vấn đề',
-            'description.min' => 'Mô tả phải ít nhất 20 ký tự',
             'category.required' => 'Vui lòng chọn danh mục',
         ]);
 

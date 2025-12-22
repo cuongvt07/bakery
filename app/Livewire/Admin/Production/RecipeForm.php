@@ -90,11 +90,30 @@ class RecipeForm extends Component
         }
     }
 
+    public function updated($propertyName, $value)
+    {
+        // Sanitize quantity inputs
+        if (str_contains($propertyName, 'ingredients.') && str_ends_with($propertyName, '.so_luong')) {
+            if ($value === '' || $value === null) {
+                // Default to 1 if empty
+                data_set($this, $propertyName, 1);
+            } else {
+                // Normalize decimal separator
+                $newValue = str_replace(',', '.', $value);
+                if ($newValue !== $value) {
+                    data_set($this, $propertyName, $newValue);
+                }
+            }
+        }
+    }
+
     // Computed properties for cost calculation
     public function getTotalCostProperty()
     {
         return collect($this->ingredients)->sum(function($ing) {
-            return ($ing['so_luong'] ?? 0) * ($ing['don_gia'] ?? 0);
+            $qty = (float) ($ing['so_luong'] ?? 0);
+            $price = (float) ($ing['don_gia'] ?? 0);
+            return $qty * $price;
         });
     }
 

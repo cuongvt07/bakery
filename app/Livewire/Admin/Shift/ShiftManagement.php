@@ -241,7 +241,7 @@ class ShiftManagement extends Component
             return view('livewire.admin.shift.shift-management', [
                 'groupedAgencies' => $agencies,
                 'shifts' => null, // Not used in monitoring mode
-                'agencies' => Agency::orderBy('ten_diem_ban')->get(), // For filter dropdown
+                'agencies' => Agency::where('ten_diem_ban', 'not like', '%Xưởng%')->orderBy('ten_diem_ban')->get(), // For filter dropdown
                 'employees' => User::where('vai_tro', 'nhan_vien')->orderBy('ho_ten')->get(),
                 'stats' => $stats,
             ]);
@@ -271,7 +271,7 @@ class ShiftManagement extends Component
             return view('livewire.admin.shift.shift-management', [
                 'shifts' => $shifts,
                 'groupedAgencies' => null,
-                'agencies' => Agency::orderBy('ten_diem_ban')->get(),
+                'agencies' => Agency::where('ten_diem_ban', 'not like', '%Xưởng%')->orderBy('ten_diem_ban')->get(),
                 'employees' => User::where('vai_tro', 'nhan_vien')->orderBy('ho_ten')->get(),
                 'stats' => $stats,
             ]);

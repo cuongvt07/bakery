@@ -113,6 +113,12 @@ Route::middleware(['auth', 'employee'])->prefix('employee')->name('employee.')->
     Route::get('/shifts/requests', App\Livewire\Employee\Shift\ShiftRequests::class)->name('shifts.requests');
     Route::get('/shifts/check-in', App\Livewire\Employee\Shift\CheckIn::class)->name('shifts.check-in');
     
+    // POS (Sales)
+    Route::get('/pos', App\Livewire\Admin\Shift\QuickSale::class)->name('pos');
+    
+    // Material Check
+    Route::get('/materials', App\Livewire\Employee\Material\MaterialCheck::class)->name('materials');
+    
     // Support
     Route::get('/support/ticket', App\Livewire\Employee\SupportTicket::class)->name('support.ticket');
 });

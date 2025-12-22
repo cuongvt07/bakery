@@ -12,9 +12,13 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 
+use Livewire\WithFileUploads;
+
 #[Layout('components.layouts.mobile')]
 class CheckIn extends Component
 {
+    use WithFileUploads;
+
     public $hasActiveShift = false;
     public $isCheckedIn = false;
     public $shift;
@@ -22,8 +26,10 @@ class CheckIn extends Component
     // Inputs
     public $openingCash = 0;
     public $receivedStock = []; // [product_id => quantity]
+    public $maxStock = []; // [product_id => max_quantity]
     public $products = [];
-
+    public $checkinImages = []; // Array of images
+    
     // Multi-shift selection
     public $todayShifts = [];
     public $showShiftSelection = false;
@@ -123,7 +129,7 @@ class CheckIn extends Component
         $this->todayShifts = [];
         $this->checkShiftStatus();
     }
-
+    
     public function loadDistributedStock()
     {
         $agencyId = $this->shift->diem_ban_id;
@@ -147,6 +153,7 @@ class CheckIn extends Component
             
         $this->products = [];
         $this->receivedStock = [];
+        $this->maxStock = [];
         
         foreach ($distributions as $dist) {
             if ($dist->product) {
@@ -155,12 +162,27 @@ class CheckIn extends Component
                 // Add to products list if not already there
                 if (!isset($this->receivedStock[$product->id])) {
                     $this->products[] = $product;
-                    $this->receivedStock[$product->id] = 0;
+                    $this->receivedStock[$product->id] = null; // Default to null for placeholder behavior
+                    $this->maxStock[$product->id] = 0;
                 }
                 
                 // Add quantity from this distribution
-                $this->receivedStock[$product->id] += $dist->so_luong;
+                $this->maxStock[$product->id] += $dist->so_luong;
             }
+        }
+    }
+    
+    public function fillMaxStock($productId)
+    {
+        if (isset($this->maxStock[$productId])) {
+            $this->receivedStock[$productId] = $this->maxStock[$productId];
+        }
+    }
+
+    public function deleteImage($index)
+    {
+        if (isset($this->checkinImages[$index])) {
+            array_splice($this->checkinImages, $index, 1);
         }
     }
     
@@ -168,20 +190,35 @@ class CheckIn extends Component
     {
         $this->validate([
             'openingCash' => 'required|numeric|min:0',
-            'receivedStock.*' => 'required|numeric|min:0',
+            'receivedStock.*' => 'nullable|numeric|min:0', // Allow null, treat as 0
+            'checkinImages.*' => 'image|max:10240', // Validate each image
+            'checkinImages' => 'required|array|min:1', // Require at least one image
+        ], [
+            'checkinImages.required' => 'Vui lòng tải lên ít nhất 1 ảnh check-in.',
+            'checkinImages.min' => 'Vui lòng tải lên ít nhất 1 ảnh check-in.',
+            'checkinImages.array' => 'Vui lòng tải lên ít nhất 1 ảnh check-in.',
         ]);
         
         DB::transaction(function () {
+            // Handle Image Uploads
+            $imagePaths = [];
+            foreach ($this->checkinImages as $photo) {
+                $imagePaths[] = $photo->store('checkin-photos', 'public');
+            }
+
             // 1. Update Shift
             $this->shift->update([
                 'tien_mat_dau_ca' => $this->openingCash,
                 'trang_thai_checkin' => true,
                 'thoi_gian_checkin' => now(),
+                'hinh_anh_checkin' => json_encode($imagePaths), // Store as JSON
             ]);
             
             // 2. Create Shift Details (ChiTietCaLam)
             foreach ($this->products as $p) {
-                $qty = $this->receivedStock[$p->id] ?? 0;
+                // Treat null as 0
+                $qty = $this->receivedStock[$p->id] ? $this->receivedStock[$p->id] : 0;
+                
                 if ($qty > 0) {
                     ChiTietCaLam::create([
                         'ca_lam_viec_id' => $this->shift->id,
@@ -210,8 +247,8 @@ class CheckIn extends Component
         
         session()->flash('success', 'Check-in thành công!');
         
-        // Redirect to dashboard (or POS if we enabled it later)
-        return $this->redirect(route('employee.dashboard'), navigate: true);
+        // Redirect to POS
+        return $this->redirect(route('employee.pos'), navigate: true);
     }
     
     public function render()

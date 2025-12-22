@@ -31,14 +31,19 @@ class QuickSale extends Component
             ->where('trang_thai', 'dang_lam')
             ->first();
 
+        // Determine check-in route based on role
+        $checkInRoute = (Auth::user()->vai_tro === 'nhan_vien') 
+            ? 'employee.shifts.check-in' 
+            : 'admin.shift.check-in';
+
         if (!$this->shift) {
             session()->flash('error', 'Bạn chưa có ca làm việc nào!');
-            return redirect()->route('admin.shift.check-in');
+            return redirect()->route($checkInRoute);
         }
 
         if (!$this->shift->trang_thai_checkin) {
             session()->flash('error', 'Vui lòng check-in trước khi bán hàng!');
-            return redirect()->route('admin.shift.check-in');
+            return redirect()->route($checkInRoute);
         }
 
         $this->loadShiftProducts();
@@ -209,6 +214,10 @@ class QuickSale extends Component
 
     public function render()
     {
-        return view('livewire.admin.shift.quick-sale');
+        $layout = (Auth::user() && Auth::user()->vai_tro === 'nhan_vien') 
+            ? 'components.layouts.mobile' 
+            : 'components.layouts.app';
+            
+        return view('livewire.admin.shift.quick-sale')->layout($layout);
     }
 }

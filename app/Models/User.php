@@ -161,4 +161,10 @@ class User extends Authenticatable
             default => '<span class="px-2 py-1 bg-gray-100 text-gray-800 rounded text-xs">Chưa xác định</span>',
         };
     }
+    public function diemBan()
+    {
+        return $this->belongsToMany(Agency::class, 'nhan_vien_diem_ban', 'nguoi_dung_id', 'diem_ban_id')
+                    ->withPivot('ngay_bat_dau', 'ngay_ket_thuc')
+                    ->withTimestamps();
+    }
 }

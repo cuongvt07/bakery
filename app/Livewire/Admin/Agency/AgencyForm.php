@@ -28,12 +28,20 @@ class AgencyForm extends Component
             $this->so_dien_thoai = $this->agency->so_dien_thoai;
             $this->loai_dai_ly = $this->agency->loai_dai_ly;
             $this->trang_thai = $this->agency->trang_thai;
+            $this->trang_thai = $this->agency->trang_thai;
             $this->ghi_chu = $this->agency->ghi_chu;
+        } else {
+            // Auto-generate code for new agency
+            $this->ma_diem_ban = 'DB-' . strtoupper(\Illuminate\Support\Str::random(6));
         }
     }
 
     public function save()
     {
+        if (empty($this->ma_diem_ban)) {
+            $this->ma_diem_ban = 'DB-' . strtoupper(\Illuminate\Support\Str::random(6));
+        }
+
         $this->validate([
             'ma_diem_ban' => 'required|unique:diem_ban,ma_diem_ban,' . ($this->agency->id ?? 'NULL'),
             'ten_diem_ban' => 'required',

@@ -1,34 +1,40 @@
 <div class="p-4 space-y-4">
     {{-- Header --}}
-    <div class="bg-gradient-to-r from-purple-600 to-pink-600 rounded-2xl shadow-lg p-6 text-white">
-        <h1 class="text-2xl font-bold mb-2">📋 Yêu cầu của tôi</h1>
-        <p class="text-purple-100">Quản lý các yêu cầu thay đổi ca</p>
+    {{-- Header --}}
+    <div class="flex items-center gap-3 pb-2">
+         <a href="{{ route('employee.shifts.schedule') }}" class="p-2 bg-white rounded-lg shadow-sm border border-gray-100 text-gray-500 hover:text-indigo-600 active:scale-95 transition-transform">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+        </a>
+        <div>
+            <h1 class="text-xl font-bold text-gray-900">Yêu cầu của tôi</h1>
+            <p class="text-gray-500 text-xs">Quản lý các yêu cầu thay đổi ca</p>
+        </div>
     </div>
 
     @if(session('message'))
-    <div class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 rounded-lg">
+    <div class="bg-green-50 border border-green-200 text-green-700 p-4 rounded-xl">
         {{ session('message') }}
     </div>
     @endif
 
     {{-- Filter Tabs --}}
-    <div class="flex gap-2 overflow-x-auto pb-2">
-        <button wire:click="setFilter('')" class="px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap {{ $filterStatus === '' ? 'bg-purple-600 text-white' : 'bg-gray-100 text-gray-700' }}">
+    <div class="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+        <button wire:click="setFilter('')" class="px-4 py-2 rounded-xl text-sm font-medium whitespace-nowrap {{ $filterStatus === '' ? 'bg-indigo-600 text-white' : 'bg-white border border-gray-200 text-gray-700' }}">
             Tất cả
         </button>
-        <button wire:click="setFilter('cho_duyet')" class="px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap {{ $filterStatus === 'cho_duyet' ? 'bg-amber-600 text-white' : 'bg-gray-100 text-gray-700' }}">
+        <button wire:click="setFilter('cho_duyet')" class="px-4 py-2 rounded-xl text-sm font-medium whitespace-nowrap {{ $filterStatus === 'cho_duyet' ? 'bg-amber-500 text-white' : 'bg-white border border-gray-200 text-gray-700' }}">
             Chờ duyệt
         </button>
-        <button wire:click="setFilter('da_duyet')" class="px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap {{ $filterStatus === 'da_duyet' ? 'bg-green-600 text-white' : 'bg-gray-100 text-gray-700' }}">
+        <button wire:click="setFilter('da_duyet')" class="px-4 py-2 rounded-xl text-sm font-medium whitespace-nowrap {{ $filterStatus === 'da_duyet' ? 'bg-green-600 text-white' : 'bg-white border border-gray-200 text-gray-700' }}">
             Đã duyệt
         </button>
-        <button wire:click="setFilter('tu_choi')" class="px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap {{ $filterStatus === 'tu_choi' ? 'bg-red-600 text-white' : 'bg-gray-100 text-gray-700' }}">
+        <button wire:click="setFilter('tu_choi')" class="px-4 py-2 rounded-xl text-sm font-medium whitespace-nowrap {{ $filterStatus === 'tu_choi' ? 'bg-red-600 text-white' : 'bg-white border border-gray-200 text-gray-700' }}">
             Từ chối
         </button>
     </div>
 
     {{-- Create New Request Button --}}
-    <button wire:click="openRequestModal('xin_ca')" class="w-full btn-mobile bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg">
+    <button wire:click="openRequestModal('xin_ca')" class="w-full btn-mobile bg-indigo-600 text-white shadow-md hover:bg-indigo-700 active:scale-95 transition-transform">
         ➕ Tạo yêu cầu mới
     </button>
 

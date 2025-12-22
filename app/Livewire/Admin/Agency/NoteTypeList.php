@@ -105,14 +105,20 @@ class NoteTypeList extends Component
             'ma_loai' => strtolower(trim($this->ma_loai)),
             'ten_hien_thi' => $this->ten_hien_thi,
             'icon' => $this->icon,
+            'icon' => $this->icon,
             'mau_sac' => $this->mau_sac,
-            'thu_tu' => $this->thu_tu ?: 99,
         ];
 
         if ($this->editingType) {
+            // Keep existing order
+            $data['thu_tu'] = $this->editingType->thu_tu;
             $this->editingType->update($data);
             session()->flash('message', 'Cập nhật loại ghi chú thành công.');
         } else {
+            // Auto-increment order
+            $maxOrder = NoteType::where('diem_ban_id', $this->agency->id)->max('thu_tu') ?? 0;
+            $data['thu_tu'] = $maxOrder + 1;
+            
             NoteType::create($data);
             session()->flash('message', 'Thêm loại ghi chú mới thành công.');
         }

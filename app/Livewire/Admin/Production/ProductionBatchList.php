@@ -48,6 +48,22 @@ class ProductionBatchList extends Component
         session()->flash('message', 'Đã xóa mẻ sản xuất thành công.');
     }
 
+    public function nextStatus($id)
+    {
+        $batch = ProductionBatch::find($id);
+        if (!$batch) return;
+
+        if ($batch->trang_thai === 'ke_hoach') {
+            $batch->update(['trang_thai' => 'dang_san_xuat']);
+            session()->flash('message', 'Đã chuyển trạng thái sang Đang sản xuất');
+        } elseif ($batch->trang_thai === 'dang_san_xuat') {
+            $batch->update(['trang_thai' => 'qc']);
+            session()->flash('message', 'Đã chuyển trạng thái sang Chờ QC');
+        } elseif ($batch->trang_thai === 'qc') {
+             return redirect()->route('admin.production-batches.edit', $batch->id);
+        }
+    }
+
     public function resetFilters()
     {
         $this->search = '';

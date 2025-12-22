@@ -12,7 +12,8 @@
                 <!-- Mã điểm bán -->
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Mã điểm bán</label>
-                    <input type="text" wire:model="ma_diem_ban" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500" placeholder="VD: DB001">
+                    <input type="text" wire:model="ma_diem_ban" readonly class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 bg-gray-100 text-gray-500 cursor-not-allowed">
+                    <p class="text-xs text-gray-500 mt-1">Mã được hệ thống tự động sinh</p>
                     @error('ma_diem_ban') <span class="text-red-500 text-sm mt-1">{{ $message }}</span> @enderror
                 </div>
 

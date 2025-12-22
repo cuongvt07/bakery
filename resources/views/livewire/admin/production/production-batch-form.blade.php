@@ -73,16 +73,19 @@
                     <input type="text" wire:model="ma_me" readonly class="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50">
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Ngày sản xuất *</label>
-                    <input type="date" wire:model.live="ngay_san_xuat" class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Ngày SX / Buổi *</label>
+                    <div class="flex gap-2">
+                        <input type="date" wire:model.live="ngay_san_xuat" class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                        <select wire:model.live="buoi" class="w-28 px-2 py-2 border border-gray-300 rounded-lg">
+                            <option value="sang">Sáng</option>
+                            <option value="trua">Trưa</option>
+                            <option value="chieu">Chiều</option>
+                        </select>
+                    </div>
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Buổi *</label>
-                    <select wire:model.live="buoi" class="w-full px-4 py-2 border border-gray-300 rounded-lg">
-                        <option value="sang">Sáng</option>
-                        <option value="trua">Trưa</option>
-                        <option value="chieu">Chiều</option>
-                    </select>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Hạn sử dụng (Bảo quản)</label>
+                    <input type="date" wire:model="han_su_dung" class="w-full px-4 py-2 border border-gray-300 rounded-lg">
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Trạng thái</label>

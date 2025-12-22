@@ -53,6 +53,12 @@ class AgencyDetail extends Component
     public function openAddNoteModal()
     {
         $this->reset(['editingNoteId', 'loai', 'tieu_de', 'noi_dung', 'ngay_nhac_nho', 'muc_do_quan_trong', 'vi_tri_id', 'mo_ta_vi_tri', 'dia_diem', 'ma_vat_dung']);
+        
+        // Auto-select type based on active tab
+        if ($this->activeTab !== 'all') {
+            $this->loai = $this->activeTab;
+        }
+
         $this->showNoteModal = true;
     }
 
@@ -168,10 +174,11 @@ class AgencyDetail extends Component
         if ($this->dateFilter) {
             $query->whereDate('created_at', $this->dateFilter);
         }
+        if ($this->dateFilter) {
+            $query->whereDate('created_at', $this->dateFilter);
+        }
 
-        $notes = $query->orderBy('da_xu_ly')
-                      ->orderBy('muc_do_quan_trong', 'desc')
-                      ->orderBy('ngay_nhac_nho')
+        $notes = $query->orderBy('created_at', 'desc')
                       ->paginate(10);
 
         $locations = AgencyLocation::where('diem_ban_id', $this->agency->id)

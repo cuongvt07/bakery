@@ -127,7 +127,9 @@ class DistributionList extends Component
         // Sort dates descending
         krsort($groupedData);
         
-        $agencies = Agency::where('trang_thai', 'hoat_dong')->get();
+        $agencies = Agency::where('trang_thai', 'hoat_dong')
+            ->where('ten_diem_ban', 'not like', '%Xưởng%')
+            ->get();
         
         return view('livewire.admin.distribution.distribution-list', [
             'groupedData' => $groupedData,

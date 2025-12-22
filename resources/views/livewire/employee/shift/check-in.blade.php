@@ -61,18 +61,57 @@
                         @error('openingCash') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
                     </div>
 
-                    <!-- 2. Xác nhận hàng hóa -->
+                    <!-- 2. Hình ảnh check-in -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Hình ảnh check-in (Có thể chọn nhiều) <span class="text-red-500">*</span></label>
+                        <div class="flex items-center justify-center w-full">
+                            <label class="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors">
+                                <div class="flex flex-col items-center justify-center pt-5 pb-6">
+                                    <svg class="w-8 h-8 mb-4 text-gray-500" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 16">
+                                        <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 13h3a3 3 0 0 0 0-6h-.025A5.56 5.56 0 0 0 16 6.5 5.5 0 0 0 5.207 5.021C5.137 5.017 5.071 5 5 5a4 4 0 0 0 0 8h2.167M10 15V6m0 0L8 8m2-2 2 2"/>
+                                    </svg>
+                                    <p class="text-xs text-center text-gray-500">Chạm để chụp/tải ảnh</p>
+                                </div>
+                                <input type="file" wire:model="checkinImages" class="hidden" accept="image/*" multiple capture="environment">
+                            </label>
+                        </div>
+                        
+                        @if($checkinImages)
+                            <div class="mt-3 flex gap-2 overflow-x-auto py-2">
+                                @foreach($checkinImages as $index => $photo)
+                                    <div class="relative flex-shrink-0 group">
+                                        <img src="{{ $photo->temporaryUrl() }}" class="h-20 w-20 object-cover rounded-lg border border-gray-200 shadow-sm">
+                                        <button type="button" wire:click="deleteImage({{ $index }})" class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 shadow-md hover:bg-red-600 transition-colors">
+                                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                            </svg>
+                                        </button>
+                                    </div>
+                                @endforeach
+                            </div>
+                        @endif
+
+                        @error('checkinImages') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                        @error('checkinImages.*') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                    </div>
+
+                    <!-- 3. Xác nhận hàng hóa -->
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">Xác nhận số lượng bánh nhận <span class="text-red-500">*</span></label>
                         <div class="bg-gray-50 rounded-lg border border-gray-200 divide-y divide-gray-200">
                             @forelse($products as $p)
-                                <div class="p-3 flex items-center justify-between">
-                                    <div class="flex-1">
-                                        <span class="font-medium text-gray-900">{{ $p->ten_san_pham }}</span>
+                                <div class="p-3 flex items-center justify-between gap-3">
+                                    <div class="flex-1 min-w-0">
+                                        <span class="font-medium text-gray-900 block truncate">{{ $p->ten_san_pham }}</span>
                                         <div class="text-xs text-gray-500">{{ number_format($p->gia_ban) }}đ</div>
                                     </div>
-                                    <div class="w-24">
-                                        <input type="number" inputmode="numeric" wire:model="receivedStock.{{ $p->id }}" class="block w-full text-center border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 font-bold" placeholder="0">
+                                    <div class="flex items-center gap-2">
+                                        <div class="relative w-24">
+                                            <input type="number" inputmode="numeric" wire:model="receivedStock.{{ $p->id }}" class="block w-full text-center border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 font-bold" placeholder="0">
+                                        </div>
+                                        <button wire:click="fillMaxStock({{ $p->id }})" class="px-2 py-2 bg-indigo-100 text-indigo-700 rounded-lg text-xs font-bold hover:bg-indigo-200 active:scale-95 transition-transform whitespace-nowrap">
+                                            Max ({{ $maxStock[$p->id] ?? 0 }})
+                                        </button>
                                     </div>
                                 </div>
                             @empty
@@ -101,9 +140,14 @@
                 <h2 class="text-xl font-bold text-green-800 mb-2">Đã Check-in thành công!</h2>
                 <p class="text-green-600 mb-6">Bạn đang trong ca làm việc. Chúc bạn làm việc hiệu quả.</p>
                 
-                <a href="{{ route('employee.dashboard') }}" class="inline-block bg-white border border-green-300 text-green-700 font-medium py-2 px-4 rounded-lg hover:bg-green-50">
-                    Về Trang Chủ
-                </a>
+                <div class="flex flex-col gap-3">
+                    <a href="{{ route('employee.pos') }}" class="inline-block w-full bg-indigo-600 text-white font-bold py-3 px-4 rounded-xl shadow-lg hover:bg-indigo-700">
+                        Vào màn hình Bán Hàng
+                    </a>
+                    <a href="{{ route('employee.dashboard') }}" class="inline-block w-full bg-white border border-green-300 text-green-700 font-medium py-3 px-4 rounded-xl hover:bg-green-50">
+                        Về Trang Chủ
+                    </a>
+                </div>
             </div>
         @endif
     </div>

@@ -62,7 +62,14 @@
                 <tr class="hover:bg-gray-50">
                     <td class="px-4 py-3 whitespace-nowrap text-sm font-mono font-semibold text-indigo-600">{{ $material->metadata['ma_vat_dung'] ?? '-' }}</td>
                     <td class="px-4 py-3 text-sm text-gray-900">{{ $material->tieu_de }}</td>
-                    <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-600">{{ $material->location ? $material->location->ma_vi_tri : '-' }}</td>
+                    <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
+                        @if($material->location)
+                            <div class="font-medium text-gray-900">{{ $material->location->ten_vi_tri }}</div>
+                            <div class="text-xs text-gray-500">{{ $material->location->ma_vi_tri }}</div>
+                        @else
+                            -
+                        @endif
+                    </td>
                     <td class="px-4 py-3 text-sm text-gray-500">{{ $material->location ? $material->location->mo_ta : '-' }}</td>
                     <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">{{ $material->agency ? $material->agency->ten_diem_ban : '-' }}</td>
                     <td class="px-4 py-3 whitespace-nowrap text-right text-sm">

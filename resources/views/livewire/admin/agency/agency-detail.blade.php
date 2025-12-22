@@ -116,10 +116,10 @@
                                     {{ $note->tieu_de }}
                                 </div>
                             </td>
-                            <td class="px-4 py-3 text-sm text-gray-600">
-                                <span title="{{ $note->noi_dung }}">
-                                    {{ \Illuminate\Support\Str::limit($note->noi_dung, 20) }}
-                                </span>
+                            <td class="px-4 py-3 text-sm text-gray-600 max-w-xs md:max-w-sm">
+                                <div class="truncate" title="{{ $note->noi_dung }}">
+                                    {{ $note->noi_dung }}
+                                </div>
                             </td>
                             <td class="px-4 py-3 whitespace-nowrap text-right text-sm">
                                 <button wire:click="openEditNoteModal({{ $note->id }})" class="text-blue-600 hover:text-blue-800 mr-2">Sửa</button>
@@ -229,8 +229,14 @@
 
     <!-- Inline Modal: Note Type Management -->
     @if($showTypeModal)
-        <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" wire:click="$set('showTypeModal', false)">
             <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto" wire:click.stop>
+                <div class="sticky top-0 bg-white border-b px-4 py-3 flex justify-between items-center z-10">
+                    <h3 class="font-bold text-gray-800">Quản lý Tab Ghi chú</h3>
+                    <button wire:click="$set('showTypeModal', false)" class="text-gray-400 hover:text-gray-600 p-1 rounded-full hover:bg-gray-100">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+                </div>
                 <livewire:admin.agency.note-type-list :agencyId="$agency->id" :key="'types-'.$agency->id" />
             </div>
         </div>

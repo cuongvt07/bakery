@@ -1,8 +1,14 @@
 <div class="p-3 space-y-3 pb-20">
     {{-- Header --}}
-    <div class="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-xl shadow p-4 text-white text-center">
-        <h1 class="text-xl font-bold">📅 Đăng ký ca làm</h1>
-        <p class="text-indigo-100 text-xs mt-1">Chọn ca để đăng ký ngay lập tức</p>
+    {{-- Header --}}
+    <div class="flex items-center gap-3 pb-2">
+        <a href="{{ route('employee.shifts.schedule') }}" class="p-2 bg-white rounded-lg shadow-sm border border-gray-100 text-gray-500 hover:text-indigo-600 active:scale-95 transition-transform">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+        </a>
+        <div>
+            <h1 class="text-xl font-bold text-gray-900">Đăng ký ca làm</h1>
+            <p class="text-gray-500 text-xs text-xs">Chọn ca để đăng ký ngay lập tức</p>
+        </div>
     </div>
 
     {{-- Agency Selector --}}
