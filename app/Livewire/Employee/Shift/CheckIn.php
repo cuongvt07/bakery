@@ -53,7 +53,7 @@ class CheckIn extends Component
             $this->hasActiveShift = true;
             $this->isCheckedIn = $this->shift->trang_thai_checkin;
             
-            if (!$this->isCheckedIn) {
+            if (!$this->isCheckedIn && $user->loai_nhan_vien !== 'san_xuat') {
                 $this->loadDistributedStock();
             }
         } else {
@@ -188,18 +188,26 @@ class CheckIn extends Component
     
     public function confirmCheckIn()
     {
-        $this->validate([
-            'openingCash' => 'required|numeric|min:0',
-            'receivedStock.*' => 'nullable|numeric|min:0', // Allow null, treat as 0
+        $user = Auth::user();
+        $isWorkshop = $user->loai_nhan_vien === 'san_xuat';
+
+        $rules = [
             'checkinImages.*' => 'image|max:10240', // Validate each image
             'checkinImages' => 'required|array|min:1', // Require at least one image
-        ], [
+        ];
+
+        if (!$isWorkshop) {
+            $rules['openingCash'] = 'required|numeric|min:0';
+            $rules['receivedStock.*'] = 'nullable|numeric|min:0';
+        }
+
+        $this->validate($rules, [
             'checkinImages.required' => 'Vui lòng tải lên ít nhất 1 ảnh check-in.',
             'checkinImages.min' => 'Vui lòng tải lên ít nhất 1 ảnh check-in.',
             'checkinImages.array' => 'Vui lòng tải lên ít nhất 1 ảnh check-in.',
         ]);
         
-        DB::transaction(function () {
+        DB::transaction(function () use ($isWorkshop) {
             // Handle Image Uploads
             $imagePaths = [];
             foreach ($this->checkinImages as $photo) {
@@ -207,48 +215,59 @@ class CheckIn extends Component
             }
 
             // 1. Update Shift
-            $this->shift->update([
-                'tien_mat_dau_ca' => $this->openingCash,
+            $updateData = [
                 'trang_thai_checkin' => true,
                 'thoi_gian_checkin' => now(),
-                'hinh_anh_checkin' => json_encode($imagePaths), // Store as JSON
-            ]);
-            
-            // 2. Create Shift Details (ChiTietCaLam)
-            foreach ($this->products as $p) {
-                // Treat null as 0
-                $qty = $this->receivedStock[$p->id] ? $this->receivedStock[$p->id] : 0;
-                
-                if ($qty > 0) {
-                    ChiTietCaLam::create([
-                        'ca_lam_viec_id' => $this->shift->id,
-                        'san_pham_id' => $p->id,
-                        'so_luong_nhan_ca' => $qty,
-                        'so_luong_giao_ca' => 0,
-                        'so_luong_ban' => 0,
-                    ]);
-                }
+                'hinh_anh_checkin' => json_encode($imagePaths),
+            ];
+
+            if (!$isWorkshop) {
+                $updateData['tien_mat_dau_ca'] = $this->openingCash;
             }
+
+            $this->shift->update($updateData);
             
-            // 3. Mark distributions as received
-            $agencyId = $this->shift->diem_ban_id;
-            $startTime = Carbon::parse($this->shift->gio_bat_dau);
-            $session = $startTime->lt(Carbon::parse('12:00:00')) ? 'sang' : 'chieu';
-            
-            PhanBoHangDiemBan::where('diem_ban_id', $agencyId)
-                ->whereDate('created_at', Carbon::today())
-                ->where('buoi', $session)
-                ->where('trang_thai', 'chua_nhan')
-                ->update([
-                    'trang_thai' => 'da_nhan',
-                    'nguoi_nhan_id' => Auth::id(),
-                ]);
+            if (!$isWorkshop) {
+                // 2. Create Shift Details (ChiTietCaLam)
+                foreach ($this->products as $p) {
+                    // Treat null as 0
+                    $qty = $this->receivedStock[$p->id] ? $this->receivedStock[$p->id] : 0;
+                    
+                    if ($qty > 0) {
+                        ChiTietCaLam::create([
+                            'ca_lam_viec_id' => $this->shift->id,
+                            'san_pham_id' => $p->id,
+                            'so_luong_nhan_ca' => $qty,
+                            'so_luong_giao_ca' => 0,
+                            'so_luong_ban' => 0,
+                        ]);
+                    }
+                }
+                
+                // 3. Mark distributions as received
+                $agencyId = $this->shift->diem_ban_id;
+                $startTime = Carbon::parse($this->shift->gio_bat_dau);
+                $session = $startTime->lt(Carbon::parse('12:00:00')) ? 'sang' : 'chieu';
+                
+                PhanBoHangDiemBan::where('diem_ban_id', $agencyId)
+                    ->whereDate('created_at', Carbon::today())
+                    ->where('buoi', $session)
+                    ->where('trang_thai', 'chua_nhan')
+                    ->update([
+                        'trang_thai' => 'da_nhan',
+                        'nguoi_nhan_id' => Auth::id(),
+                    ]);
+            }
         });
         
         session()->flash('success', 'Check-in thành công!');
         
-        // Redirect to POS
-        return $this->redirect(route('employee.pos'), navigate: true);
+        // Redirect logic
+        if ($isWorkshop) {
+            return $this->redirect(route('employee.dashboard'), navigate: true);
+        } else {
+            return $this->redirect(route('employee.pos'), navigate: true);
+        }
     }
     
     public function render()

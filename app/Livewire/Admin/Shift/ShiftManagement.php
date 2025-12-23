@@ -222,7 +222,7 @@ class ShiftManagement extends Component
                 },
                 'shiftSchedules' => function($q) {
                     // Eager load everything needed for the view
-                    $q->with('user')
+                    $q->with(['user.diemBan'])
                       ->whereBetween('ngay_lam', [$this->dateFrom, $this->dateTo])
                       ->orderBy('ngay_lam')
                       ->orderBy('gio_bat_dau');

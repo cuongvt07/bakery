@@ -58,6 +58,7 @@ class UserForm extends Component
     
     // System
     public $vai_tro = 'nhan_vien';
+    public $loai_nhan_vien = 'ban_hang';
     public $trang_thai = 'hoat_dong';
     
     // Assignment
@@ -112,6 +113,7 @@ class UserForm extends Component
             $this->loai_luong = $this->user->loai_luong ?? 'theo_ngay';
             
             $this->vai_tro = $this->user->vai_tro;
+            $this->loai_nhan_vien = $this->user->loai_nhan_vien ?? 'ban_hang';
             $this->trang_thai = $this->user->trang_thai;
             
             // Assignment
@@ -133,6 +135,7 @@ class UserForm extends Component
             'email' => 'required|email|unique:nguoi_dung,email,' . ($this->user->id ?? 'NULL'),
             'password' => $this->user ? 'nullable|min:6' : 'required|min:6',
             'vai_tro' => 'required|in:admin,nhan_vien',
+            'loai_nhan_vien' => 'required|in:ban_hang,san_xuat',
             'trang_thai' => 'required|in:hoat_dong,khoa',
             'loai_hop_dong' => 'nullable|in:thu_viec,chinh_thuc,hop_tac',
             'file_hop_dong' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
@@ -160,11 +163,13 @@ class UserForm extends Component
             'ngay_thu_viec' => $this->ngay_thu_viec,
             'ngay_chinh_thuc' => $this->ngay_chinh_thuc,
             'ghi_chu_hop_dong' => $this->ghi_chu_hop_dong,
-            'luong_co_ban' => $this->luong_co_ban,
-            'luong_thu_viec' => $this->luong_thu_viec,
-            'luong_chinh_thuc' => $this->luong_chinh_thuc,
+            'luong_co_ban' => $this->luong_co_ban ?? 0,
+            'luong_thu_viec' => $this->luong_thu_viec ?? 0,
+            'luong_chinh_thuc' => $this->luong_chinh_thuc ?? 0,
+            'loai_luong' => $this->loai_luong,
             'loai_luong' => $this->loai_luong,
             'vai_tro' => $this->vai_tro,
+            'loai_nhan_vien' => $this->loai_nhan_vien,
             'trang_thai' => $this->trang_thai,
         ];
 

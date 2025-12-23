@@ -50,6 +50,8 @@
                 
                 <div class="p-4 space-y-6">
                     <!-- 1. Tiền mặt đầu ca -->
+                    <!-- 1. Tiền mặt đầu ca (Only for Sales) -->
+                    @if(Auth::user()->loai_nhan_vien !== 'san_xuat')
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Tiền mặt đầu ca <span class="text-red-500">*</span></label>
                         <div class="relative">
@@ -60,6 +62,7 @@
                         </div>
                         @error('openingCash') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
                     </div>
+                    @endif
 
                     <!-- 2. Hình ảnh check-in -->
                     <div>
@@ -96,6 +99,8 @@
                     </div>
 
                     <!-- 3. Xác nhận hàng hóa -->
+                    <!-- 3. Xác nhận hàng hóa (Only for Sales) -->
+                    @if(Auth::user()->loai_nhan_vien !== 'san_xuat')
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">Xác nhận số lượng bánh nhận <span class="text-red-500">*</span></label>
                         <div class="bg-gray-50 rounded-lg border border-gray-200 divide-y divide-gray-200">
@@ -122,6 +127,7 @@
                         </div>
                         @error('receivedStock.*') <span class="text-red-500 text-xs">Vui lòng nhập số lượng hợp lệ</span> @enderror
                     </div>
+                    @endif
 
                     <button wire:click="confirmCheckIn" wire:confirm="Xác nhận các thông tin trên là chính xác?" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-4 rounded-xl shadow-lg text-lg flex items-center justify-center">
                         XÁC NHẬN NHẬN CA
@@ -141,9 +147,11 @@
                 <p class="text-green-600 mb-6">Bạn đang trong ca làm việc. Chúc bạn làm việc hiệu quả.</p>
                 
                 <div class="flex flex-col gap-3">
+                    @if(Auth::user()->loai_nhan_vien !== 'san_xuat')
                     <a href="{{ route('employee.pos') }}" class="inline-block w-full bg-indigo-600 text-white font-bold py-3 px-4 rounded-xl shadow-lg hover:bg-indigo-700">
                         Vào màn hình Bán Hàng
                     </a>
+                    @endif
                     <a href="{{ route('employee.dashboard') }}" class="inline-block w-full bg-white border border-green-300 text-green-700 font-medium py-3 px-4 rounded-xl hover:bg-green-50">
                         Về Trang Chủ
                     </a>

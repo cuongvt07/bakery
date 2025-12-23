@@ -23,6 +23,7 @@ class User extends Authenticatable
         'sdt_lien_he_khan_cap',
         'mat_khau',
         'vai_tro',
+        'loai_nhan_vien',
         'trang_thai',
         'anh_dai_dien',
         'dia_chi',

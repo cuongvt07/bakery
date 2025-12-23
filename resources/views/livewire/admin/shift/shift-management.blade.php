@@ -214,13 +214,19 @@
                                                 <td class="px-2 py-2 text-center border-l align-top text-xs h-16">
                                                     @if($cellShifts->isNotEmpty())
                                                         <div class="flex flex-col gap-1">
-                                                            @foreach($cellShifts as $shift)
+                                                            @foreach($cellShifts->sortBy(fn($s) => ($s->user->diemBan->first()->ten_diem_ban ?? 'zzz') . '_' . ($s->user->ho_ten ?? '')) as $shift)
+                                                                @php
+                                                                    // Check if user is assigned to ANY agency
+                                                                    $isAssigned = $shift->user && $shift->user->diemBan && $shift->user->diemBan->isNotEmpty();
+                                                                    // Use agency color if assigned, otherwise Gray
+                                                                    $colorClass = $isAssigned ? $themeClass : 'bg-gray-100 text-gray-600 border-gray-200';
+                                                                @endphp
                                                                 <div wire:click="openDetail({{ $shift->id }})" 
-                                                                     class="cursor-pointer p-1.5 rounded border shadow-sm transition-opacity text-left {{ $themeClass }}
+                                                                     class="cursor-pointer p-1.5 rounded border shadow-sm transition-opacity text-left {{ $colorClass }}
                                                                      {{ $shift->trang_thai == 'pending' ? 'opacity-60 border-dashed' : '' }}
-                                                                     {{ $shift->trang_thai == 'rejected' ? 'line-through bg-gray-100 text-gray-400 border-gray-200' : '' }}
+                                                                     {{ $shift->trang_thai == 'rejected' ? 'line-through bg-gray-50 text-gray-400 border-gray-200' : '' }}
                                                                      ">
-                                                                    <div class="truncate text-sm">{{ $shift->user->ho_ten ?? 'Unknown' }}</div>
+                                                                    <div class="truncate text-sm font-medium">{{ $shift->user->ho_ten ?? 'Unknown' }}</div>
                                                                 </div>
                                                             @endforeach
                                                         </div>
