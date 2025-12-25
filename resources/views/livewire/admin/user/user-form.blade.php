@@ -64,7 +64,8 @@
                     <!-- Mật khẩu -->
                     <div>
                         <label class="block text-sm font-semibold text-gray-700 mb-1">Mật khẩu @if(!$user) <span class="text-red-500">*</span> @endif</label>
-                        <input type="password" wire:model="password" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" placeholder="{{ $user ? 'Giữ nguyên nếu không đổi' : '' }}">
+                        <input type="password" wire:model="password" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" placeholder="{{ $user ? 'Giữ nguyên nếu không đổi' : 'Tối thiểu 6 ký tự' }}">
+                        <p class="text-xs text-gray-500 mt-1">💡 Mật khẩu phải có ít nhất 6 ký tự</p>
                         @error('password') <span class="text-red-500 text-xs mt-1">{{ $message }}</span> @enderror
                     </div>
 
@@ -77,14 +78,19 @@
                         </select>
                     </div>
 
-                    <!-- Loại nhân viên (Chỉ hiện khi là nhân viên) -->
+                    <!-- Phòng ban (Chỉ hiện khi là nhân viên) -->
                     @if($vai_tro === 'nhan_vien')
                     <div>
-                        <label class="block text-sm font-semibold text-gray-700 mb-1">Loại nhân viên <span class="text-red-500">*</span></label>
-                        <select wire:model="loai_nhan_vien" class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white">
-                            <option value="ban_hang">Nhân viên bán hàng</option>
-                            <option value="san_xuat">Nhân viên xưởng</option>
+                        <label class="block text-sm font-semibold text-gray-700 mb-1">Phòng ban</label>
+                        <select wire:model="phong_ban_id" class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white">
+                            <option value="">-- Chọn phòng ban --</option>
+                            @foreach($departments as $dept)
+                                <option value="{{ $dept->id }}">
+                                    {{ $dept->ten_phong_ban }}
+                                </option>
+                            @endforeach
                         </select>
+                        @error('phong_ban_id') <span class="text-red-500 text-xs mt-1">{{ $message }}</span> @enderror
                     </div>
                     @else
                     <div></div> <!-- Spacer for grid alignment -->
@@ -116,8 +122,9 @@
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
                 <!-- Phone -->
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Số điện thoại</label>
-                    <input type="text" wire:model="so_dien_thoai" class="w-full px-3 py-2 border border-gray-300 rounded-md">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Số điện thoại <span class="text-red-500">*</span></label>
+                    <input type="text" wire:model="so_dien_thoai" placeholder="0901234567" class="w-full px-3 py-2 border border-gray-300 rounded-md">
+                    @error('so_dien_thoai') <span class="text-red-500 text-xs mt-1">{{ $message }}</span> @enderror
                 </div>
                 
                 <!-- Address -->
@@ -166,8 +173,8 @@
                     <input type="date" wire:model="ngay_vao_lam" class="w-full px-3 py-2 border border-gray-300 rounded-md">
                 </div>
 
-                <!-- Agency Assignment -->
-                <div>
+                <!-- Hidden: Phân bổ điểm bán -->
+                {{-- <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Phân bổ điểm bán</label>
                     <div class="border border-gray-300 rounded-md p-3 max-h-48 overflow-y-auto">
                         @if($agencies->isEmpty())
@@ -188,7 +195,7 @@
                         @endif
                     </div>
                     <p class="text-xs text-gray-500 mt-1">Nhân viên sẽ được gán vào các điểm bán này.</p>
-                </div>
+                </div> --}}
             </div>
 
             <hr class="my-6 border-gray-200">

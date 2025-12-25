@@ -9,18 +9,22 @@ use Livewire\Attributes\Layout;
 #[Layout('components.layouts.guest')]
 class Login extends Component
 {
-    public $email = '';
+    public $login = ''; // Can be email or phone
     public $password = '';
     public $remember = false;
 
-    public function login()
+    public function loginUser()
     {
         $this->validate([
-            'email' => 'required|email',
+            'login' => 'required|string',
             'password' => 'required',
         ]);
 
-        if (Auth::attempt(['email' => $this->email, 'password' => $this->password], $this->remember)) {
+        // Determine if login is email or phone
+        $fieldType = filter_var($this->login, FILTER_VALIDATE_EMAIL) ? 'email' : 'so_dien_thoai';
+        
+        // Attempt login with the determined field
+        if (Auth::attempt([$fieldType => $this->login, 'password' => $this->password], $this->remember)) {
             session()->regenerate();
 
             if (Auth::user()->vai_tro === 'nhan_vien') {
@@ -30,7 +34,7 @@ class Login extends Component
             return redirect()->intended(route('admin.dashboard'));
         }
 
-        $this->addError('email', 'Thông tin đăng nhập không chính xác.');
+        $this->addError('login', 'Thông tin đăng nhập không chính xác.');
     }
 
     public function render()
@@ -38,4 +42,3 @@ class Login extends Component
         return view('livewire.auth.login');
     }
 }
-

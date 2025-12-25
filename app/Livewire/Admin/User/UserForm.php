@@ -58,7 +58,7 @@ class UserForm extends Component
     
     // System
     public $vai_tro = 'nhan_vien';
-    public $loai_nhan_vien = 'ban_hang';
+    public $phong_ban_id = null;
     public $trang_thai = 'hoat_dong';
     
     // Assignment
@@ -113,7 +113,7 @@ class UserForm extends Component
             $this->loai_luong = $this->user->loai_luong ?? 'theo_ngay';
             
             $this->vai_tro = $this->user->vai_tro;
-            $this->loai_nhan_vien = $this->user->loai_nhan_vien ?? 'ban_hang';
+            $this->phong_ban_id = $this->user->phong_ban_id;
             $this->trang_thai = $this->user->trang_thai;
             
             // Assignment
@@ -133,9 +133,10 @@ class UserForm extends Component
         $this->validate([
             'ho_ten' => 'required|min:3',
             'email' => 'required|email|unique:nguoi_dung,email,' . ($this->user->id ?? 'NULL'),
+            'so_dien_thoai' => 'required|regex:/^([0-9\s\-\+\(\)]*)$/|min:10',
             'password' => $this->user ? 'nullable|min:6' : 'required|min:6',
             'vai_tro' => 'required|in:admin,nhan_vien',
-            'loai_nhan_vien' => 'required|in:ban_hang,san_xuat',
+            'phong_ban_id' => 'nullable|exists:phong_ban,id',
             'trang_thai' => 'required|in:hoat_dong,khoa',
             'loai_hop_dong' => 'nullable|in:thu_viec,chinh_thuc,hop_tac',
             'file_hop_dong' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
@@ -169,7 +170,7 @@ class UserForm extends Component
             'loai_luong' => $this->loai_luong,
             'loai_luong' => $this->loai_luong,
             'vai_tro' => $this->vai_tro,
-            'loai_nhan_vien' => $this->loai_nhan_vien,
+            'phong_ban_id' => $this->phong_ban_id,
             'trang_thai' => $this->trang_thai,
         ];
 
@@ -231,6 +232,9 @@ class UserForm extends Component
 
     public function render()
     {
-        return view('livewire.admin.user.user-form');
+        $departments = \App\Models\Department::active()->orderBy('ten_phong_ban')->get();
+        return view('livewire.admin.user.user-form', [
+            'departments' => $departments,
+        ]);
     }
 }

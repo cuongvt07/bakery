@@ -26,8 +26,9 @@
                 
                 <!-- Số điện thoại -->
                 <div class="col-span-2 md:col-span-1">
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Số điện thoại</label>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Số điện thoại <span class="text-red-500">*</span></label>
                     <input type="text" wire:model="so_dien_thoai" 
+                           placeholder="0901234567"
                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent @error('so_dien_thoai') border-red-500 @enderror">
                     @error('so_dien_thoai') <span class="text-red-500 text-xs mt-1">{{ $message }}</span> @enderror
                 </div>
@@ -43,11 +44,26 @@
                     @error('vai_tro') <span class="text-red-500 text-xs mt-1">{{ $message }}</span> @enderror
                 </div>
                 
+                <!-- Phòng ban -->
+                <div class="col-span-2 md:col-span-1">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Phòng ban</label>
+                    <select wire:model="phong_ban_id" 
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+                        <option value="">-- Chọn phòng ban --</option>
+                        @foreach($departments as $dept)
+                            <option value="{{ $dept->id }}">{{ $dept->ten_phong_ban }}</option>
+                        @endforeach
+                    </select>
+                    @error('phong_ban_id') <span class="text-red-500 text-xs mt-1">{{ $message }}</span> @enderror
+                </div>
+                
                 <!-- Mật khẩu -->
                 <div class="col-span-2 md:col-span-1">
                     <label class="block text-sm font-medium text-gray-700 mb-1">Mật khẩu <span class="text-red-500">*</span></label>
                     <input type="password" wire:model="mat_khau" 
+                           placeholder="Tối thiểu 6 ký tự"
                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent @error('mat_khau') border-red-500 @enderror">
+                    <p class="text-xs text-gray-500 mt-1">💡 Mật khẩu phải có ít nhất 6 ký tự</p>
                     @error('mat_khau') <span class="text-red-500 text-xs mt-1">{{ $message }}</span> @enderror
                 </div>
                 

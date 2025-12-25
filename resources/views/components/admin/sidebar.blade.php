@@ -89,7 +89,7 @@
             <div x-show="sidebarState === 2" class="my-2 border-t border-gray-100"></div>
 
             <!-- Nhân sự -->
-            <details class="mb-1 group" {{ request()->routeIs('admin.users.*') ? 'open' : '' }} x-show="sidebarState === 2">
+            <details class="mb-1 group" {{ request()->routeIs('admin.users.*', 'admin.departments.*') ? 'open' : '' }} x-show="sidebarState === 2">
                 <summary class="flex items-center justify-between px-3 py-2.5 rounded-lg cursor-pointer transition-all text-gray-700 hover:bg-gray-50 list-none">
                     <div class="flex items-center">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -106,6 +106,10 @@
                        class="flex items-center px-3 py-2 rounded-md text-sm transition-all {{ request()->routeIs('admin.users.*') ? 'text-amber-700 bg-amber-50 font-medium' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">
                         Người dùng
                     </a>
+                    <a href="{{ route('admin.departments.index') }}" 
+                       class="flex items-center px-3 py-2 rounded-md text-sm transition-all {{ request()->routeIs('admin.departments.*') ? 'text-amber-700 bg-amber-50 font-medium' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">
+                        Phòng ban
+                    </a>
                 </div>
             </details>
 
@@ -114,7 +118,7 @@
                x-show="sidebarState === 1"
                x-cloak
                title="Nhân sự"
-               class="flex items-center justify-center px-3 py-2.5 mb-1 rounded-lg transition-all {{ request()->routeIs('admin.users.*') ? 'bg-amber-50 text-amber-700' : 'text-gray-700 hover:bg-gray-50' }}">
+               class="flex items-center justify-center px-3 py-2.5 mb-1 rounded-lg transition-all {{ request()->routeIs('admin.users.*', 'admin.departments.*') ? 'bg-amber-50 text-amber-700' : 'text-gray-700 hover:bg-gray-50' }}">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>
                 </svg>
@@ -242,7 +246,7 @@
                     </svg>
                 </summary>
                 <div class="pl-8 mt-1 space-y-0.5 border-l-2 border-amber-200 ml-6">
-                    <a href="{{ route('admin.shift.new') }}" class="flex items-center px-3 py-2 rounded-md text-sm transition-all {{ request()->routeIs('admin.shift.new') ? 'text-amber-700 bg-amber-50 font-medium' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">Quản lý Ca (Mới)</a>
+                    {{-- <a href="{{ route('admin.shift.new') }}" class="flex items-center px-3 py-2 rounded-md text-sm transition-all {{ request()->routeIs('admin.shift.new') ? 'text-amber-700 bg-amber-50 font-medium' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">Quản lý Ca (Mới)</a> --}}
                     <a href="{{ route('admin.shift.management') }}" class="flex items-center px-3 py-2 rounded-md text-sm transition-all {{ request()->routeIs('admin.shift.management') ? 'text-amber-700 bg-amber-50 font-medium' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">Giám sát Ca</a>
                     <a href="{{ route('admin.shift.reports') }}" class="flex items-center px-3 py-2 rounded-md text-sm transition-all {{ request()->routeIs('admin.shift.reports') ? 'text-amber-700 bg-amber-50 font-medium' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">Quản lý Chốt Ca</a>
                 </div>

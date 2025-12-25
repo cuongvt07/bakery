@@ -35,13 +35,45 @@ class ShiftManagement extends Component
     public $showDetailModal = false;
     public $selectedShift = null;
     
-    // Edit Modal
+    // Edit Modal (Old - kept for compatibility)
     public $showEditModal = false;
     public $editShiftId = null;
+    
+    // Edit Mode (New - for detail modal)
+    public $editingShift = false;
+    public $editAgencyId = null;
+    public $editShiftTemplateId = null;
     public $editDate = '';
     public $editStartTime = '';
     public $editEndTime = '';
     public $editStatus = '';
+    
+    // Delete confirmation
+    public $showDeleteConfirm = false;
+    public $deleteNote = '';
+    
+    // Add Shift Modal
+    public $showAddShiftModal = false;
+    public $addShiftAgencyId = null;
+    public $addShiftAgencyName = '';
+    public $addShiftTemplates = []; // Changed to array of templates
+    public $selectedTemplates = []; // Selected template IDs
+    public $addShiftDate = '';
+    public $addShiftEmployeeId = null;
+    
+    // Employee search
+    public $employeeSearch = '';
+    public $selectedEmployeeName = '';
+    public $selectedEmployeeCode = '';
+    
+    // Template Manager
+    public $showTemplateManager = false;
+    public $editingTemplateId = null;
+    public $templateAgencyId = null;
+    public $templateName = '';
+    public $templateStartTime = '';
+    public $templateEndTime = '';
+    public $templateIsActive = true;
     
     // Bulk actions
     public $selectedShifts = [];
@@ -86,6 +118,32 @@ class ShiftManagement extends Component
     {
         $this->showDetailModal = false;
         $this->selectedShift = null;
+        $this->editingShift = false;
+        $this->resetEditFields();
+    }
+    
+    // New Edit/Delete Methods
+    public function startEdit()
+    {
+        $this->editingShift = true;
+        $this->editAgencyId = $this->selectedShift->diem_ban_id;
+        $this->editShiftTemplateId = $this->selectedShift->shift_template_id;
+        $this->editDate = Carbon::parse($this->selectedShift->ngay_lam)->format('Y-m-d');
+        $this->editStatus = $this->selectedShift->trang_thai;
+    }
+    
+    public function cancelEdit()
+    {
+        $this->editingShift = false;
+        $this->resetEditFields();
+    }
+    
+    private function resetEditFields()
+    {
+        $this->editAgencyId = null;
+        $this->editShiftTemplateId = null;
+        $this->editDate = '';
+        $this->editStatus = '';
     }
 
     public function openEditModal($shiftId)
@@ -101,23 +159,51 @@ class ShiftManagement extends Component
 
     public function saveEdit()
     {
-        $this->validate([
-            'editDate' => 'required|date',
-            'editStartTime' => 'required',
-            'editEndTime' => 'required|after:editStartTime',
-            'editStatus' => 'required|in:pending,approved,rejected,completed',
-        ]);
+        if ($this->editingShift) {
+            // New edit mode (from detail modal)
+            $this->validate([
+                'editAgencyId' => 'required|exists:diem_ban,id',
+                'editShiftTemplateId' => 'required|exists:shift_templates,id',
+                'editDate' => 'required|date',
+                'editStatus' => 'required|in:approved,completed,pending,rejected',
+            ]);
 
-        $shift = ShiftSchedule::findOrFail($this->editShiftId);
-        $shift->update([
-            'ngay_lam' => $this->editDate,
-            'gio_bat_dau' => $this->editStartTime,
-            'gio_ket_thuc' => $this->editEndTime,
-            'trang_thai' => $this->editStatus,
-        ]);
+            $template = \App\Models\ShiftTemplate::find($this->editShiftTemplateId);
+            
+            $this->selectedShift->update([
+                'diem_ban_id' => $this->editAgencyId,
+                'shift_template_id' => $this->editShiftTemplateId,
+                'ngay_lam' => $this->editDate,
+                'gio_bat_dau' => $template->start_time,
+                'gio_ket_thuc' => $template->end_time,
+                'trang_thai' => $this->editStatus,
+            ]);
 
-        session()->flash('message', 'Đã cập nhật ca làm việc');
-        $this->closeEditModal();
+            session()->flash('message', 'Cập nhật ca làm việc thành công!');
+            
+            $this->editingShift = false;
+            $this->resetEditFields();
+            $this->closeDetail();
+        } else {
+            // Old edit mode (from edit modal)
+            $this->validate([
+                'editDate' => 'required|date',
+                'editStartTime' => 'required',
+                'editEndTime' => 'required|after:editStartTime',
+                'editStatus' => 'required|in:pending,approved,rejected,completed',
+            ]);
+
+            $shift = ShiftSchedule::findOrFail($this->editShiftId);
+            $shift->update([
+                'ngay_lam' => $this->editDate,
+                'gio_bat_dau' => $this->editStartTime,
+                'gio_ket_thuc' => $this->editEndTime,
+                'trang_thai' => $this->editStatus,
+            ]);
+
+            session()->flash('message', 'Đã cập nhật ca làm việc');
+            $this->closeEditModal();
+        }
     }
 
     public function closeEditModal()
@@ -130,6 +216,201 @@ class ShiftManagement extends Component
     {
         ShiftSchedule::findOrFail($shiftId)->delete();
         session()->flash('message', 'Đã xóa ca làm việc');
+    }
+    
+    public function confirmDeleteShift()
+    {
+        $this->showDeleteConfirm = true;
+    }
+    
+    public function cancelDelete()
+    {
+        $this->showDeleteConfirm = false;
+        $this->deleteNote = '';
+    }
+    
+    public function executeDelete()
+    {
+        $this->selectedShift->update([
+            'trang_thai' => 'rejected',
+            'ghi_chu' => $this->deleteNote ?: 'Đã xóa bởi admin',
+        ]);
+
+        session()->flash('message', 'Đã xóa ca làm việc (chuyển sang trạng thái Từ chối)');
+        
+        $this->showDeleteConfirm = false;
+        $this->deleteNote = '';
+        $this->closeDetail();
+    }
+    
+    // Add Shift Methods
+    public function openAddShiftModal($agencyId, $templateId, $date)
+    {
+        $agency = Agency::with('shiftTemplates')->find($agencyId);
+        
+        $this->addShiftAgencyId = $agencyId;
+        $this->addShiftAgencyName = $agency->ten_diem_ban ?? '';
+        $this->addShiftTemplates = $agency->shiftTemplates->where('is_active', true)->sortBy('start_time');
+        $this->selectedTemplates = [$templateId]; // Pre-select the clicked template
+        $this->addShiftDate = $date;
+        $this->addShiftEmployeeId = null;
+        $this->showAddShiftModal = true;
+    }
+    
+    public function closeAddShiftModal()
+    {
+        $this->showAddShiftModal = false;
+        $this->resetAddShiftFields();
+    }
+    
+    private function resetAddShiftFields()
+    {
+        $this->addShiftAgencyId = null;
+        $this->addShiftAgencyName = '';
+        $this->addShiftTemplates = [];
+        $this->selectedTemplates = [];
+        $this->addShiftDate = '';
+        $this->addShiftEmployeeId = null;
+        $this->employeeSearch = '';
+        $this->selectedEmployeeName = '';
+        $this->selectedEmployeeCode = '';
+    }
+    
+    public function selectEmployee($employeeId)
+    {
+        $employee = User::find($employeeId);
+        if ($employee) {
+            $this->addShiftEmployeeId = $employeeId;
+            $this->selectedEmployeeName = $employee->ho_ten;
+            $this->selectedEmployeeCode = $employee->ma_nhan_vien;
+            $this->employeeSearch = $employee->ho_ten;
+        }
+    }
+    
+    public function clearEmployee()
+    {
+        $this->addShiftEmployeeId = null;
+        $this->selectedEmployeeName = '';
+        $this->selectedEmployeeCode = '';
+        $this->employeeSearch = '';
+    }
+    
+    public function saveAddShift()
+    {
+        $this->validate([
+            'addShiftEmployeeId' => 'required|exists:nguoi_dung,id',
+            'selectedTemplates' => 'required|array|min:1',
+            'selectedTemplates.*' => 'exists:shift_templates,id',
+        ]);
+        
+        $employee = User::find($this->addShiftEmployeeId);
+        $createdCount = 0;
+        
+        foreach ($this->selectedTemplates as $templateId) {
+            $template = \App\Models\ShiftTemplate::find($templateId);
+            
+            // Check if shift already exists
+            $exists = ShiftSchedule::where('nguoi_dung_id', $this->addShiftEmployeeId)
+                ->where('diem_ban_id', $this->addShiftAgencyId)
+                ->where('shift_template_id', $templateId)
+                ->where('ngay_lam', $this->addShiftDate)
+                ->exists();
+            
+            if (!$exists) {
+                ShiftSchedule::create([
+                    'nguoi_dung_id' => $this->addShiftEmployeeId,
+                    'diem_ban_id' => $this->addShiftAgencyId,
+                    'shift_template_id' => $templateId,
+                    'ngay_lam' => $this->addShiftDate,
+                    'gio_bat_dau' => $template->start_time,
+                    'gio_ket_thuc' => $template->end_time,
+                    'trang_thai' => 'approved',
+                    'ghi_chu' => 'Admin tạo ca làm cho nv ' . ($employee->ho_ten ?? ''),
+                ]);
+                $createdCount++;
+            }
+        }
+        
+        if ($createdCount > 0) {
+            session()->flash('message', "Đã tạo {$createdCount} ca làm việc cho " . ($employee->ho_ten ?? ''));
+        } else {
+            session()->flash('error', 'Các ca đã tồn tại, không tạo ca mới');
+        }
+        
+        $this->closeAddShiftModal();
+    }
+    
+    // Template Manager Methods
+    public function openTemplateManager()
+    {
+        $this->showTemplateManager = true;
+    }
+    
+    public function closeTemplateManager()
+    {
+        $this->showTemplateManager = false;
+        $this->resetTemplateForm();
+    }
+    
+    private function resetTemplateForm()
+    {
+        $this->editingTemplateId = null;
+        $this->templateAgencyId = null;
+        $this->templateName = '';
+        $this->templateStartTime = '';
+        $this->templateEndTime = '';
+        $this->templateIsActive = true;
+    }
+    
+    public function saveTemplate()
+    {
+        $this->validate([
+            'templateAgencyId' => 'required|exists:diem_ban,id',
+            'templateName' => 'required|string|max:100',
+            'templateStartTime' => 'required',
+            'templateEndTime' => 'required|after:templateStartTime',
+        ]);
+        
+        $data = [
+            'diem_ban_id' => $this->templateAgencyId,
+            'name' => $this->templateName,
+            'start_time' => $this->templateStartTime,
+            'end_time' => $this->templateEndTime,
+            'is_active' => $this->templateIsActive,
+        ];
+        
+        if ($this->editingTemplateId) {
+            \App\Models\ShiftTemplate::find($this->editingTemplateId)->update($data);
+            session()->flash('message', 'Đã cập nhật mẫu ca');
+        } else {
+            \App\Models\ShiftTemplate::create($data);
+            session()->flash('message', 'Đã thêm mẫu ca mới');
+        }
+        
+        $this->resetTemplateForm();
+    }
+    
+    public function editTemplate($id)
+    {
+        $template = \App\Models\ShiftTemplate::find($id);
+        
+        $this->editingTemplateId = $id;
+        $this->templateAgencyId = $template->diem_ban_id;
+        $this->templateName = $template->name;
+        $this->templateStartTime = $template->start_time;
+        $this->templateEndTime = $template->end_time;
+        $this->templateIsActive = $template->is_active;
+    }
+    
+    public function cancelEditTemplate()
+    {
+        $this->resetTemplateForm();
+    }
+    
+    public function deleteTemplate($id)
+    {
+        \App\Models\ShiftTemplate::find($id)->delete();
+        session()->flash('message', 'Đã xóa mẫu ca');
     }
 
     public function toggleSelectAll()
@@ -178,20 +459,8 @@ class ShiftManagement extends Component
 
     public function render()
     {
-        // 1. Determine Agency IDs for current Tab
+        // 1. Get all agencies (no tab filtering)
         $agencyQuery = Agency::query();
-        
-        if ($this->activeTab === 'workshop') {
-            $agencyQuery->where('ma_diem_ban', 'like', 'XUONG%')
-                        ->orWhere('ten_diem_ban', 'like', '%Xưởng%');
-        } else {
-            // Stores: Not starting with XUONG and not containing Xưởng
-            $agencyQuery->where(function($q) {
-                $q->where('ma_diem_ban', 'not like', 'XUONG%')
-                  ->where('ten_diem_ban', 'not like', '%Xưởng%');
-            });
-        }
-        
         $agencyIds = $agencyQuery->pluck('id')->toArray();
 
         // 2. Prepare Shared Stats
@@ -222,7 +491,7 @@ class ShiftManagement extends Component
                 },
                 'shiftSchedules' => function($q) {
                     // Eager load everything needed for the view
-                    $q->with(['user.diemBan'])
+                    $q->with(['user.diemBan', 'user.department'])
                       ->whereBetween('ngay_lam', [$this->dateFrom, $this->dateTo])
                       ->orderBy('ngay_lam')
                       ->orderBy('gio_bat_dau');
@@ -241,8 +510,9 @@ class ShiftManagement extends Component
             return view('livewire.admin.shift.shift-management', [
                 'groupedAgencies' => $agencies,
                 'shifts' => null, // Not used in monitoring mode
-                'agencies' => Agency::where('ten_diem_ban', 'not like', '%Xưởng%')->orderBy('ten_diem_ban')->get(), // For filter dropdown
+                'agencies' => Agency::with('shiftTemplates')->orderBy('ten_diem_ban')->get(), // All agencies including workshops
                 'employees' => User::where('vai_tro', 'nhan_vien')->orderBy('ho_ten')->get(),
+                'filteredEmployees' => $this->getFilteredEmployees(),
                 'stats' => $stats,
             ]);
             
@@ -271,10 +541,25 @@ class ShiftManagement extends Component
             return view('livewire.admin.shift.shift-management', [
                 'shifts' => $shifts,
                 'groupedAgencies' => null,
-                'agencies' => Agency::where('ten_diem_ban', 'not like', '%Xưởng%')->orderBy('ten_diem_ban')->get(),
+                'agencies' => Agency::with('shiftTemplates')->orderBy('ten_diem_ban')->get(), // All agencies including workshops
                 'employees' => User::where('vai_tro', 'nhan_vien')->orderBy('ho_ten')->get(),
+                'filteredEmployees' => $this->getFilteredEmployees(),
                 'stats' => $stats,
             ]);
         }
+    }
+    
+    private function getFilteredEmployees()
+    {
+        $query = User::where('vai_tro', 'nhan_vien');
+        
+        if ($this->employeeSearch) {
+            $query->where(function($q) {
+                $q->where('ho_ten', 'like', '%' . $this->employeeSearch . '%')
+                  ->orWhere('ma_nhan_vien', 'like', '%' . $this->employeeSearch . '%');
+            });
+        }
+        
+        return $query->orderBy('ho_ten')->limit(50)->get();
     }
 }

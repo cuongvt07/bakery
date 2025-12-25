@@ -17,6 +17,7 @@ class ThemMoi extends Component
     public $mat_khau = '';
     public $mat_khau_confirmation = '';
     public $vai_tro = 'nhan_vien';
+    public $phong_ban_id = null;
     public $trang_thai = 'hoat_dong';
     public $dia_chi = '';
     public $ngay_vao_lam = '';
@@ -27,9 +28,10 @@ class ThemMoi extends Component
     protected $rules = [
         'ho_ten' => 'required|string|max:100',
         'email' => 'required|email|unique:nguoi_dung,email',
-        'so_dien_thoai' => 'nullable|regex:/^([0-9\s\-\+\(\)]*)$/|min:10',
-        'mat_khau' => 'required|min:8|confirmed',
+        'so_dien_thoai' => 'required|regex:/^([0-9\s\-\+\(\)]*)$/|min:10',
+        'mat_khau' => 'required|min:6|confirmed',
         'vai_tro' => 'required|in:admin,nhan_vien',
+        'phong_ban_id' => 'nullable|exists:phong_ban,id',
         'trang_thai' => 'required|in:hoat_dong,khoa',
         'dia_chi' => 'nullable|string',
         'ngay_vao_lam' => 'nullable|date',
@@ -43,8 +45,10 @@ class ThemMoi extends Component
         'email.required' => 'Email không được để trống.',
         'email.email' => 'Email không đúng định dạng.',
         'email.unique' => 'Email đã được sử dụng.',
+        'so_dien_thoai.required' => 'Số điện thoại không được để trống.',
+        'so_dien_thoai.min' => 'Số điện thoại phải có ít nhất 10 số.',
         'mat_khau.required' => 'Mật khẩu không được để trống.',
-        'mat_khau.min' => 'Mật khẩu phải có ít nhất 8 ký tự.',
+        'mat_khau.min' => 'Mật khẩu phải có ít nhất 6 ký tự.',
         'mat_khau.confirmed' => 'Xác nhận mật khẩu không khớp.',
         'luong_co_ban.required' => 'Lương cơ bản không được để trống.',
         'luong_co_ban.min' => 'Lương cơ bản phải lớn hơn 0.',
@@ -60,6 +64,7 @@ class ThemMoi extends Component
             'so_dien_thoai' => $this->so_dien_thoai,
             'mat_khau' => Hash::make($this->mat_khau),
             'vai_tro' => $this->vai_tro,
+            'phong_ban_id' => $this->phong_ban_id,
             'trang_thai' => $this->trang_thai,
             'dia_chi' => $this->dia_chi,
             'ngay_vao_lam' => $this->ngay_vao_lam,
@@ -82,7 +87,11 @@ class ThemMoi extends Component
     
     public function render()
     {
-        return view('livewire.admin.nguoi-dung.them-moi')
+        $departments = \App\Models\Department::active()->orderBy('ten_phong_ban')->get();
+        
+        return view('livewire.admin.nguoi-dung.them-moi', [
+            'departments' => $departments,
+        ])
             ->layout('components.layouts.admin', [
                 'pageTitle' => 'Thêm người dùng',
                 'breadcrumbs' => [

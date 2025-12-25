@@ -74,6 +74,11 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::get('/ingredients/create', App\Livewire\Admin\Ingredient\IngredientForm::class)->name('ingredients.create');
     Route::get('/ingredients/{id}/edit', App\Livewire\Admin\Ingredient\IngredientForm::class)->name('ingredients.edit');
     
+    // Departments
+    Route::get('/departments', App\Livewire\Admin\Department\DepartmentList::class)->name('departments.index');
+    Route::get('/departments/create', App\Livewire\Admin\Department\DepartmentForm::class)->name('departments.create');
+    Route::get('/departments/{id}/edit', App\Livewire\Admin\Department\DepartmentForm::class)->name('departments.edit');
+    
     // Materials Management (centralized)
     Route::get('/materials', App\Livewire\Admin\Material\MaterialList::class)->name('materials.index');
     Route::get('/materials/create', App\Livewire\Admin\Material\MaterialForm::class)->name('materials.create');

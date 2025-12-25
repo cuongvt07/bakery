@@ -23,7 +23,7 @@ class User extends Authenticatable
         'sdt_lien_he_khan_cap',
         'mat_khau',
         'vai_tro',
-        'loai_nhan_vien',
+        'phong_ban_id',
         'trang_thai',
         'anh_dai_dien',
         'dia_chi',
@@ -167,5 +167,13 @@ class User extends Authenticatable
         return $this->belongsToMany(Agency::class, 'nhan_vien_diem_ban', 'nguoi_dung_id', 'diem_ban_id')
                     ->withPivot('ngay_bat_dau', 'ngay_ket_thuc')
                     ->withTimestamps();
+    }
+    
+    /**
+     * Department relationship
+     */
+    public function department()
+    {
+        return $this->belongsTo(Department::class, 'phong_ban_id');
     }
 }
