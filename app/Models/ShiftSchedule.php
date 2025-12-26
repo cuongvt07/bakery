@@ -16,12 +16,17 @@ class ShiftSchedule extends Model
         'gio_ket_thuc',
         'trang_thai', // pending, approved, rejected, completed
         'ghi_chu',
+        'tien_mat_dau_ca',
+        'hinh_anh_checkin',
+        'trang_thai_checkin',
+        'thoi_gian_checkin',
     ];
 
     protected $casts = [
         'ngay_lam' => 'date',
         'gio_bat_dau' => 'datetime:H:i',
         'gio_ket_thuc' => 'datetime:H:i',
+        'thoi_gian_checkin' => 'datetime',
     ];
 
     /**
@@ -66,6 +71,33 @@ class ShiftSchedule extends Model
     public function user()
     {
         return $this->nguoiDung();
+    }
+    
+    /**
+     * Check if this shift requires full check-in (for sales staff)
+     */
+    public function requiresFullCheckin(): bool
+    {
+        // Sales department requires full check-in with money and stock
+        return $this->nguoiDung 
+            && $this->nguoiDung->department 
+            && in_array($this->nguoiDung->department->ma_phong_ban, ['PB-0001']);
+    }
+    
+    /**
+     * Check if shift is checked in
+     */
+    public function isCheckedIn(): bool
+    {
+        return !is_null($this->thoi_gian_checkin);
+    }
+    
+    /**
+     * Relationship to PhieuChotCa (checkout record)
+     */
+    public function phieuChotCa()
+    {
+        return $this->hasOne(\App\Models\PhieuChotCa::class, 'ca_lam_viec_id');
     }
 
 }

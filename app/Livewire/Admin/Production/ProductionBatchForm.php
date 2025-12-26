@@ -71,22 +71,8 @@ class ProductionBatchForm extends Component
 
     public function generateBatchCode()
     {
-        $date = Carbon::parse($this->ngay_san_xuat);
-        $buoiMap = [
-            'sang' => 'SANG',
-            'trua' => 'TRUA',
-            'chieu' => 'CHIEU',
-        ];
-        
-        $prefix = $buoiMap[$this->buoi] ?? 'SANG';
-        $dateStr = $date->format('Ymd');
-        
-        // Count existing batches for this day and session
-        $count = ProductionBatch::whereDate('ngay_san_xuat', $this->ngay_san_xuat)
-                               ->where('buoi', $this->buoi)
-                               ->count();
-        
-        $this->ma_me = $prefix . '-' . $dateStr . '-' . str_pad($count + 1, 3, '0', STR_PAD_LEFT);
+        // Use the static method from ProductionBatch model
+        $this->ma_me = ProductionBatch::generateBatchCode($this->buoi, $this->ngay_san_xuat);
     }
 
     public function updatedBuoi()

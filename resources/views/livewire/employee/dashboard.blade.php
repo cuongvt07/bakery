@@ -52,14 +52,16 @@
             @endif
             
             <div class="mt-4 grid grid-cols-2 gap-3">
-                @if(!$todayAttendance || !$todayAttendance->gio_vao)
-                <button wire:click="checkIn" class="col-span-2 py-3 bg-white text-indigo-600 rounded-lg font-bold hover:bg-indigo-50 transition-colors shadow-sm">
-                    Check-in
-                </button>
-                @elseif(!$todayAttendance->gio_ra)
-                <button wire:click="checkOut" class="col-span-2 py-3 bg-red-500 text-white rounded-lg font-bold hover:bg-red-600 transition-colors shadow-sm border border-red-400">
-                    Check-out
-                </button>
+                @if(!$todayAttendance)
+                    {{-- No ca_lam_viec record yet - Show Check-in button --}}
+                    <button wire:click="checkIn" class="col-span-2 py-3 bg-white text-indigo-600 rounded-lg font-bold hover:bg-indigo-50 transition-colors shadow-sm">
+                        Check-in
+                    </button>
+                @elseif($todayAttendance->trang_thai === 'dang_lam')
+                    {{-- Ca_lam_viec exists and status is dang_lam - Show Checkout button --}}
+                    <button wire:click="checkOut" class="col-span-2 py-3 bg-orange-600 text-white rounded-lg font-bold hover:bg-orange-700 transition-colors shadow-sm">
+                        Chốt ca
+                    </button>
                 @endif
             </div>
         </div>

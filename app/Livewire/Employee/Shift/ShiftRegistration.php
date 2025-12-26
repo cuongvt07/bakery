@@ -27,7 +27,7 @@ class ShiftRegistration extends Component
     public function mount()
     {
         $this->weekStart = Carbon::now()->addWeek()->startOfWeek(Carbon::MONDAY);
-        $this->agencies = Agency::where('ten_diem_ban', 'not like', '%Xưởng%')->get();
+        $this->agencies = Agency::get();
         $this->selectedAgency = Agency::first();
         $this->selectedAgencyId = $this->selectedAgency?->id;
         

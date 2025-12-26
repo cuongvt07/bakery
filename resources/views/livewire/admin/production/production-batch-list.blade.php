@@ -79,6 +79,7 @@
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Mã Mẻ</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Sản phẩm</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ngày/Buổi</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">HSD (Bảo quản)</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Dự kiến</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Thực tế</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Lỗi</th>
@@ -102,6 +103,38 @@
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                 {{ \Carbon\Carbon::parse($batch->ngay_san_xuat)->format('d/m/Y') }}
                                 <span class="ml-1 px-2 py-0.5 bg-blue-100 text-blue-700 rounded text-xs">{{ ucfirst($batch->buoi) }}</span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm">
+                                @if($batch->han_su_dung)
+                                    @php
+                                        $hsd = \Carbon\Carbon::parse($batch->han_su_dung);
+                                        $today = \Carbon\Carbon::today();
+                                        $daysLeft = $today->diffInDays($hsd, false);
+                                        
+                                        if ($daysLeft < 0) {
+                                            $colorClass = 'text-red-600 font-semibold';
+                                            $bgClass = 'bg-red-50';
+                                        } elseif ($daysLeft <= 2) {
+                                            $colorClass = 'text-orange-600 font-semibold';
+                                            $bgClass = 'bg-orange-50';
+                                        } else {
+                                            $colorClass = 'text-gray-700';
+                                            $bgClass = '';
+                                        }
+                                    @endphp
+                                    <div class="{{ $bgClass }} px-2 py-1 rounded">
+                                        <div class="{{ $colorClass }}">{{ $hsd->format('d/m/Y') }}</div>
+                                        @if($daysLeft < 0)
+                                            <div class="text-xs text-red-500">Đã hết hạn</div>
+                                        @elseif($daysLeft == 0)
+                                            <div class="text-xs text-orange-500">Hết hạn hôm nay</div>
+                                        @elseif($daysLeft <= 2)
+                                            <div class="text-xs text-orange-500">Còn {{ $daysLeft }} ngày</div>
+                                        @endif
+                                    </div>
+                                @else
+                                    <span class="text-gray-400">-</span>
+                                @endif
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{{ $batch->total_expected_quantity }}</td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-semibold {{ $batch->total_actual_quantity > 0 ? 'text-green-600' : 'text-gray-400' }}">
@@ -152,7 +185,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="8" class="px-6 py-12 text-center text-gray-500">
+                            <td colspan="9" class="px-6 py-12 text-center text-gray-500">
                                 Chưa có mẻ sản xuất nào
                             </td>
                         </tr>

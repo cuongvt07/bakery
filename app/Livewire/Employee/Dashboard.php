@@ -26,19 +26,67 @@ class Dashboard extends Component
         // In future, this should be from employee assignment table
         $this->agency = Agency::first(); // TODO: Get actual assigned agency
         
-        // Get today's shift
-        $this->todayShift = ShiftSchedule::where('nguoi_dung_id', $user->id)
+        // Get all registered shifts for today from shift_schedules
+        $registeredShifts = ShiftSchedule::where('nguoi_dung_id', $user->id)
             ->whereDate('ngay_lam', Carbon::today())
+            ->whereIn('trang_thai', ['approved', 'pending'])
             ->with('agency')
-            ->first();
+            ->orderBy('gio_bat_dau')
+            ->get();
         
-        // Get today's attendance (check-in/out)
-        $this->todayAttendance = ChamCong::where('nguoi_dung_id', $user->id)
-            ->whereDate('ngay_cham', Carbon::today())
-            ->first();
+        // Find the active shift (prioritize: not checked in > checked in but not out > next upcoming)
+        $this->todayShift = $this->findActiveShift($registeredShifts);
+        
+        // Get today's attendance (check-in/out) for the active shift
+        if ($this->todayShift) {
+            $this->todayAttendance = \App\Models\CaLamViec::where('nguoi_dung_id', $user->id)
+                ->where('shift_template_id', $this->todayShift->shift_template_id)
+                ->where('diem_ban_id', $this->todayShift->diem_ban_id)
+                ->whereDate('ngay_lam', Carbon::today())
+                ->first();
+        }
         
         // Calculate monthly stats
         $this->calculateMonthlyStats();
+    }
+    
+    /**
+     * Find the active shift to display
+     */
+    private function findActiveShift($shifts)
+    {
+        if ($shifts->isEmpty()) {
+            return null;
+        }
+        
+        // Priority 1: Find shift that is checked in but not checked out
+        foreach ($shifts as $shift) {
+            $caLamViec = \App\Models\CaLamViec::where('nguoi_dung_id', Auth::id())
+                ->where('shift_template_id', $shift->shift_template_id)
+                ->where('diem_ban_id', $shift->diem_ban_id)
+                ->whereDate('ngay_lam', $shift->ngay_lam)
+                ->first();
+            
+            if ($caLamViec && $caLamViec->trang_thai !== 'da_ket_thuc' && !$caLamViec->phieuChotCa) {
+                return $shift; // This shift is in progress
+            }
+        }
+        
+        // Priority 2: Find shift that hasn't been checked in yet
+        foreach ($shifts as $shift) {
+            $caLamViec = \App\Models\CaLamViec::where('nguoi_dung_id', Auth::id())
+                ->where('shift_template_id', $shift->shift_template_id)
+                ->where('diem_ban_id', $shift->diem_ban_id)
+                ->whereDate('ngay_lam', $shift->ngay_lam)
+                ->first();
+            
+            if (!$caLamViec) {
+                return $shift; // This shift hasn't started yet
+            }
+        }
+        
+        // Priority 3: All shifts are completed, return null
+        return null;
     }
 
     private function calculateMonthlyStats()
@@ -63,12 +111,12 @@ class Dashboard extends Component
 
     public function checkIn()
     {
-        return redirect()->route('admin.shift.check-in');
+        return $this->redirect(route('employee.shifts.check-in'), navigate: true);
     }
 
     public function checkOut()
     {
-        return redirect()->route('admin.shift.check-in');
+        return $this->redirect(route('employee.shifts.check-in'), navigate: true);
     }
 
     public function render()

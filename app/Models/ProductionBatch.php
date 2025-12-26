@@ -28,6 +28,48 @@ class ProductionBatch extends Model
         'anh_qc' => 'array',
     ];
 
+    /**
+     * Boot the model
+     */
+    protected static function boot()
+    {
+        parent::boot();
+        
+        static::creating(function ($batch) {
+            if (empty($batch->ma_me)) {
+                $batch->ma_me = static::generateBatchCode($batch->buoi, $batch->ngay_san_xuat);
+            }
+        });
+    }
+
+    /**
+     * Generate batch code with format: SANG261225-01, CHIEU261225-002
+     */
+    public static function generateBatchCode(string $buoi, $ngaySanXuat): string
+    {
+        // Convert buoi to prefix
+        $prefix = match(strtolower($buoi)) {
+            'sang', 'sáng' => 'SANG',
+            'chieu', 'chiều' => 'CHIEU',
+            'toi', 'tối' => 'TOI',
+            default => strtoupper($buoi),
+        };
+        
+        // Format date as DDMMYY
+        $date = \Carbon\Carbon::parse($ngaySanXuat);
+        $dateStr = $date->format('dmy'); // 261225
+        
+        // Get next sequence number for this buoi and date
+        $existingBatches = static::where('buoi', $buoi)
+            ->whereDate('ngay_san_xuat', $date->format('Y-m-d'))
+            ->where('ma_me', 'like', $prefix . $dateStr . '-%')
+            ->count();
+        
+        $sequence = str_pad($existingBatches + 1, 2, '0', STR_PAD_LEFT);
+        
+        return "{$prefix}{$dateStr}-{$sequence}";
+    }
+
     // Relationships
     public function details(): HasMany
     {

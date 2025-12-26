@@ -176,4 +176,31 @@ class User extends Authenticatable
     {
         return $this->belongsTo(Department::class, 'phong_ban_id');
     }
+    
+    /**
+     * Get check-in type based on department
+     * Returns: 'sales', 'production', 'office'
+     */
+    public function getCheckinType(): string
+    {
+        if (!$this->department) {
+            return 'office'; // Default to simplest check-in
+        }
+        
+        $deptCode = $this->department->ma_phong_ban;
+        
+        // Sales department - full check-in (money + stock + photo)
+        if (in_array($deptCode, ['PB-0001'])) {
+            return 'sales';
+        }
+        
+        // Production department - photo + product photo
+        if (in_array($deptCode, ['PB-0002'])) {
+            return 'production';
+        }
+        
+        // Office/other departments - simple check-in (no requirements)
+        return 'office';
+    }
 }
+
