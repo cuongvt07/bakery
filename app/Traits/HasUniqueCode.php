@@ -86,7 +86,9 @@ trait HasUniqueCode
             $this->getTable() === 'nguoi_dung' => 'ma_nhan_vien',
             $this->getTable() === 'nha_cung_cap' => 'ma_ncc',
             $this->getTable() === 'san_pham' => 'ma_san_pham',
-            $this->getTable() === 'agencies' => 'ma_diem_ban',
+            $this->getTable() === 'diem_ban' => 'ma_diem_ban',
+            $this->getTable() === 'phong_ban' => 'ma_phong_ban',
+            $this->getTable() === 'cong_thuc_san_xuat' => 'ma_cong_thuc',
             default => 'code',
         };
     }

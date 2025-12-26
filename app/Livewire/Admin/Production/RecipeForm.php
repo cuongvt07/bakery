@@ -46,6 +46,9 @@ class RecipeForm extends Component
                     'don_gia' => $detail->don_gia,
                 ];
             }
+        } else {
+            // Auto-generate code for new recipe
+            $this->ma_cong_thuc = Recipe::generateUniqueCode('ma_cong_thuc', 'CT');
         }
 
         // Initialize with empty row if no ingredients

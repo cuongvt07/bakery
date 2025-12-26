@@ -31,12 +31,6 @@
                     <div class="flex items-center gap-4">
                         <input type="color" wire:model.live="ma_mau" class="h-12 w-24 border border-gray-300 rounded cursor-pointer">
                         <input type="text" wire:model="ma_mau" class="flex-1 px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500" placeholder="#3B82F6">
-                        <div class="flex items-center gap-2">
-                            <span class="text-sm text-gray-600">Preview:</span>
-                            <span class="px-4 py-2 rounded-full text-white font-medium" style="background-color: {{ $ma_mau }}">
-                                {{ $ten_phong_ban ?: 'Tên phòng ban' }}
-                            </span>
-                        </div>
                     </div>
                     <p class="text-xs text-gray-500 mt-1">Chọn màu để phân biệt phòng ban trong hệ thống</p>
                     @error('ma_mau') <span class="text-red-500 text-sm mt-1">{{ $message }}</span> @enderror
