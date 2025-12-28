@@ -222,7 +222,7 @@
                                                 <td class="px-2 py-2 text-center border-l align-top text-xs h-16 relative group">
                                                     @if($cellShifts->isNotEmpty())
                                                         <div class="flex flex-col gap-1 pb-8">
-                                                            @foreach($cellShifts->sortBy(fn($s) => ($s->user->diemBan->first()->ten_diem_ban ?? 'zzz') . '_' . ($s->user->ho_ten ?? '')) as $shift)
+                                                            @foreach($cellShifts as $shift)
                                                                 @php
                                                                     // Get department color instead of agency color
                                                                     $departmentColor = $shift->user && $shift->user->department 

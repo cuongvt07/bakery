@@ -520,13 +520,18 @@ class ShiftManagement extends Component
             
             // Sort shifts within each agency by department and name
             foreach ($agencies as $agency) {
-                $agency->shiftSchedules = $agency->shiftSchedules->sortBy([
-                    ['ngay_lam', 'asc'],
-                    ['gio_bat_dau', 'asc'],
-                    fn($a, $b) => ($a->user->department->ten_phong_ban ?? '') <=> ($b->user->department->ten_phong_ban ?? ''),
-                    fn($a, $b) => $a->user->ho_ten <=> $b->user->ho_ten,
-                ])->values();
+                $agency->shiftSchedules = $agency->shiftSchedules->sortBy(function($shift) {
+                    $date = $shift->ngay_lam->format('Y-m-d');
+                    $time = $shift->gio_bat_dau instanceof \Carbon\Carbon ? $shift->gio_bat_dau->format('H:i') : $shift->gio_bat_dau;
+                    // Use phong_ban_id directly for reliable grouping
+                    // Pad with zeros to ensure '10' comes after '2' in string sort
+                    $deptId = str_pad($shift->user->phong_ban_id ?? 99999, 10, '0', STR_PAD_LEFT);
+                    $name = $shift->user->ho_ten;
+                    
+                    return $date . '|' . $time . '|' . $deptId . '|' . $name;
+                })->values();
             }
+
             
             return view('livewire.admin.shift.shift-management', [
                 'groupedAgencies' => $agencies,
