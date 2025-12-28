@@ -505,14 +505,7 @@ class ShiftManagement extends Component
                 'shiftSchedules' => function($q) {
                     // Eager load everything needed for the view
                     $q->with(['user.diemBan', 'user.department'])
-                      ->join('nguoi_dung', 'shift_schedules.nguoi_dung_id', '=', 'nguoi_dung.id')
-                      ->leftJoin('phong_ban', 'nguoi_dung.phong_ban_id', '=', 'phong_ban.id')
-                      ->whereBetween('shift_schedules.ngay_lam', [$this->dateFrom, $this->dateTo])
-                      ->orderBy('shift_schedules.ngay_lam')
-                      ->orderBy('shift_schedules.gio_bat_dau')
-                      ->orderBy('phong_ban.ten_phong_ban')
-                      ->orderBy('nguoi_dung.ho_ten')
-                      ->select('shift_schedules.*');
+                      ->whereBetween('ngay_lam', [$this->dateFrom, $this->dateTo]);
                       
                     // Apply internal filters
                     if ($this->employeeFilter) $q->where('nguoi_dung_id', $this->employeeFilter);
@@ -524,6 +517,16 @@ class ShiftManagement extends Component
                     }
                 }
             ])->orderBy('ten_diem_ban')->get();
+            
+            // Sort shifts within each agency by department and name
+            foreach ($agencies as $agency) {
+                $agency->shiftSchedules = $agency->shiftSchedules->sortBy([
+                    ['ngay_lam', 'asc'],
+                    ['gio_bat_dau', 'asc'],
+                    fn($a, $b) => ($a->user->department->ten_phong_ban ?? '') <=> ($b->user->department->ten_phong_ban ?? ''),
+                    fn($a, $b) => $a->user->ho_ten <=> $b->user->ho_ten,
+                ])->values();
+            }
             
             return view('livewire.admin.shift.shift-management', [
                 'groupedAgencies' => $agencies,
