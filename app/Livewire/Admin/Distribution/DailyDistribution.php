@@ -72,10 +72,9 @@ class DailyDistribution extends Component
         // Validate and cap value
         if (!is_numeric($value) || $value < 0) {
             $this->distributionData[$batchId][$productId] = 0;
-        } elseif ($value > $available) {
-            $this->distributionData[$batchId][$productId] = $available;
-            session()->flash('warning', "Chỉ còn {$available} sản phẩm khả dụng!");
         }
+        // Removed auto-capping to prevent input reset issue
+        // User can input any value, validation happens on save
     }
     
     public function saveDistributions()
@@ -109,31 +108,20 @@ class DailyDistribution extends Component
                             throw new \Exception("Sản phẩm {$detail->product->ten_san_pham} chỉ còn {$available} khả dụng!");
                         }
                         
-                        // Check if distribution exists
-                        $existing = PhanBoHangDiemBan::where('me_san_xuat_id', $batchId)
-                            ->where('diem_ban_id', $this->selectedAgencyId)
-                            ->where('san_pham_id', $productId)
-                            ->where('buoi', $this->selectedSession)
-                            ->first();
+                        // Always create new distribution record
+                        // Each distribution is a separate record, not accumulated
+                        PhanBoHangDiemBan::create([
+                            'me_san_xuat_id' => $batchId,
+                            'diem_ban_id' => $this->selectedAgencyId,
+                            'buoi' => $this->selectedSession,
+                            'so_luong' => $quantity,
+                            'san_pham_id' => $productId,
+                            'nguoi_tao_id' => Auth::id(),
+                            'nguoi_nhan_id' => null,
+                            'trang_thai' => 'chua_nhan',
+                            'loai_phan_bo' => 'tu_me_sx',
+                        ]);
                         
-                        if ($existing) {
-                            $existing->update([
-                                'so_luong' => $existing->so_luong + $quantity,
-                                'nguoi_tao_id' => Auth::id(),
-                            ]);
-                        } else {
-                            PhanBoHangDiemBan::create([
-                                'me_san_xuat_id' => $batchId,
-                                'diem_ban_id' => $this->selectedAgencyId,
-                                'buoi' => $this->selectedSession,
-                                'so_luong' => $quantity,
-                                'san_pham_id' => $productId,
-                                'nguoi_tao_id' => Auth::id(),
-                                'nguoi_nhan_id' => null,
-                                'trang_thai' => 'chua_nhan',
-                                'loai_phan_bo' => 'tu_me_sx',
-                            ]);
-                        }
                         
                         $totalSaved++;
                     }
@@ -153,10 +141,16 @@ class DailyDistribution extends Component
     
     public function render()
     {
-        // Load all completed batches for the date
+        // Load all completed batches that are still valid (not expired)
+        // Changed from: only batches produced on selected date
+        // To: all batches with expiry date >= today
         $batches = ProductionBatch::with(['details.product', 'distributions'])
-            ->whereDate('ngay_san_xuat', $this->date)
             ->where('trang_thai', 'hoan_thanh')
+            ->where(function($query) {
+                $query->whereDate('han_su_dung', '>=', Carbon::today())
+                      ->orWhereNull('han_su_dung'); // Include batches without expiry date
+            })
+            ->orderBy('ngay_san_xuat', 'desc')
             ->orderBy('buoi')
             ->orderBy('created_at')
             ->get();

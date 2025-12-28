@@ -9,7 +9,7 @@ use App\Models\PendingSale;
 use App\Models\BatchBanHang;
 use Illuminate\Support\Facades\Auth;
 
-#[Layout('components.layouts.app')]
+
 class PendingSalesList extends Component
 {
     public $shift;
@@ -152,7 +152,10 @@ class PendingSalesList extends Component
             $this->dispatch('inventory-updated');
 
             // Redirect back to POS to continue selling
-            return $this->redirect('/admin/pos', navigate: true);
+            $posRoute = (Auth::user()->vai_tro === 'nhan_vien') 
+                ? route('employee.pos') 
+                : route('admin.pos.quick-sale');
+            return $this->redirect($posRoute, navigate: true);
 
         } catch (\Exception $e) {
             session()->flash('error', 'Có lỗi xảy ra: ' . $e->getMessage());
@@ -227,9 +230,13 @@ class PendingSalesList extends Component
 
     public function render()
     {
+        $layout = (Auth::user() && Auth::user()->vai_tro === 'nhan_vien') 
+            ? 'components.layouts.mobile' 
+            : 'components.layouts.app';
+            
         return view('livewire.admin.shift.pending-sales-list', [
             'selectedTotal' => $this->getSelectedTotal(),
             'selectedCount' => $this->getSelectedCount(),
-        ]);
+        ])->layout($layout);
     }
 }

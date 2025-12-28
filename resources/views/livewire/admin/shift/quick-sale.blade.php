@@ -33,7 +33,7 @@
                 
                 <div class="flex items-center gap-2">
                     @if($pendingCount > 0)
-                    <a href="/admin/pos/pending" class="relative">
+                    <a href="{{ auth()->user()->vai_tro === 'nhan_vien' ? route('employee.pos.pending') : route('admin.pos.pending') }}" class="relative">
                         <div class="bg-yellow-400 text-yellow-900 px-3 py-2 rounded-lg font-semibold text-sm flex items-center space-x-1 shadow-md hover:bg-yellow-300 transition-colors">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -43,7 +43,7 @@
                     </a>
                     @endif
                     
-                    <a href="/admin/pos/confirmed" class="relative">
+                    <a href="{{ auth()->user()->vai_tro === 'nhan_vien' ? route('employee.pos.confirmed') : route('admin.pos.confirmed') }}" class="relative">
                         <div class="bg-white text-blue-600 px-3 py-2 rounded-lg font-semibold text-sm flex items-center space-x-1 shadow-md hover:bg-blue-50 transition-colors">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
@@ -53,7 +53,7 @@
                     </a>
                     
                     <a 
-                        href="/admin/shift/closing?confirm_closing=1" 
+                        href="{{ auth()->user()->vai_tro === 'nhan_vien' ? route('employee.shifts.closing', ['confirm_closing' => 1]) : route('admin.shift.closing', ['confirm_closing' => 1]) }}" 
                         @if($pendingCount > 0) 
                             onclick="event.preventDefault(); alert('Vui lòng chốt hết {{ $pendingCount }} đơn chờ trước khi chốt ca!'); return false;"
                         @endif

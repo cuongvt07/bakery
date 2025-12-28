@@ -212,9 +212,18 @@ class ShiftClosing extends Component
             
             $phieu->tien_mat = $this->tienMat;
             $phieu->tien_chuyen_khoan = $this->tienChuyenKhoan;
-            $phieu->tong_tien_thuc_te = $this->totalActual;
-            $phieu->tong_tien_ly_thuyet = $this->totalTheoretical;
-            $phieu->tien_lech = $this->discrepancy;
+            
+            // Theoretical Total = Expected Cash + Transfer Sales
+            // Expected Cash = Opening Cash + Cash Sales
+            $theoreticalTotal = $this->expectedCash + $this->transferSalesTotal;
+            $phieu->tong_tien_ly_thuyet = $theoreticalTotal;
+            
+            // Actual Total = Cash Holding + Transfer (should match input)
+            $actualTotal = $this->tienMat + $this->tienChuyenKhoan;
+            $phieu->tong_tien_thuc_te = $actualTotal;
+            
+            // Discrepancy = Actual - Theoretical
+            $phieu->tien_lech = $actualTotal - $theoreticalTotal;
             
             // Handle Image Uploads with Resizing
             $manager = new \Intervention\Image\ImageManager(new \Intervention\Image\Drivers\Gd\Driver());

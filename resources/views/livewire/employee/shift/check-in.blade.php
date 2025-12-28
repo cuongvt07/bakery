@@ -197,6 +197,12 @@
                     </div>
                     @endif
 
+                    {{-- 4. Ghi chú ca làm việc --}}
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Ghi chú ca làm việc</label>
+                        <textarea wire:model="ghi_chu" rows="3" class="block w-full border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 shadow-sm" placeholder="Nhập ghi chú cho ca làm việc (nếu có)..."></textarea>
+                    </div>
+
                     <button wire:click="confirmCheckIn" wire:confirm="Xác nhận các thông tin trên là chính xác?" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-4 rounded-xl shadow-lg text-lg flex items-center justify-center">
                         XÁC NHẬN NHẬN CA
                     </button>
@@ -208,6 +214,13 @@
             @php
                 $checkinType = Auth::user()->getCheckinType();
             @endphp
+            
+            {{-- Auto-redirect sales staff to POS immediately --}}
+            @if($checkinType === 'sales')
+                <script>
+                    window.location.href = "{{ route('employee.pos') }}";
+                </script>
+            @endif
             
             <div class="bg-green-50 border border-green-200 rounded-xl p-6 text-center">
                 <div class="mx-auto h-16 w-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
@@ -274,6 +287,15 @@
                         </div>
                     </button>
                 @endforeach
+                
+                {{-- Ghi chú check-in --}}
+                <div class="mt-4 pt-4 border-t border-gray-200">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Ghi chú (tùy chọn)</label>
+                    <textarea wire:model="ghi_chu" 
+                              rows="3" 
+                              placeholder="Nhập ghi chú về tình trạng đầu ca..."
+                              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 resize-none text-sm"></textarea>
+                </div>
             </div>
         </div>
     </div>

@@ -29,6 +29,7 @@ class CheckIn extends Component
     public $maxStock = []; // [product_id => max_quantity]
     public $products = [];
     public $checkinImages = []; // Array of images
+    public $ghi_chu = ''; // Check-in notes
     
     // Multi-shift selection
     public $todayShifts = [];
@@ -48,8 +49,12 @@ class CheckIn extends Component
     // Shift availability
     public $hasRegisteredShifts = false;
     
+    // Check-in type (sales, production, office)
+    public $checkinType = 'office';
+    
     public function mount()
     {
+        $this->checkinType = Auth::user()->getCheckinType();
         $this->checkShiftStatus();
     }
     
@@ -204,22 +209,74 @@ class CheckIn extends Component
         }
     }
     
+    
     private function createSession($schedule)
     {
-        // Create Active Shift (Session)
+        // Get checkinType directly from user to ensure it's always correct
+        $checkinType = Auth::user()->getCheckinType();
+        
+        // For sales staff: show full check-in form (cash, images, stock)
+        if ($checkinType === 'sales') {
+            $this->shift = CaLamViec::create([
+                'diem_ban_id' => $schedule->diem_ban_id,
+                'nguoi_dung_id' => Auth::id(),
+                'ngay_lam' => now(),
+                'gio_bat_dau' => now(),
+                'gio_ket_thuc' => now()->addHours(8),
+                'trang_thai' => 'dang_lam',
+                'trang_thai_checkin' => false,
+                'shift_template_id' => $schedule->shift_template_id,
+                'ghi_chu' => $this->ghi_chu,
+            ]);
+            
+            // Load distributed stock for confirmation
+            $this->loadDistributedStock();
+            
+            // Hide modal and show check-in form
+            $this->showShiftSelection = false;
+            $this->todayShifts = [];
+            $this->hasActiveShift = true;
+            $this->isCheckedIn = false;
+            return;
+        }
+        
+        // For production staff: show simple check-in form (images + notes only)
+        if ($checkinType === 'production') {
+            $this->shift = CaLamViec::create([
+                'diem_ban_id' => $schedule->diem_ban_id,
+                'nguoi_dung_id' => Auth::id(),
+                'ngay_lam' => now(),
+                'gio_bat_dau' => now(),
+                'gio_ket_thuc' => now()->addHours(8),
+                'trang_thai' => 'dang_lam',
+                'trang_thai_checkin' => false,
+                'shift_template_id' => $schedule->shift_template_id,
+                'ghi_chu' => $this->ghi_chu,
+            ]);
+            
+            // Hide modal and show check-in form
+            $this->showShiftSelection = false;
+            $this->todayShifts = [];
+            $this->hasActiveShift = true;
+            $this->isCheckedIn = false;
+            return;
+        }
+        
+        // For office staff: auto check-in and redirect to dashboard
         $shift = CaLamViec::create([
             'diem_ban_id' => $schedule->diem_ban_id,
             'nguoi_dung_id' => Auth::id(),
             'ngay_lam' => now(),
             'gio_bat_dau' => now(),
-            'gio_ket_thuc' => now()->addHours(8), // Estimated
+            'gio_ket_thuc' => now()->addHours(8),
             'trang_thai' => 'dang_lam',
-            'trang_thai_checkin' => false,
-            // 'shift_schedule_id' => $schedule->id,
+            'trang_thai_checkin' => true, // Auto check-in for office
+            'thoi_gian_checkin' => now(),
             'shift_template_id' => $schedule->shift_template_id,
+            'ghi_chu' => $this->ghi_chu,
         ]);
         
-        $this->showShiftSelection = false; 
+        $this->showShiftSelection = false;
         $this->todayShifts = [];
         $this->checkShiftStatus();
     }
@@ -228,20 +285,10 @@ class CheckIn extends Component
     {
         $agencyId = $this->shift->diem_ban_id;
         
-        // Determine Session based on Shift Template OR Start Time
-        if ($this->shift->shiftTemplate) {
-            $startTime = Carbon::parse($this->shift->shiftTemplate->start_time);
-        } else {
-            $startTime = Carbon::parse($this->shift->gio_bat_dau);
-        }
-        
-        $session = $startTime->lt(Carbon::parse('12:00:00')) ? 'sang' : 'chieu';
-        
-        // Find all distributions for this agency, today, and session
+        // Find all distributions for this agency, today only, with status 'chua_nhan'
         $distributions = PhanBoHangDiemBan::with(['product'])
             ->where('diem_ban_id', $agencyId)
             ->whereDate('created_at', Carbon::today())
-            ->where('buoi', $session)
             ->where('trang_thai', 'chua_nhan')
             ->get();
             
@@ -287,7 +334,7 @@ class CheckIn extends Component
 
         $rules = [
             'checkinImages.*' => 'image|max:10240',
-            'checkinImages' => 'required|array|min:1',
+            'checkinImages' => 'nullable|array',
         ];
 
         // Sales: require money and stock
@@ -300,23 +347,24 @@ class CheckIn extends Component
         // Office: no additional requirements
 
         $this->validate($rules, [
-            'checkinImages.required' => 'Vui lòng tải lên ít nhất 1 ảnh check-in.',
-            'checkinImages.min' => 'Vui lòng tải lên ít nhất 1 ảnh check-in.',
-            'checkinImages.array' => 'Vui lòng tải lên ít nhất 1 ảnh check-in.',
+            'openingCash.required' => 'Vui lòng nhập tiền mặt đầu ca.',
         ]);
         
         DB::transaction(function () use ($checkinType) {
-            // Handle Image Uploads
+            // Handle Image Uploads (nullable)
             $imagePaths = [];
-            foreach ($this->checkinImages as $photo) {
-                $imagePaths[] = $photo->store('checkin-photos', 'public');
+            if ($this->checkinImages) {
+                foreach ($this->checkinImages as $photo) {
+                    $imagePaths[] = $photo->store('checkin-photos', 'public');
+                }
             }
 
             // 1. Update Shift
             $updateData = [
                 'trang_thai_checkin' => true,
                 'thoi_gian_checkin' => now(),
-                'hinh_anh_checkin' => json_encode($imagePaths),
+                'hinh_anh_checkin' => !empty($imagePaths) ? json_encode($imagePaths) : null,
+                'ghi_chu' => $this->ghi_chu,
             ];
 
             if ($checkinType === 'sales') {

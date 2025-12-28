@@ -190,12 +190,12 @@ class User extends Authenticatable
         $deptCode = $this->department->ma_phong_ban;
         
         // Sales department - full check-in (money + stock + photo)
-        if (in_array($deptCode, ['PB-0001'])) {
+        if (in_array($deptCode, ['PB0001'])) {
             return 'sales';
         }
         
-        // Production department - photo + product photo
-        if (in_array($deptCode, ['PB-0002'])) {
+        // Production department - photo + ghi chu only
+        if (in_array($deptCode, ['PB0002'])) {
             return 'production';
         }
         

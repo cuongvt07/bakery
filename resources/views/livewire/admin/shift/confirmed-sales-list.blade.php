@@ -13,7 +13,7 @@
                     </div>
                 </div>
                 
-                <a href="/admin/pos" class="bg-white text-green-600 px-3 py-1.5 rounded-lg font-semibold text-sm hover:bg-green-50 transition-colors">
+                <a href="{{ auth()->user()->vai_tro === 'nhan_vien' ? route('employee.pos') : route('admin.pos.quick-sale') }}" class="bg-white text-green-600 px-3 py-1.5 rounded-lg font-semibold text-sm hover:bg-green-50 transition-colors">
                     Quay lại POS
                 </a>
             </div>

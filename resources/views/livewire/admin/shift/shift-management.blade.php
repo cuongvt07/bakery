@@ -530,32 +530,143 @@
                         </div> --}}
                     </div>
 
-                    <!-- Shift Closing Info -->
-                    @if($selectedShift->shiftClosing)
-                    <div class="border-t pt-6">
-                        <h4 class="font-bold text-gray-900 mb-4">Thông tin chốt ca</h4>
-                        <div class="bg-gray-50 p-4 rounded-lg space-y-3">
-                            <div class="flex justify-between">
-                                <span class="text-gray-600">Tổng doanh thu (lý thuyết):</span>
-                                <span class="font-medium">{{ number_format($selectedShift->shiftClosing->tong_doanh_thu_ly_thuyet ?? 0) }}đ</span>
-                            </div>
-                             <div class="flex justify-between">
-                                <span class="text-gray-600">Tiền mặt thực tế:</span>
-                                <span class="font-medium">{{ number_format($selectedShift->shiftClosing->tien_mat_thuc_te ?? 0) }}đ</span>
-                            </div>
-                            <div class="flex justify-between border-t pt-2 mt-2">
-                                <span class="text-gray-600">Chênh lệch:</span>
-                                <span class="font-bold {{ ($selectedShift->shiftClosing->chenh_lech ?? 0) < 0 ? 'text-red-600' : 'text-green-600' }}">
-                                    {{ number_format($selectedShift->shiftClosing->chenh_lech ?? 0) }}đ
-                                </span>
+                    {{-- Shift Summary (Check-in to Closing) --}}
+                    <div class="border-t pt-6 space-y-6">
+                        <h4 class="font-bold text-gray-900">Tổng hợp ca làm việc</h4>
+                        
+                        {{-- Check-in Info --}}
+                        @if($selectedShift->trang_thai_checkin)
+                        <div class="bg-blue-50 p-4 rounded-lg">
+                            <h5 class="font-semibold text-blue-900 mb-3 flex items-center">
+                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"/>
+                                </svg>
+                                Check-in
+                            </h5>
+                            <div class="space-y-2 text-sm">
+                                <div class="flex justify-between">
+                                    <span class="text-gray-600">Thời gian:</span>
+                                    <span class="font-medium">{{ $selectedShift->thoi_gian_checkin ? \Carbon\Carbon::parse($selectedShift->thoi_gian_checkin)->format('H:i d/m/Y') : '-' }}</span>
+                                </div>
+                                @if($selectedShift->tien_mat_dau_ca)
+                                <div class="flex justify-between">
+                                    <span class="text-gray-600">Tiền mặt đầu ca:</span>
+                                    <span class="font-medium">{{ number_format($selectedShift->tien_mat_dau_ca) }}đ</span>
+                                </div>
+                                @endif
+                                @if($selectedShift->ghi_chu)
+                                <div>
+                                    <span class="text-gray-600">Ghi chú:</span>
+                                    <p class="mt-1 text-gray-800">{{ $selectedShift->ghi_chu }}</p>
+                                </div>
+                                @endif
+                                
+                                {{-- Check-in Images --}}
+                                @php
+                                    $checkinImages = $selectedShift->hinh_anh_checkin ? json_decode($selectedShift->hinh_anh_checkin, true) : [];
+                                @endphp
+                                @if(!empty($checkinImages))
+                                <div>
+                                    <span class="text-gray-600 block mb-2">Ảnh check-in:</span>
+                                    <div class="flex flex-wrap gap-2">
+                                        @foreach($checkinImages as $img)
+                                        <img src="{{ asset('storage/' . $img) }}" 
+                                             onclick="openImageModal('{{ asset('storage/' . $img) }}')"
+                                             class="w-20 h-20 object-cover rounded border-2 border-blue-200 cursor-pointer hover:border-blue-400 transition"
+                                             alt="Check-in">
+                                        @endforeach
+                                    </div>
+                                </div>
+                                @endif
                             </div>
                         </div>
+                        @endif
+                        
+                        {{-- Closing Info (if exists) --}}
+                        @if($selectedShift->phieuChotCa)
+                        <div class="bg-green-50 p-4 rounded-lg">
+                            <h5 class="font-semibold text-green-900 mb-3 flex items-center">
+                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                                Chốt ca
+                            </h5>
+                            <div class="space-y-2 text-sm">
+                                <div class="flex justify-between">
+                                    <span class="text-gray-600">Thời gian:</span>
+                                    <span class="font-medium">{{ \Carbon\Carbon::parse($selectedShift->phieuChotCa->gio_chot)->format('H:i d/m/Y') }}</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-gray-600">Tiền mặt:</span>
+                                    <span class="font-medium">{{ number_format($selectedShift->phieuChotCa->tien_mat) }}đ</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-gray-600">Chuyển khoản:</span>
+                                    <span class="font-medium">{{ number_format($selectedShift->phieuChotCa->tien_chuyen_khoan) }}đ</span>
+                                </div>
+                                <div class="flex justify-between border-t pt-2">
+                                    <span class="text-gray-600">Tổng thực tế:</span>
+                                    <span class="font-bold">{{ number_format($selectedShift->phieuChotCa->tong_tien_thuc_te) }}đ</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-gray-600">Tổng lý thuyết:</span>
+                                    <span class="font-medium">{{ number_format($selectedShift->phieuChotCa->tong_tien_ly_thuyet) }}đ</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-gray-600">Chênh lệch:</span>
+                                    <span class="font-bold {{ $selectedShift->phieuChotCa->tien_lech < 0 ? 'text-red-600' : 'text-green-600' }}">
+                                        {{ number_format($selectedShift->phieuChotCa->tien_lech) }}đ
+                                    </span>
+                                </div>
+                                
+                                @if($selectedShift->phieuChotCa->ghi_chu)
+                                <div class="border-t pt-2">
+                                    <span class="text-gray-600">Ghi chú:</span>
+                                    <p class="mt-1 text-gray-800">{{ $selectedShift->phieuChotCa->ghi_chu }}</p>
+                                </div>
+                                @endif
+                                
+                                {{-- Closing Images --}}
+                                @php
+                                    $cashImages = $selectedShift->phieuChotCa->anh_tien_mat ? json_decode($selectedShift->phieuChotCa->anh_tien_mat, true) : [];
+                                    $stockImages = $selectedShift->phieuChotCa->anh_hang_hoa ? json_decode($selectedShift->phieuChotCa->anh_hang_hoa, true) : [];
+                                @endphp
+                                
+                                @if(!empty($cashImages))
+                                <div class="border-t pt-2">
+                                    <span class="text-gray-600 block mb-2">Ảnh tiền mặt:</span>
+                                    <div class="flex flex-wrap gap-2">
+                                        @foreach($cashImages as $img)
+                                        <img src="{{ asset('storage/' . $img) }}" 
+                                             onclick="openImageModal('{{ asset('storage/' . $img) }}')"
+                                             class="w-20 h-20 object-cover rounded border-2 border-green-200 cursor-pointer hover:border-green-400 transition"
+                                             alt="Tiền mặt">
+                                        @endforeach
+                                    </div>
+                                </div>
+                                @endif
+                                
+                                @if(!empty($stockImages))
+                                <div class="border-t pt-2">
+                                    <span class="text-gray-600 block mb-2">Ảnh hàng hóa:</span>
+                                    <div class="flex flex-wrap gap-2">
+                                        @foreach($stockImages as $img)
+                                        <img src="{{ asset('storage/' . $img) }}" 
+                                             onclick="openImageModal('{{ asset('storage/' . $img) }}')"
+                                             class="w-20 h-20 object-cover rounded border-2 border-green-200 cursor-pointer hover:border-green-400 transition"
+                                             alt="Hàng hóa">
+                                        @endforeach
+                                    </div>
+                                </div>
+                                @endif
+                            </div>
+                        </div>
+                        @else
+                        <div class="bg-gray-50 p-4 rounded-lg text-center text-gray-500 italic">
+                            Chưa chốt ca
+                        </div>
+                        @endif
                     </div>
-                    @else
-                    <div class="border-t pt-6 text-center text-gray-500 italic">
-                        Chưa có thông tin chốt ca
-                    </div>
-                    @endif
                 @endif
             </div>
             
@@ -861,4 +972,34 @@
         </div>
     </div>
     @endif
+    
+    {{-- Image Modal --}}
+    <div id="imageModal" class="fixed inset-0 bg-black bg-opacity-90 z-[100] hidden items-center justify-center p-4" onclick="closeImageModal()">
+        <button onclick="closeImageModal()" class="absolute top-4 right-4 text-white hover:text-gray-300 z-10">
+            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+        </button>
+        <img id="modalImage" src="" class="max-w-full max-h-full object-contain" onclick="event.stopPropagation()">
+    </div>
+    
+    <script>
+        function openImageModal(imageSrc) {
+            document.getElementById('modalImage').src = imageSrc;
+            document.getElementById('imageModal').classList.remove('hidden');
+            document.getElementById('imageModal').classList.add('flex');
+        }
+        
+        function closeImageModal() {
+            document.getElementById('imageModal').classList.add('hidden');
+            document.getElementById('imageModal').classList.remove('flex');
+        }
+        
+        // Close on ESC key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeImageModal();
+            }
+        });
+    </script>
 </div>

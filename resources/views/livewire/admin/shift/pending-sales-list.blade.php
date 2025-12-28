@@ -13,7 +13,7 @@
                     </div>
                 </div>
                 
-                <a href="/admin/pos" class="bg-white text-purple-600 px-3 py-1.5 rounded-lg font-semibold text-sm hover:bg-purple-50 transition-colors">
+                <a href="{{ auth()->user()->vai_tro === 'nhan_vien' ? route('employee.pos') : route('admin.pos.quick-sale') }}" class="bg-white text-purple-600 px-3 py-1.5 rounded-lg font-semibold text-sm hover:bg-purple-50 transition-colors">
                     Quay lại POS
                 </a>
             </div>
@@ -44,7 +44,7 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
                 <p class="text-gray-500 font-medium">Chưa có đơn hàng nào</p>
-                <a href="/admin/pos" class="mt-4 inline-block bg-purple-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-purple-700">
+                <a href="{{ auth()->user()->vai_tro === 'nhan_vien' ? route('employee.pos') : route('admin.pos.quick-sale') }}" class="mt-4 inline-block bg-purple-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-purple-700">
                     Về POS
                 </a>
             </div>
@@ -122,39 +122,40 @@
             }
         }
     @endphp
-    <div class="fixed bottom-0 left-0 right-0 bg-white shadow-2xl border-t-4 border-purple-500">
-        <div class="px-3 py-3">
-            <div class="mb-2 text-center">
-                <p class="text-sm text-gray-600">Tổng số đơn chờ</p>
-                <p class="text-2xl font-bold text-purple-600">{{ count($pendingSales) }} đơn</p>
-            </div>
-            
-            <div class="mb-3 grid grid-cols-2 gap-2 text-center">
-                <div class="bg-green-50 rounded-lg p-2">
-                    <p class="text-xs text-gray-600">💵 TM lý thuyết phải có</p>
-                    <p class="text-lg font-bold text-green-600">{{ number_format($openingCash + $confirmedCashTotal + $totalCash) }}đ</p>
-                    <p class="text-xs text-gray-500">({{ number_format($openingCash) }} + {{ number_format($confirmedCashTotal) }} + {{ number_format($totalCash) }})</p>
+    <div class="fixed bottom-0 left-0 right-0 bg-white shadow-2xl border-t-4 border-purple-500 z-[100]">
+        <div class="px-3 py-2">
+            {{-- Compact Summary --}}
+            <div class="grid grid-cols-3 gap-2 mb-2 text-center text-xs">
+                <div class="bg-purple-50 rounded p-1.5">
+                    <p class="text-gray-600">Đơn chờ</p>
+                    <p class="font-bold text-purple-600">{{ count($pendingSales) }}</p>
                 </div>
-                <div class="bg-blue-50 rounded-lg p-2">
-                    <p class="text-xs text-gray-600">💳 Chuyển khoản</p>
-                    <p class="text-lg font-bold text-blue-600">{{ number_format($totalTransfer) }}đ</p>
+                <div class="bg-green-50 rounded p-1.5">
+                    <p class="text-gray-600">💵 TM</p>
+                    <p class="font-bold text-green-600">{{ number_format($openingCash + $confirmedCashTotal + $totalCash) }}đ</p>
+                </div>
+                <div class="bg-blue-50 rounded p-1.5">
+                    <p class="text-gray-600">💳 CK</p>
+                    <p class="font-bold text-blue-600">{{ number_format($totalTransfer) }}đ</p>
                 </div>
             </div>
             
-            <div class="mb-3 text-center bg-purple-50 rounded-lg p-2">
-                <p class="text-xs text-gray-600">Tổng tất cả đơn</p>
-                <p class="text-xl font-bold text-purple-600">{{ number_format(array_sum(array_column($pendingSales, 'tong_tien'))) }}đ</p>
+            {{-- Total --}}
+            <div class="mb-2 text-center bg-purple-50 rounded-lg p-1.5">
+                <p class="text-xs text-gray-600">Tổng</p>
+                <p class="text-lg font-bold text-purple-600">{{ number_format(array_sum(array_column($pendingSales, 'tong_tien'))) }}đ</p>
             </div>
             
+            {{-- Confirm Button --}}
             <button 
                 wire:click="confirmAll" 
                 wire:confirm="Xác nhận chốt TẤT CẢ {{ count($pendingSales) }} đơn?" 
-                class="w-full bg-purple-600 text-white font-bold py-4 px-4 rounded-lg text-lg shadow-lg hover:bg-purple-700 active:scale-95 transition-all duration-150 flex items-center justify-center gap-2"
+                class="w-full bg-purple-600 text-white font-bold py-3 px-4 rounded-lg shadow-lg hover:bg-purple-700 active:scale-95 transition-all duration-150 flex items-center justify-center gap-2"
             >
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                CHỐT TẤT CẢ {{ count($pendingSales) }} ĐƠN
+                CHỐT {{ count($pendingSales) }} ĐƠN
             </button>
         </div>
     </div>

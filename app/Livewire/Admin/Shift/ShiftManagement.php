@@ -109,8 +109,21 @@ class ShiftManagement extends Component
 
     public function openDetail($shiftId)
     {
-        $this->selectedShift = ShiftSchedule::with(['agency', 'user'])
-            ->findOrFail($shiftId);
+        // First get the ShiftSchedule to know which shift to find
+        $shiftSchedule = ShiftSchedule::findOrFail($shiftId);
+        
+        // Find the corresponding CaLamViec (actual shift work)
+        $this->selectedShift = \App\Models\CaLamViec::with(['diemBan', 'nguoiDung', 'phieuChotCa'])
+            ->where('nguoi_dung_id', $shiftSchedule->nguoi_dung_id)
+            ->whereDate('ngay_lam', $shiftSchedule->ngay_lam)
+            ->where('diem_ban_id', $shiftSchedule->diem_ban_id)
+            ->first();
+        
+        // If no CaLamViec found, use ShiftSchedule data
+        if (!$this->selectedShift) {
+            $this->selectedShift = $shiftSchedule->load(['agency', 'user']);
+        }
+        
         $this->showDetailModal = true;
     }
 
@@ -492,9 +505,14 @@ class ShiftManagement extends Component
                 'shiftSchedules' => function($q) {
                     // Eager load everything needed for the view
                     $q->with(['user.diemBan', 'user.department'])
-                      ->whereBetween('ngay_lam', [$this->dateFrom, $this->dateTo])
-                      ->orderBy('ngay_lam')
-                      ->orderBy('gio_bat_dau');
+                      ->join('nguoi_dung', 'shift_schedules.nguoi_dung_id', '=', 'nguoi_dung.id')
+                      ->leftJoin('phong_ban', 'nguoi_dung.phong_ban_id', '=', 'phong_ban.id')
+                      ->whereBetween('shift_schedules.ngay_lam', [$this->dateFrom, $this->dateTo])
+                      ->orderBy('shift_schedules.ngay_lam')
+                      ->orderBy('shift_schedules.gio_bat_dau')
+                      ->orderBy('phong_ban.ten_phong_ban')
+                      ->orderBy('nguoi_dung.ho_ten')
+                      ->select('shift_schedules.*');
                       
                     // Apply internal filters
                     if ($this->employeeFilter) $q->where('nguoi_dung_id', $this->employeeFilter);
@@ -534,8 +552,14 @@ class ShiftManagement extends Component
                 });
             }
 
-            $shifts = $query->orderBy('ngay_lam', 'desc')
-                           ->orderBy('gio_bat_dau', 'desc')
+
+            $shifts = $query->join('nguoi_dung', 'shift_schedules.nguoi_dung_id', '=', 'nguoi_dung.id')
+                           ->leftJoin('phong_ban', 'nguoi_dung.phong_ban_id', '=', 'phong_ban.id')
+                           ->orderBy('shift_schedules.ngay_lam', 'desc')
+                           ->orderBy('shift_schedules.gio_bat_dau', 'desc')
+                           ->orderBy('phong_ban.ten_phong_ban')
+                           ->orderBy('nguoi_dung.ho_ten')
+                           ->select('shift_schedules.*')
                            ->paginate(20);
 
             return view('livewire.admin.shift.shift-management', [

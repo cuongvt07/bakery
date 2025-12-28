@@ -44,6 +44,18 @@ class CaLamViec extends Model
         return $this->belongsTo(User::class, 'nguoi_dung_id');
     }
 
+    // Alias for compatibility with views
+    public function user()
+    {
+        return $this->nguoiDung();
+    }
+
+    // Alias for compatibility with views
+    public function agency()
+    {
+        return $this->diemBan();
+    }
+
     public function chamCong(): HasMany
     {
         return $this->hasMany(ChamCong::class, 'ca_lam_viec_id');
