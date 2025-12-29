@@ -11,7 +11,7 @@ class Login extends Component
 {
     public $login = ''; // Can be email or phone
     public $password = '';
-    public $remember = true; // Default to true
+    public $remember = false;
 
     public function loginUser()
     {
@@ -23,8 +23,8 @@ class Login extends Component
         // Determine if login is email or phone
         $fieldType = filter_var($this->login, FILTER_VALIDATE_EMAIL) ? 'email' : 'so_dien_thoai';
         
-        // Attempt login with the determined field - Always remember
-        if (Auth::attempt([$fieldType => $this->login, 'password' => $this->password], true)) {
+        // Attempt login with the determined field - Session lifetime handles persistence (30 days)
+        if (Auth::attempt([$fieldType => $this->login, 'password' => $this->password], false)) {
             session()->regenerate();
 
             if (Auth::user()->vai_tro === 'nhan_vien') {
