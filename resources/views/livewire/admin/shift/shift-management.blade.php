@@ -216,7 +216,8 @@
                                                     // Filter shifts for this cell: Match Date AND Match Template ID
                                                     $cellShifts = $agency->shiftSchedules->filter(function($s) use ($currentDate, $template) {
                                                         return \Carbon\Carbon::parse($s->ngay_lam)->isSameDay($currentDate) 
-                                                            && $s->shift_template_id == $template->id;
+                                                            && $s->shift_template_id == $template->id
+                                                            && $s->trang_thai !== 'rejected';
                                                     });
                                                 @endphp
                                                 <td class="px-2 py-2 text-center border-l align-top text-xs h-16 relative group">

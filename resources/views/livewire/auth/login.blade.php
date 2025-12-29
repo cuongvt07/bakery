@@ -57,17 +57,7 @@
                 @error('password') <span class="text-red-500 text-sm mt-1 block">{{ $message }}</span> @enderror
             </div>
 
-            <!-- Remember Me -->
-            <div class="flex items-center mb-6">
-                <input 
-                    type="checkbox" 
-                    id="remember" 
-                    wire:model="remember" 
-                    class="w-4 h-4 text-amber-600 border-gray-300 rounded focus:ring-amber-500">
-                <label for="remember" class="ml-2 text-sm text-gray-600">
-                    Ghi nhớ đăng nhập
-                </label>
-            </div>
+
 
             <!-- Submit Button -->
             <button 
