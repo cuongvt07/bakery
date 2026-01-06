@@ -26,7 +26,9 @@
             <main class="flex-1 overflow-y-auto bg-gray-50 p-6">
                 
                 <!-- Breadcrumbs -->
-                <x-admin.breadcrumbs />
+                @unless(isset($hideBreadcrumbs) && $hideBreadcrumbs)
+                    <x-admin.breadcrumbs />
+                @endunless
                 
                 <!-- Page Content -->
                 <div class="mt-4">

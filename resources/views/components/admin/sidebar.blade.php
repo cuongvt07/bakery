@@ -260,22 +260,13 @@
 
             <div x-show="sidebarState === 2" class="my-2 border-t border-gray-100"></div>
 
-            <!-- Báo cáo HSD -->
-            <a href="{{ route('admin.expiry-report.index') }}" :title="sidebarState === 1 ? 'Báo cáo HSD' : ''" class="flex items-center px-3 py-2.5 mb-1 rounded-lg transition-all {{ request()->routeIs('admin.expiry-report.*') ? 'bg-amber-50 text-amber-700 font-medium' : 'text-gray-700 hover:bg-gray-50' }}" :class="sidebarState === 1 && 'justify-center'">
+            <!-- Quản lý Chấm công -->
+            <a href="{{ route('admin.attendance.index') }}" :title="sidebarState === 1 ? 'Quản lý Chấm công' : ''" class="flex items-center px-3 py-2.5 mb-1 rounded-lg transition-all {{ request()->routeIs('admin.attendance.*') ? 'bg-amber-50 text-amber-700 font-medium' : 'text-gray-700 hover:bg-gray-50' }}" :class="sidebarState === 1 && 'justify-center'">
                 <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
                 </svg>
-                <span x-show="sidebarState === 2" x-transition class="ml-3">Báo cáo HSD</span>
+                <span x-show="sidebarState === 2" x-transition class="ml-3">Quản lý Chấm công</span>
             </a>
-
-            <!-- Báo cáo -->
-            <a href="#" :title="sidebarState === 1 ? 'Báo cáo (Sắp có)' : ''" class="flex items-center px-3 py-2.5 rounded-lg text-gray-400 cursor-not-allowed opacity-60" :class="sidebarState === 1 && 'justify-center'">
-                <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
-                </svg>
-                <span x-show="sidebarState === 2" x-transition class="ml-3">Báo cáo (Sắp có)</span>
-            </a>
-            
         </nav>
 
         <!-- Logout -->

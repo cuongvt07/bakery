@@ -184,22 +184,19 @@ class User extends Authenticatable
     public function getCheckinType(): string
     {
         if (!$this->department) {
-            return 'office'; // Default to simplest check-in
+            return 'office';
         }
         
         $deptCode = $this->department->ma_phong_ban;
         
-        // Sales department - full check-in (money + stock + photo)
         if (in_array($deptCode, ['PB0001'])) {
             return 'sales';
         }
         
-        // Production department - photo + ghi chu only
         if (in_array($deptCode, ['PB0002'])) {
             return 'production';
         }
         
-        // Office/other departments - simple check-in (no requirements)
         return 'office';
     }
 }
