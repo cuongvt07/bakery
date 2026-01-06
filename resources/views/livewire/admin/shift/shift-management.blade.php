@@ -1,9 +1,18 @@
-<div>
+<div wire:poll.30s>
     <!-- Header -->
     <div class="flex justify-between items-center mb-6">
         <div>
             <h2 class="text-2xl font-semibold text-gray-800">Quản lý Ca Làm Việc</h2>
-            <p class="text-sm text-gray-500 mt-1">Giám sát và quản lý lịch làm việc của nhân viên</p>
+            <div class="flex items-center gap-2 mt-1">
+                <p class="text-sm text-gray-500">Giám sát và quản lý lịch làm việc của nhân viên</p>
+                <div wire:loading wire:target="$refresh" class="flex items-center gap-1 text-xs text-indigo-600">
+                    <svg class="animate-spin h-3 w-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <span>Đang cập nhật...</span>
+                </div>
+            </div>
         </div>
         <div class="flex gap-3 items-center">
             <div class="bg-blue-50 px-4 py-2 rounded-lg border border-blue-200">
@@ -23,7 +32,7 @@
             <button wire:click="openTemplateManager" 
                     class="px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 font-medium flex items-center gap-2 shadow-lg">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V6a2 2 0 012 2v10a2 2 0 01-2 2H6a2 2 0 01-2-2V8a2 2 0 012-2h6zm0 0V4m0 2h6m-6 0a2 2 0 012-2h2a2 2 0 012 2v2m0 0v10a2 2 0 01-2 2h-2a2 2 0 01-2-2V8z"/>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V6a2 2 0 012 2v10a2 2 0 01-2 2H6a2 2 0 01-2-2V8a2 2 0 012-2h6zm0 0V4m0 2h6m-6 0a2 2 0 012-2h2a 2 0 012 2v2m0 0v10a2 2 0 01-2 2h-2a2 2 0 01-2-2V8z"/>
                 </svg>
                 Quản lý Mẫu Ca
             </button>
@@ -1003,4 +1012,79 @@
             }
         });
     </script>
+    
+    <!-- Toast Notification -->
+    <div x-data="{ 
+        show: false, 
+        message: '', 
+        count: 0,
+        init() {
+            // Livewire 3: Listen to component events
+            Livewire.on('new-shift-detected', (event) => {
+                console.log('🔔 Toast: New shift detected event received!', event);
+                this.count = event.count;
+                this.message = this.count > 1 
+                    ? `Có ${this.count} ca làm việc mới được đăng ký!` 
+                    : 'Có 1 ca làm việc mới được đăng ký!';
+                this.show = true;
+                
+                console.log('✅ Toast displayed:', this.message);
+                
+                // Play notification sound (optional)
+                // const audio = new Audio('/notification.mp3');
+                // audio.play().catch(() => {});
+                
+                // Auto-hide after 5 seconds
+                setTimeout(() => { this.show = false; }, 5000);
+            });
+        }
+    }"
+         x-show="show"
+         x-transition:enter="transition ease-out duration-300"
+         x-transition:enter-start="opacity-0 transform translate-y-2"
+         x-transition:enter-end="opacity-100 transform translate-y-0"
+         x-transition:leave="transition ease-in duration-200"
+         x-transition:leave-start="opacity-100"
+         x-transition:leave-end="opacity-0"
+         style="display: none;"
+         class="fixed top-4 right-4 z-[70] max-w-sm">
+        <div class="bg-gradient-to-r from-green-500 to-emerald-600 text-white px-6 py-4 rounded-lg shadow-2xl border-2 border-green-300">
+            <div class="flex items-start gap-3">
+                <!-- Icon -->
+                <div class="flex-shrink-0">
+                    <div class="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center animate-pulse">
+                        <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                        </svg>
+                    </div>
+                </div>
+                
+                <!-- Content -->
+                <div class="flex-1 min-w-0">
+                    <h4 class="font-bold text-base mb-1">🎉 Ca làm việc mới!</h4>
+                    <p class="text-sm text-green-50" x-text="message"></p>
+                    <p class="text-xs text-green-100 mt-1 opacity-75">Lịch đã được cập nhật tự động</p>
+                </div>
+                
+                <!-- Close button -->
+                <button @click="show = false" class="flex-shrink-0 text-white/70 hover:text-white transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+            
+            <!-- Progress bar -->
+            <div class="mt-3 h-1 bg-white/20 rounded-full overflow-hidden">
+                <div class="h-full bg-white rounded-full animate-[shrink_5s_linear_forwards]"></div>
+            </div>
+        </div>
+    </div>
+    
+    <style>
+        @keyframes shrink {
+            from { width: 100%; }
+            to { width: 0%; }
+        }
+    </style>
 </div>

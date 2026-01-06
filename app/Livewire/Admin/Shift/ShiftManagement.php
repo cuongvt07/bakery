@@ -78,6 +78,9 @@ class ShiftManagement extends Component
     // Bulk actions
     public $selectedShifts = [];
     public $selectAll = false;
+    
+    // Polling: Track previous shift count to detect new shifts
+    public $previousShiftCount = 0;
 
     public function mount()
     {
@@ -493,6 +496,20 @@ class ShiftManagement extends Component
                 ->whereBetween('ngay_lam', [$this->dateFrom, $this->dateTo])
                 ->count(),
         ];
+        
+        
+        // Detect new shifts and dispatch notification
+        $currentShiftCount = $stats['total'];
+        if ($this->previousShiftCount > 0 && $currentShiftCount > $this->previousShiftCount) {
+            $newShiftsCount = $currentShiftCount - $this->previousShiftCount;
+            
+            // Dispatch browser event
+            $this->dispatch('new-shift-detected', count: $newShiftsCount);
+            
+            // Debug log
+            \Log::info("🔔 New shifts detected: {$newShiftsCount} (from {$this->previousShiftCount} to {$currentShiftCount})");
+        }
+        $this->previousShiftCount = $currentShiftCount;
         
         // 3. Render based on Mode
         if ($this->viewMode === 'monitoring') {
