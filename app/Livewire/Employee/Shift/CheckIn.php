@@ -351,11 +351,13 @@ class CheckIn extends Component
         ]);
         
         DB::transaction(function () use ($checkinType) {
-            // Handle Image Uploads (nullable)
+            // Handle Image Uploads with Resizing (reduces from ~5MB to ~200KB)
             $imagePaths = [];
             if ($this->checkinImages) {
+                $manager = new \Intervention\Image\ImageManager(new \Intervention\Image\Drivers\Gd\Driver());
+                
                 foreach ($this->checkinImages as $photo) {
-                    $imagePaths[] = $photo->store('checkin-photos', 'public');
+                    $imagePaths[] = $this->resizeAndStoreCheckInImage($photo, $manager);
                 }
             }
 
@@ -413,6 +415,41 @@ class CheckIn extends Component
             return $this->redirect(route('employee.pos'), navigate: true);
         } else {
             return $this->redirect(route('employee.dashboard'), navigate: true);
+        }
+    }
+    
+    /**
+     * Resize and compress check-in images to reduce storage
+     * Target: < 300KB per image (from ~3-8MB on mobile)
+     */
+    private function resizeAndStoreCheckInImage($photo, $manager)
+    {
+        $filename = md5($photo->getClientOriginalName() . time() . rand()) . '.jpg';
+        $path = 'checkin-photos/' . $filename;
+        $fullPath = storage_path('app/public/' . $path);
+        
+        // Ensure directory exists
+        if (!file_exists(dirname($fullPath))) {
+            mkdir(dirname($fullPath), 0755, true);
+        }
+
+        try {
+            // Read image from temporary file
+            $image = $manager->read($photo->getRealPath());
+
+            // Resize: Max width 1024px (good balance between quality and size)
+            // Images from phones are usually 3000x4000px, so this is a big reduction
+            $image->scale(width: 1024);
+
+            // Encode to JPG with 75% quality and save
+            // 75% is sweet spot: good quality, small file size
+            $image->toJpeg(75)->save($fullPath);
+
+            return $path;
+        } catch (\Exception $e) {
+            // Fallback to original if resize fails
+            \Log::error('Check-in image resize failed: ' . $e->getMessage());
+            return $photo->store('checkin-photos', 'public');
         }
     }
     
