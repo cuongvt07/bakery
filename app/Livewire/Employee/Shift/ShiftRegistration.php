@@ -15,39 +15,40 @@ use Illuminate\Support\Facades\DB;
 #[Layout('components.layouts.mobile')]
 class ShiftRegistration extends Component
 {
-    public $weekStart;
+    public $currentMonth;
     public $agencies = [];
     public $selectedAgencyId;
     public $selectedAgency;
     public $availableSlots = [];
-    public $weekDays = [];
+    public $days = [];
     
     public $registeredShifts = [];
 
     public function mount()
     {
-        $this->weekStart = Carbon::now()->addWeek()->startOfWeek(Carbon::MONDAY);
+        $this->currentMonth = Carbon::now()->startOfMonth();
         $this->agencies = Agency::get();
         $this->selectedAgency = Agency::first();
         $this->selectedAgencyId = $this->selectedAgency?->id;
         
-        $this->loadWeek();
+        $this->loadData();
     }
 
     public function updatedSelectedAgencyId($value)
     {
         $this->selectedAgency = Agency::find($value);
-        $this->loadWeek();
+        $this->loadData();
     }
 
-    public function loadWeek()
+    public function loadData()
     {
-        $this->weekDays = [];
-        $start = $this->weekStart->copy();
-        $end = $this->weekStart->copy()->endOfWeek();
+        $this->days = [];
+        $start = $this->currentMonth->copy();
+        $end = $this->currentMonth->copy()->endOfMonth();
+        $daysInMonth = $end->day;
 
-        for ($i = 0; $i < 7; $i++) {
-            $this->weekDays[] = $this->weekStart->copy()->addDays($i);
+        for ($i = 1; $i <= $daysInMonth; $i++) {
+            $this->days[] = $start->copy()->day($i);
         }
         
         if ($this->selectedAgency) {
@@ -120,16 +121,16 @@ class ShiftRegistration extends Component
         }
     }
 
-    public function previousWeek()
+    public function previousMonth()
     {
-        $this->weekStart->subWeek();
-        $this->loadWeek();
+        $this->currentMonth->subMonth();
+        $this->loadData();
     }
 
-    public function nextWeek()
+    public function nextMonth()
     {
-        $this->weekStart->addWeek();
-        $this->loadWeek();
+        $this->currentMonth->addMonth();
+        $this->loadData();
     }
 
     public function render()

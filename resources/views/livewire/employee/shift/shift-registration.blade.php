@@ -27,23 +27,22 @@
         </select>
     </div>
 
-    {{-- Week Navigation --}}
+    {{-- Month Navigation --}}
     <div class="bg-white rounded-xl shadow-sm p-3 flex items-center justify-between">
-        <button wire:click="previousWeek" class="p-2 hover:bg-gray-100 rounded-lg">
+        <button wire:click="previousMonth" class="p-2 hover:bg-gray-100 rounded-lg">
             <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
         </button>
         <div class="text-center">
-            <div class="font-bold text-gray-900 text-sm">Tuần {{ $weekStart->weekOfYear }}</div>
-            <div class="text-xs text-gray-500">{{ $weekStart->format('d/m') }} - {{ $weekStart->copy()->endOfWeek()->format('d/m') }}</div>
+            <div class="font-bold text-gray-900 text-sm">Tháng {{ $currentMonth->format('m/Y') }}</div>
         </div>
-        <button wire:click="nextWeek" class="p-2 hover:bg-gray-100 rounded-lg">
+        <button wire:click="nextMonth" class="p-2 hover:bg-gray-100 rounded-lg">
             <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
         </button>
     </div>
 
-    {{-- Weekly Grid --}}
+    {{-- Monthly Grid --}}
     <div class="space-y-3">
-        @foreach($weekDays as $day)
+        @foreach($days as $day)
         <div class="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100">
             {{-- Day Header --}}
             <div class="bg-gray-50 px-4 py-2 border-b border-gray-100 flex justify-between items-center">
