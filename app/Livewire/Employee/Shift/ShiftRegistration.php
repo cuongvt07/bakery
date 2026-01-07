@@ -61,6 +61,7 @@ class ShiftRegistration extends Component
 
         $schedules = ShiftSchedule::where('nguoi_dung_id', Auth::id())
             ->whereBetween('ngay_lam', [$start->format('Y-m-d'), $end->format('Y-m-d')])
+            ->where('diem_ban_id', $this->selectedAgencyId)
             ->get();
 
         $this->registeredShifts = [];

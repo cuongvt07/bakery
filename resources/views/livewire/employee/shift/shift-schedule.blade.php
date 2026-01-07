@@ -86,6 +86,7 @@
                         'rejected' => 'bg-red-50 text-red-800 border-red-200',
                         default => 'bg-gray-100'
                     } }}">
+                        <div class="font-bold truncate text-[9px]">{{ $shift->agency->ten_diem_ban ?? 'KĐ' }}</div>
                         {{ \Carbon\Carbon::parse($shift->gio_bat_dau)->format('H:i') }}
                     </div>
                     @endforeach
