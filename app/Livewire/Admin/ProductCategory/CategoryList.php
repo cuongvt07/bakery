@@ -12,8 +12,16 @@ class CategoryList extends BaseListComponent
 {
     public function delete($id)
     {
-        ProductCategory::find($id)?->delete();
-        session()->flash('message', 'Danh mục đã được xóa thành công.');
+        try {
+            ProductCategory::find($id)?->delete();
+            session()->flash('message', 'Danh mục đã được xóa thành công.');
+        } catch (\Illuminate\Database\QueryException $e) {
+            if ($e->getCode() == 23000) {
+                session()->flash('error', 'Không thể xóa danh mục này vì còn sản phẩm thuộc danh mục.');
+            } else {
+                session()->flash('error', 'Có lỗi xảy ra khi xóa danh mục.');
+            }
+        }
     }
     
     public function exportExcel()

@@ -88,8 +88,16 @@ class MaterialList extends Component
 
     public function delete($itemId)
     {
-        AgencyNote::findOrFail($itemId)->delete();
-        session()->flash('message', 'Đã xóa vật tư');
+        try {
+            AgencyNote::findOrFail($itemId)->delete();
+            session()->flash('message', 'Đã xóa vật tư');
+        } catch (\Illuminate\Database\QueryException $e) {
+            if ($e->getCode() == 23000) {
+                session()->flash('error', 'Không thể xóa vật tư này vì đang được sử dụng.');
+            } else {
+                session()->flash('error', 'Có lỗi xảy ra khi xóa vật tư.');
+            }
+        }
     }
 
     // ========== Location Management Methods ==========

@@ -32,10 +32,18 @@ class DanhSach extends BaseListComponent
     
     public function delete($id)
     {
-        $agency = Agency::find($id);
-        if ($agency) {
-            $agency->delete();
-            session()->flash('success', 'Xóa điểm bán thành công!');
+        try {
+            $agency = Agency::find($id);
+            if ($agency) {
+                $agency->delete();
+                session()->flash('success', 'Xóa điểm bán thành công!');
+            }
+        } catch (\Illuminate\Database\QueryException $e) {
+            if ($e->getCode() == 23000) {
+                session()->flash('error', 'Không thể xóa điểm bán này vì có phân bổ, lịch làm việc hoặc ghi chú liên quan.');
+            } else {
+                session()->flash('error', 'Có lỗi xảy ra khi xóa điểm bán.');
+            }
         }
     }
     

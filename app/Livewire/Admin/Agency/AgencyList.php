@@ -30,8 +30,16 @@ class AgencyList extends BaseListComponent
 
     public function delete($id)
     {
-        Agency::find($id)?->delete();
-        session()->flash('message', 'Điểm bán đã được xóa thành công.');
+        try {
+            Agency::find($id)?->delete();
+            session()->flash('message', 'Điểm bán đã được xóa thành công.');
+        } catch (\Illuminate\Database\QueryException $e) {
+            if ($e->getCode() == 23000) {
+                session()->flash('error', 'Không thể xóa điểm bán này vì có phân bổ, lịch làm việc hoặc ghi chú liên quan.');
+            } else {
+                session()->flash('error', 'Có lỗi xảy ra khi xóa điểm bán.');
+            }
+        }
     }
     
     public function exportExcel()

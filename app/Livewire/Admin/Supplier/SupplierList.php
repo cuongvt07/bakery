@@ -12,8 +12,16 @@ class SupplierList extends BaseListComponent
 {
     public function delete($id)
     {
-        Supplier::find($id)?->delete();
-        session()->flash('message', 'Nhà cung cấp đã được xóa thành công.');
+        try {
+            Supplier::find($id)?->delete();
+            session()->flash('message', 'Nhà cung cấp đã được xóa thành công.');
+        } catch (\Illuminate\Database\QueryException $e) {
+            if ($e->getCode() == 23000) {
+                session()->flash('error', 'Không thể xóa nhà cung cấp này vì có phiếu nhập kho liên quan.');
+            } else {
+                session()->flash('error', 'Có lỗi xảy ra khi xóa nhà cung cấp.');
+            }
+        }
     }
     
     public function exportExcel()

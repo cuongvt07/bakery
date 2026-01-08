@@ -135,8 +135,16 @@ class ItemList extends Component
 
     public function delete($itemId)
     {
-        AgencyNote::findOrFail($itemId)->delete();
-        session()->flash('message', 'Đã xóa vật dụng');
+        try {
+            AgencyNote::findOrFail($itemId)->delete();
+            session()->flash('message', 'Đã xóa vật dụng');
+        } catch (\Illuminate\Database\QueryException $e) {
+            if ($e->getCode() == 23000) {
+                session()->flash('error', 'Không thể xóa vật dụng này vì đang được sử dụng.');
+            } else {
+                session()->flash('error', 'Có lỗi xảy ra khi xóa vật dụng.');
+            }
+        }
     }
 
     public function render()

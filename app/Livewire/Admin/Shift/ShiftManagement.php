@@ -230,8 +230,16 @@ class ShiftManagement extends Component
 
     public function deleteShift($shiftId)
     {
-        ShiftSchedule::findOrFail($shiftId)->delete();
-        session()->flash('message', 'Đã xóa ca làm việc');
+        try {
+            ShiftSchedule::findOrFail($shiftId)->delete();
+            session()->flash('message', 'Đã xóa ca làm việc');
+        } catch (\Illuminate\Database\QueryException $e) {
+            if ($e->getCode() == 23000) {
+                session()->flash('error', 'Không thể xóa ca làm việc này vì đang được sử dụng.');
+            } else {
+                session()->flash('error', 'Có lỗi xảy ra khi xóa ca làm việc.');
+            }
+        }
     }
     
     public function confirmDeleteShift()
@@ -425,8 +433,16 @@ class ShiftManagement extends Component
     
     public function deleteTemplate($id)
     {
-        \App\Models\ShiftTemplate::find($id)->delete();
-        session()->flash('message', 'Đã xóa mẫu ca');
+        try {
+            \App\Models\ShiftTemplate::find($id)->delete();
+            session()->flash('message', 'Đã xóa mẫu ca');
+        } catch (\Illuminate\Database\QueryException $e) {
+            if ($e->getCode() == 23000) {
+                session()->flash('error', 'Không thể xóa mẫu ca này vì đang được sử dụng trong lịch làm việc.');
+            } else {
+                session()->flash('error', 'Có lỗi xảy ra khi xóa mẫu ca.');
+            }
+        }
     }
 
     public function toggleSelectAll()

@@ -36,8 +36,16 @@ class UserList extends BaseListComponent
 
     public function delete($id)
     {
-        User::find($id)?->delete();
-        session()->flash('message', 'Người dùng đã được xóa thành công.');
+        try {
+            User::find($id)?->delete();
+            session()->flash('message', 'Người dùng đã được xóa thành công.');
+        } catch (\Illuminate\Database\QueryException $e) {
+            if ($e->getCode() == 23000) {
+                session()->flash('error', 'Không thể xóa người dùng này vì có lịch làm việc, mẻ sản xuất hoặc nhật ký hoạt động liên quan.');
+            } else {
+                session()->flash('error', 'Có lỗi xảy ra khi xóa người dùng.');
+            }
+        }
     }
     
     public function exportExcel()

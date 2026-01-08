@@ -41,8 +41,16 @@ class ProductList extends BaseListComponent
 
     public function delete($id)
     {
-        Product::find($id)?->delete();
-        session()->flash('message', 'Sản phẩm đã được xóa thành công.');
+        try {
+            Product::find($id)?->delete();
+            session()->flash('message', 'Sản phẩm đã được xóa thành công.');
+        } catch (\Illuminate\Database\QueryException $e) {
+            if ($e->getCode() == 23000) {
+                session()->flash('error', 'Không thể xóa sản phẩm này vì đang được sử dụng trong công thức, mẻ sản xuất hoặc phân bổ.');
+            } else {
+                session()->flash('error', 'Có lỗi xảy ra khi xóa sản phẩm.');
+            }
+        }
     }
     
     public function exportExcel()

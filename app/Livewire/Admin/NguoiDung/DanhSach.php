@@ -58,10 +58,18 @@ class DanhSach extends BaseListComponent
      */
     public function delete($id)
     {
-        $user = User::find($id);
-        if ($user) {
-            $user->delete();
-            session()->flash('success', 'Xóa người dùng thành công!');
+        try {
+            $user = User::find($id);
+            if ($user) {
+                $user->delete();
+                session()->flash('success', 'Xóa người dùng thành công!');
+            }
+        } catch (\Illuminate\Database\QueryException $e) {
+            if ($e->getCode() == 23000) {
+                session()->flash('error', 'Không thể xóa người dùng này vì có lịch làm việc, mẻ sản xuất hoặc nhật ký hoạt động liên quan.');
+            } else {
+                session()->flash('error', 'Có lỗi xảy ra khi xóa người dùng.');
+            }
         }
     }
     

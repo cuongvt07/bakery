@@ -121,10 +121,18 @@ class AgencyDetail extends Component
 
     public function deleteNote($noteId)
     {
-        $note = AgencyNote::findOrFail($noteId);
-        if ($note->diem_ban_id === $this->agency->id) {
-            $note->delete();
-            session()->flash('success', 'Đã xóa ghi chú');
+        try {
+            $note = AgencyNote::findOrFail($noteId);
+            if ($note->diem_ban_id === $this->agency->id) {
+                $note->delete();
+                session()->flash('success', 'Đã xóa ghi chú');
+            }
+        } catch (\Illuminate\Database\QueryException $e) {
+            if ($e->getCode() == 23000) {
+                session()->flash('error', 'Không thể xóa ghi chú này vì đang được sử dụng.');
+            } else {
+                session()->flash('error', 'Có lỗi xảy ra khi xóa ghi chú.');
+            }
         }
     }
 
