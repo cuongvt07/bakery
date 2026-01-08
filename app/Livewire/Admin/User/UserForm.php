@@ -110,7 +110,6 @@ class UserForm extends Component
             $this->luong_chinh_thuc = ($this->user->luong_chinh_thuc && $this->user->luong_chinh_thuc > 0) ? $this->user->luong_chinh_thuc : null;
             
             $this->loai_luong = $this->user->loai_luong ?? 'theo_ngay';
-            $this->loai_luong = $this->user->loai_luong ?? 'theo_ngay';
             
             $this->vai_tro = $this->user->vai_tro;
             $this->phong_ban_id = $this->user->phong_ban_id;
@@ -164,10 +163,9 @@ class UserForm extends Component
             'ngay_thu_viec' => $this->ngay_thu_viec ?: null,
             'ngay_chinh_thuc' => $this->ngay_chinh_thuc ?: null,
             'ghi_chu_hop_dong' => $this->ghi_chu_hop_dong,
-            'luong_co_ban' => $this->luong_co_ban ?? 0,
-            'luong_thu_viec' => $this->luong_thu_viec ?? 0,
-            'luong_chinh_thuc' => $this->luong_chinh_thuc ?? 0,
-            'loai_luong' => $this->loai_luong,
+            'luong_co_ban' => !empty($this->luong_co_ban) ? $this->luong_co_ban : 0,
+            'luong_thu_viec' => !empty($this->luong_thu_viec) ? $this->luong_thu_viec : 0,
+            'luong_chinh_thuc' => !empty($this->luong_chinh_thuc) ? $this->luong_chinh_thuc : 0,
             'loai_luong' => $this->loai_luong,
             'vai_tro' => $this->vai_tro,
             'phong_ban_id' => $this->phong_ban_id,
