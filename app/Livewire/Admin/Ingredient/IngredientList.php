@@ -33,8 +33,16 @@ class IngredientList extends BaseListComponent
 
     public function delete($id)
     {
-        Ingredient::find($id)?->delete();
-        session()->flash('message', 'Nguyên liệu đã được xóa thành công.');
+        try {
+            Ingredient::find($id)?->delete();
+            session()->flash('message', 'Nguyên liệu đã được xóa thành công.');
+        } catch (\Illuminate\Database\QueryException $e) {
+            if ($e->getCode() == 23000) {
+                session()->flash('error', 'Không thể xóa nguyên liệu này vì nó đang được sử dụng trong các công thức sản xuất.');
+            } else {
+                session()->flash('error', 'Có lỗi xảy ra khi xóa nguyên liệu.');
+            }
+        }
     }
     
     public function exportExcel()
