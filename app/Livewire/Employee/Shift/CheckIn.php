@@ -45,6 +45,7 @@ class CheckIn extends Component
     public $showCheckoutConfirm = false;
     public $checkoutWarningType = null; // 'early', 'late', 'normal'
     public $checkoutWarningMessage = '';
+    public $isOvertime = false; // OT checkbox
     
     // Shift availability
     public $hasRegisteredShifts = false;
@@ -100,7 +101,7 @@ class CheckIn extends Component
             $this->hasUnclosedShift = true;
             
             // Check if checkout is late (>30 minutes after shift end)
-            $shiftEndTime = Carbon::parse($unclosed->ngay_lam->format('Y-m-d') . ' ' . $unclosed->gio_ket_thuc);
+            $shiftEndTime = $unclosed->shift_end_date_time;
             $gracePeriodEnd = $shiftEndTime->copy()->addMinutes(30);
             $this->isLateCheckout = now()->gt($gracePeriodEnd);
             
@@ -157,7 +158,7 @@ class CheckIn extends Component
             $this->hasUnclosedShift = true;
             
             // Check if checkout is late
-            $shiftEndTime = Carbon::parse($unclosed->ngay_lam->format('Y-m-d') . ' ' . $unclosed->gio_ket_thuc);
+            $shiftEndTime = $unclosed->shift_end_date_time;
             $gracePeriodEnd = $shiftEndTime->copy()->addMinutes(30);
             $this->isLateCheckout = now()->gt($gracePeriodEnd);
             
@@ -484,6 +485,7 @@ class CheckIn extends Component
                 'tien_lech' => 0,
                 'ghi_chu' => $ghi_chu,
                 'trang_thai' => 'cho_duyet',
+                'ot' => $this->isOvertime,
             ]);
             
             // Update shift status
@@ -507,7 +509,7 @@ class CheckIn extends Component
         }
         
         // Calculate time difference
-        $shiftEndTime = \Carbon\Carbon::parse($this->shift->ngay_lam->format('Y-m-d') . ' ' . $this->shift->gio_ket_thuc);
+        $shiftEndTime = $this->shift->shift_end_date_time;
         $now = now();
         $gracePeriodStart = $shiftEndTime->copy()->subMinutes(30);
         $gracePeriodEnd = $shiftEndTime->copy()->addMinutes(30);
@@ -586,6 +588,7 @@ class CheckIn extends Component
                 'tien_lech' => 0,
                 'ghi_chu' => $ghi_chu,
                 'trang_thai' => 'cho_duyet',
+                'ot' => $this->isOvertime,
             ]);
             
             // Update ca_lam_viec status only (not shift_schedules)

@@ -26,10 +26,42 @@ class CaLamViec extends Model
 
     protected $casts = [
         'ngay_lam' => 'date',
+        'gio_bat_dau' => 'datetime:H:i:s',
+        'gio_ket_thuc' => 'datetime:H:i:s',
         'trang_thai_checkin' => 'boolean',
         'thoi_gian_checkin' => 'datetime',
         'tien_mat_dau_ca' => 'decimal:2',
     ];
+
+    /**
+     * Get shift end datetime for proper time comparison
+     */
+    public function getShiftEndDateTimeAttribute()
+    {
+        $timeStr = is_string($this->gio_ket_thuc) 
+            ? $this->gio_ket_thuc 
+            : $this->gio_ket_thuc->format('H:i:s');
+        
+        return \Carbon\Carbon::createFromFormat(
+            'Y-m-d H:i:s',
+            $this->ngay_lam->format('Y-m-d') . ' ' . $timeStr
+        );
+    }
+
+    /**
+     * Get shift start datetime for proper time comparison
+     */
+    public function getShiftStartDateTimeAttribute()
+    {
+        $timeStr = is_string($this->gio_bat_dau) 
+            ? $this->gio_bat_dau 
+            : $this->gio_bat_dau->format('H:i:s');
+        
+        return \Carbon\Carbon::createFromFormat(
+            'Y-m-d H:i:s',
+            $this->ngay_lam->format('Y-m-d') . ' ' . $timeStr
+        );
+    }
 
     /**
      * Relationships

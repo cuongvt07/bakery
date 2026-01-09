@@ -31,10 +31,12 @@ class PhieuChotCa extends Model
         'trang_thai',
         'nguoi_duyet_id',
         'ngay_duyet',
+        'ot', // Overtime flag
     ];
 
     protected $casts = [
         'ngay_chot' => 'date',
+        'gio_chot' => 'datetime:H:i:s',
         'ngay_duyet' => 'datetime',
         'tien_mat' => 'decimal:2',
         'tien_chuyen_khoan' => 'decimal:2',
@@ -47,6 +49,7 @@ class PhieuChotCa extends Model
         'anh_chot_ket' => 'array',
         'anh_tien_mat' => 'array', // New
         'anh_hang_hoa' => 'array', // New
+        'ot' => 'boolean',
     ];
 
     /**
