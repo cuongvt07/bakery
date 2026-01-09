@@ -26,8 +26,6 @@ class CaLamViec extends Model
 
     protected $casts = [
         'ngay_lam' => 'date',
-        'gio_bat_dau' => 'datetime:H:i:s',
-        'gio_ket_thuc' => 'datetime:H:i:s',
         'trang_thai_checkin' => 'boolean',
         'thoi_gian_checkin' => 'datetime',
         'tien_mat_dau_ca' => 'decimal:2',
@@ -86,8 +84,20 @@ class CaLamViec extends Model
             return $this->shift_end_date_time;
         }
         
+        // Get shift template times as time strings
+        $startTimeStr = is_string($this->gio_bat_dau) 
+            ? $this->gio_bat_dau 
+            : $this->gio_bat_dau->format('H:i:s');
+        $endTimeStr = is_string($this->gio_ket_thuc) 
+            ? $this->gio_ket_thuc 
+            : $this->gio_ket_thuc->format('H:i:s');
+        
+        // Parse template times on the shift date
+        $templateStart = \Carbon\Carbon::createFromFormat('Y-m-d H:i:s', $this->ngay_lam->format('Y-m-d') . ' ' . $startTimeStr);
+        $templateEnd = \Carbon\Carbon::createFromFormat('Y-m-d H:i:s', $this->ngay_lam->format('Y-m-d') . ' ' . $endTimeStr);
+        
         // Calculate shift duration in minutes
-        $shiftDurationMinutes = $this->shift_end_date_time->diffInMinutes($this->shift_start_date_time);
+        $shiftDurationMinutes = $templateStart->diffInMinutes($templateEnd, false);
         
         // Expected checkout = actual check-in + shift duration
         return $this->thoi_gian_checkin->copy()->addMinutes($shiftDurationMinutes);
