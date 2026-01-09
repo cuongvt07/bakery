@@ -48,7 +48,7 @@ class RecipeForm extends Component
             }
         } else {
             // Auto-generate code for new recipe
-            $this->ma_cong_thuc = Recipe::generateUniqueCode('ma_cong_thuc', 'CT');
+            $this->ma_cong_thuc = (new Recipe())->generateUniqueCode();
         }
 
         // Initialize with empty row if no ingredients
