@@ -100,9 +100,9 @@ class CheckIn extends Component
             $this->unclosedShift = $unclosed;
             $this->hasUnclosedShift = true;
             
-            // Check if checkout is late (>30 minutes after shift end)
-            $shiftEndTime = $unclosed->shift_end_date_time;
-            $gracePeriodEnd = $shiftEndTime->copy()->addMinutes(30);
+            // Check if checkout is late (>15 minutes after expected checkout)
+            $expectedCheckoutTime = $unclosed->expected_checkout_time;
+            $gracePeriodEnd = $expectedCheckoutTime->copy()->addMinutes(15);
             $this->isLateCheckout = now()->gt($gracePeriodEnd);
             
             $this->showCheckoutPrompt = true;
@@ -158,8 +158,8 @@ class CheckIn extends Component
             $this->hasUnclosedShift = true;
             
             // Check if checkout is late
-            $shiftEndTime = $unclosed->shift_end_date_time;
-            $gracePeriodEnd = $shiftEndTime->copy()->addMinutes(30);
+            $expectedCheckoutTime = $unclosed->expected_checkout_time;
+            $gracePeriodEnd = $expectedCheckoutTime->copy()->addMinutes(15);
             $this->isLateCheckout = now()->gt($gracePeriodEnd);
             
             $this->showCheckoutPrompt = true;
@@ -222,8 +222,8 @@ class CheckIn extends Component
                 'diem_ban_id' => $schedule->diem_ban_id,
                 'nguoi_dung_id' => Auth::id(),
                 'ngay_lam' => now(),
-                'gio_bat_dau' => now(),
-                'gio_ket_thuc' => now()->addHours(8),
+                'gio_bat_dau' => $schedule->gio_bat_dau, // Use schedule time
+                'gio_ket_thuc' => $schedule->gio_ket_thuc, // Use schedule time
                 'trang_thai' => 'dang_lam',
                 'trang_thai_checkin' => false,
                 'shift_template_id' => $schedule->shift_template_id,
@@ -247,8 +247,8 @@ class CheckIn extends Component
                 'diem_ban_id' => $schedule->diem_ban_id,
                 'nguoi_dung_id' => Auth::id(),
                 'ngay_lam' => now(),
-                'gio_bat_dau' => now(),
-                'gio_ket_thuc' => now()->addHours(8),
+                'gio_bat_dau' => $schedule->gio_bat_dau, // Use schedule time
+                'gio_ket_thuc' => $schedule->gio_ket_thuc, // Use schedule time
                 'trang_thai' => 'dang_lam',
                 'trang_thai_checkin' => false,
                 'shift_template_id' => $schedule->shift_template_id,
@@ -268,8 +268,8 @@ class CheckIn extends Component
             'diem_ban_id' => $schedule->diem_ban_id,
             'nguoi_dung_id' => Auth::id(),
             'ngay_lam' => now(),
-            'gio_bat_dau' => now(),
-            'gio_ket_thuc' => now()->addHours(8),
+            'gio_bat_dau' => $schedule->gio_bat_dau, // Use schedule time
+            'gio_ket_thuc' => $schedule->gio_ket_thuc, // Use schedule time
             'trang_thai' => 'dang_lam',
             'trang_thai_checkin' => true, // Auto check-in for office
             'thoi_gian_checkin' => now(),
@@ -508,22 +508,15 @@ class CheckIn extends Component
             return;
         }
         
-        // Calculate time difference
-        $shiftEndTime = $this->shift->shift_end_date_time;
+        // Calculate expected checkout time based on actual check-in
+        $expectedCheckoutTime = $this->shift->expected_checkout_time;
         $now = now();
-        $gracePeriodStart = $shiftEndTime->copy()->subMinutes(30);
-        $gracePeriodEnd = $shiftEndTime->copy()->addMinutes(30);
+        $gracePeriodEnd = $expectedCheckoutTime->copy()->addMinutes(15); // 15 minutes grace period
         
         // Determine checkout type
-        if ($now->lt($gracePeriodStart)) {
-            // Too early (more than 30 min before end)
-            $totalMinutes = (int) $now->diffInMinutes($shiftEndTime);
-            $timeDisplay = $this->formatMinutes($totalMinutes);
-            $this->checkoutWarningType = 'early';
-            $this->checkoutWarningMessage = "Bạn đang chốt ca sớm {$timeDisplay}. Bạn có chắc muốn chốt ca không?";
-        } elseif ($now->gt($gracePeriodEnd)) {
-            // Too late (more than 30 min after end)
-            $totalMinutes = (int) $shiftEndTime->diffInMinutes($now);
+        if ($now->gt($gracePeriodEnd)) {
+            // Too late (more than 15 min after expected checkout)
+            $totalMinutes = (int) $expectedCheckoutTime->diffInMinutes($now);
             $timeDisplay = $this->formatMinutes($totalMinutes);
             $this->checkoutWarningType = 'late';
             $this->checkoutWarningMessage = "Bạn đang chốt ca muộn {$timeDisplay}. Phiếu chốt ca sẽ được ghi chú: 'Chốt ca muộn - Quên chốt ca'.";

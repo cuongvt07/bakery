@@ -64,6 +64,36 @@ class CaLamViec extends Model
     }
 
     /**
+     * Get total hours worked in this shift
+     * Returns float (e.g., 4.5 for 4 hours 30 minutes)
+     */
+    public function getTotalHoursAttribute()
+    {
+        $start = $this->shift_start_date_time;
+        $end = $this->shift_end_date_time;
+        
+        return $end->diffInMinutes($start) / 60;
+    }
+
+    /**
+     * Get expected checkout time based on actual check-in time
+     * If checked in at 08:05, and shift is 4 hours, expected checkout = 12:05
+     */
+    public function getExpectedCheckoutTimeAttribute()
+    {
+        if (!$this->thoi_gian_checkin) {
+            // If not checked in yet, use shift_end_date_time
+            return $this->shift_end_date_time;
+        }
+        
+        // Calculate shift duration in minutes
+        $shiftDurationMinutes = $this->shift_end_date_time->diffInMinutes($this->shift_start_date_time);
+        
+        // Expected checkout = actual check-in + shift duration
+        return $this->thoi_gian_checkin->copy()->addMinutes($shiftDurationMinutes);
+    }
+
+    /**
      * Relationships
      */
     public function diemBan(): BelongsTo
