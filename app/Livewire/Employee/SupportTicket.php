@@ -4,33 +4,102 @@ namespace App\Livewire\Employee;
 
 use Livewire\Component;
 use Livewire\Attributes\Layout;
+use Illuminate\Support\Facades\Auth;
+use App\Models\Agency;
 
 #[Layout('components.layouts.mobile')]
 class SupportTicket extends Component
 {
-    public $subject = '';
-    public $description = '';
-    public $category = '';
+    public $message = '';
+    public $selectedAgencyId = null;
+    public $agencies = [];
+    
+    public function mount()
+    {
+        $this->agencies = Agency::all();
+        $this->selectedAgencyId = Auth::user()->diem_ban_id; // Default to user's agency
+    }
 
     public function submit()
     {
         $this->validate([
-            'subject' => 'required|min:5',
-            'description' => 'required',
-            'category' => 'required',
+            'message' => 'required|min:10',
         ], [
-            'subject.required' => 'Vui lòng nhập tiêu đề',
-            'subject.min' => 'Tiêu đề phải ít nhất 5 ký tự',
-            'description.required' => 'Vui lòng mô tả vấn đề',
-            'category.required' => 'Vui lòng chọn danh mục',
+            'message.required' => 'Vui lòng nhập nội dung yêu cầu',
+            'message.min' => 'Nội dung phải ít nhất 10 ký tự',
         ]);
 
-        // TODO: Create support ticket in database
-        // For now, just flash success message
+        $user = Auth::user();
+        $agency = Agency::find($this->selectedAgencyId ?? $user->diem_ban_id);
         
-        session()->flash('message', 'Đã gửi ticket hỗ trợ! Chúng tôi sẽ phản hồi sớm nhất.');
+        // Create ticket in yeu_cau_ca_lam table
+        $data = [
+            'nguoi_dung_id' => $user->id,
+            'loai_yeu_cau' => 'ticket',
+            'ca_lam_viec_id' => null,
+            'trang_thai' => 'cho_duyet',
+        ];
         
-        $this->reset(['subject', 'description', 'category']);
+        $lyDoData = [
+            'message' => $this->message,
+            'agency_id' => $this->selectedAgencyId ?? $user->diem_ban_id,
+            'agency_name' => $agency->ten_diem_ban ?? 'N/A',
+        ];
+        
+        $data['ly_do'] = json_encode($lyDoData);
+        
+        $ticket = \App\Models\YeuCauCaLam::create($data);
+        
+        // Send Lark notification
+        $this->sendTicketNotification($ticket, $lyDoData);
+        
+        session()->flash('message', '🚨 Đã gửi ticket khẩn cấp! Chúng tôi sẽ phản hồi sớm nhất.');
+        
+        $this->reset(['message']);
+    }
+    
+    private function sendTicketNotification($ticket, $lyDoData)
+    {
+        try {
+            $user = Auth::user();
+            
+            $card = [
+                'msg_type' => 'interactive',
+                'card' => [
+                    'header' => [
+                        'title' => [
+                            'tag' => 'plain_text',
+                            'content' => '🚨 TICKET KHẨN CẤP TỪ ĐIỂM BÁN',
+                        ],
+                        'template' => 'red',
+                    ],
+                    'elements' => [
+                        [
+                            'tag' => 'div',
+                            'text' => [
+                                'tag' => 'lark_md',
+                                'content' => sprintf(
+                                    "**🏪 Điểm bán:** %s\n**👤 Nhân viên:** %s\n**🆔 Mã NV:** %s\n\n**📢 Yêu cầu giúp đỡ:**\n%s",
+                                    $lyDoData['agency_name'],
+                                    $user->ho_ten ?? $user->name,
+                                    $user->ma_nhan_vien ?? 'N/A',
+                                    $lyDoData['message']
+                                ),
+                            ],
+                        ],
+                    ],
+                ],
+            ];
+            
+            \Illuminate\Support\Facades\Http::withHeaders([
+                'Content-Type' => 'application/json',
+            ])->post(
+                'https://open.larksuite.com/open-apis/bot/v2/hook/1f6c319b-bfef-4b9d-a4e4-3972fbdcc4ae',
+                $card
+            );
+        } catch (\Exception $e) {
+            \Log::error('Ticket notification failed: ' . $e->getMessage());
+        }
     }
 
     public function render()

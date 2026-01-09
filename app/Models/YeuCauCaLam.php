@@ -68,5 +68,35 @@ class YeuCauCaLam extends Model
     {
         return $query->where('loai_yeu_cau', $loai);
     }
+    
+    /**
+     * Accessors
+     */
+    public function getReasonTextAttribute()
+    {
+        $lyDoData = json_decode($this->ly_do, true);
+        return $lyDoData['reason'] ?? '(Không có lý do)';
+    }
+    
+    public function getShiftScheduleIdAttribute()
+    {
+        $lyDoData = json_decode($this->ly_do, true);
+        return $lyDoData['shift_schedule_id'] ?? null;
+    }
+    
+    public function getNewShiftInfoAttribute()
+    {
+        $lyDoData = json_decode($this->ly_do, true);
+        if (!isset($lyDoData['new_shift_name'])) {
+            return null;
+        }
+        
+        return [
+            'agency_id' => $lyDoData['new_agency_id'] ?? null,
+            'date' => $lyDoData['new_shift_date'] ?? null,
+            'shift_name' => $lyDoData['new_shift_name'] ?? null,
+            'shift_time' => $lyDoData['new_shift_time'] ?? null,
+        ];
+    }
 }
 
