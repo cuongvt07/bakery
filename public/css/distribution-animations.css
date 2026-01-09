@@ -1,0 +1,26 @@
+<style>
+/* Smooth transitions for distribution list expand/collapse */
+.expand-row-enter {
+    animation: expandIn 0.3s ease-out;
+}
+
+@keyframes expandIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.toggle-arrow {
+    display: inline-block;
+    transition: transform 0.3s ease;
+}
+
+.toggle-arrow.expanded {
+    transform: rotate(90deg);
+}
+</style>

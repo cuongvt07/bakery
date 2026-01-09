@@ -56,25 +56,19 @@ class DailyDistribution extends Component
         
         [$batchId, $productId] = $parts;
         
-        // Get availability
-        $batch = ProductionBatch::with('details')->find($batchId);
-        if (!$batch) return;
-        
-        $detail = $batch->details->where('san_pham_id', $productId)->first();
-        if (!$detail) return;
-        
-        $distributed = PhanBoHangDiemBan::where('me_san_xuat_id', $batchId)
-            ->where('san_pham_id', $productId)
-            ->sum('so_luong');
-            
-        $available = $detail->so_luong_thuc_te - $distributed;
-        
-        // Validate and cap value
-        if (!is_numeric($value) || $value < 0) {
-            $this->distributionData[$batchId][$productId] = 0;
+        // Allow empty input - don't force to 0
+        if ($value === '' || $value === null) {
+            return;
         }
-        // Removed auto-capping to prevent input reset issue
-        // User can input any value, validation happens on save
+        
+        // Only reset if truly invalid (negative or non-numeric)
+        if (!is_numeric($value) || $value < 0) {
+            $this->distributionData[$batchId][$productId] = '';
+            return;
+        }
+        
+        // Note: We don't auto-cap to available quantity here
+        // Validation happens on save to prevent input reset issues
     }
     
     public function saveDistributions()
@@ -128,11 +122,11 @@ class DailyDistribution extends Component
                 }
             });
             
-            // Reset distribution data
-            $this->distributionData = [];
-            
             $agencyName = $this->agencies->find($this->selectedAgencyId)->ten_diem_ban;
             session()->flash('success', "✅ Đã lưu {$totalSaved} phân bổ cho {$agencyName}!");
+            
+            // Redirect to distribution list
+            return $this->redirect(route('admin.distribution.list'), navigate: true);
             
         } catch (\Exception $e) {
             session()->flash('error', '❌ Lỗi: ' . $e->getMessage());

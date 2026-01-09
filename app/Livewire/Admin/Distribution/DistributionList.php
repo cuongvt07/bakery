@@ -17,12 +17,8 @@ class DistributionList extends Component
     public $dateTo = '';
     public $selectedAgency = '';
     
-    // Modal
-    public $showDetailModal = false;
-    public $modalDate = '';
-    public $modalAgencyId = null;
-    public $modalAgencyName = '';
-    public $modalDistributions = [];
+    // Expandable rows: ["date_agencyId" => true/false]
+    public $expandedRows = [];
 
     public function mount()
     {
@@ -37,30 +33,11 @@ class DistributionList extends Component
         $this->dateTo = Carbon::today()->format('Y-m-d');
     }
 
-    public function showDetails($date, $agencyId)
-    {
-        $agency = Agency::find($agencyId);
-        if (!$agency) return;
-        
-        $this->modalDate = $date;
-        $this->modalAgencyId = $agencyId;
-        $this->modalAgencyName = $agency->ten_diem_ban;
-        
-        // Load all distributions for this date and agency (flat, not grouped)
-        $this->modalDistributions = PhanBoHangDiemBan::with(['product', 'productionBatch', 'nguoiNhan'])
-            ->whereDate('created_at', $date)
-            ->where('diem_ban_id', $agencyId)
-            ->orderBy('me_san_xuat_id')
-            ->orderBy('buoi')
-            ->get();
-        
-        $this->showDetailModal = true;
-    }
     
-    public function closeModal()
+    public function toggleDetails($date, $agencyId)
     {
-        $this->showDetailModal = false;
-        $this->modalDistributions = [];
+        $key = $date . '_' . $agencyId;
+        $this->expandedRows[$key] = !($this->expandedRows[$key] ?? false);
     }
     
     public function deleteDistribution($id)

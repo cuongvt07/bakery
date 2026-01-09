@@ -109,7 +109,7 @@ class Dashboard extends Component
             ->groupBy('diem_ban_id')
             ->map(function($items) {
                 return [
-                    'agency' => $items->first()->diemBan->ten_dai_ly ?? 'N/A',
+                    'agency' => $items->first()->diemBan->ten_diem_ban ?? 'N/A',
                     'quantity' => $items->sum('so_luong'),
                 ];
             })
