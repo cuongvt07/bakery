@@ -514,7 +514,13 @@ class CheckIn extends Component
         $gracePeriodEnd = $expectedCheckoutTime->copy()->addMinutes(15); // 15 minutes grace period
         
         // Determine checkout type
-        if ($now->gt($gracePeriodEnd)) {
+        if ($now->lt($expectedCheckoutTime)) {
+            // Too early (before expected checkout)
+            $totalMinutes = (int) $now->diffInMinutes($expectedCheckoutTime);
+            $timeDisplay = $this->formatMinutes($totalMinutes);
+            $this->checkoutWarningType = 'early';
+            $this->checkoutWarningMessage = "Bạn đang chốt ca sớm {$timeDisplay}. Bạn có chắc muốn chốt ca không?";
+        } elseif ($now->gt($gracePeriodEnd)) {
             // Too late (more than 15 min after expected checkout)
             $totalMinutes = (int) $expectedCheckoutTime->diffInMinutes($now);
             $timeDisplay = $this->formatMinutes($totalMinutes);
