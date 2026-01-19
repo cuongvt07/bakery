@@ -275,6 +275,9 @@
                 </svg>
             </a>
 
+            @php
+                $pendingRequestsCount = \App\Models\YeuCauCaLam::where('trang_thai', 'cho_duyet')->count();
+            @endphp
             <details class="mb-1 group" {{ request()->routeIs('admin.shift.*') ? 'open' : '' }}
                 x-show="sidebarState === 2">
                 <summary
@@ -285,6 +288,10 @@
                                 d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
                         <span class="ml-3">Ca làm việc</span>
+                        @if ($pendingRequestsCount > 0)
+                            <span
+                                class="ml-2 bg-red-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full min-w-[20px] text-center">{{ $pendingRequestsCount }}</span>
+                        @endif
                     </div>
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
@@ -299,8 +306,13 @@
                         class="flex items-center px-3 py-2 rounded-md text-sm transition-all {{ request()->routeIs('admin.shift.reports') ? 'text-amber-700 bg-amber-50 font-medium' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">Quản
                         lý Chốt Ca</a>
                     <a href="{{ route('admin.shift.requests') }}"
-                        class="flex items-center px-3 py-2 rounded-md text-sm transition-all {{ request()->routeIs('admin.shift.requests') ? 'text-amber-700 bg-amber-50 font-medium' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">Duyệt
-                        yêu cầu</a>
+                        class="flex items-center justify-between px-3 py-2 rounded-md text-sm transition-all {{ request()->routeIs('admin.shift.requests') ? 'text-amber-700 bg-amber-50 font-medium' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">
+                        <span>Duyệt yêu cầu</span>
+                        @if ($pendingRequestsCount > 0)
+                            <span
+                                class="bg-red-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full min-w-[20px] text-center">{{ $pendingRequestsCount }}</span>
+                        @endif
+                    </a>
                 </div>
             </details>
 
