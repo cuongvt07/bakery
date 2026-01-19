@@ -100,18 +100,11 @@ class AdminShiftRequests extends Component
     {
         if (!$this->selectedRequest) return;
 
-        $this->validate([
-            'approvalNote' => 'required|min:10',
-        ], [
-            'approvalNote.required' => 'Vui lòng nhập lý do từ chối',
-            'approvalNote.min' => 'Lý do phải ít nhất 10 ký tự',
-        ]);
-
         $this->selectedRequest->update([
             'trang_thai' => 'tu_choi',
             'nguoi_duyet_id' => Auth::id(),
             'ngay_duyet' => now(),
-            'ghi_chu_duyet' => $this->approvalNote,
+            'ghi_chu_duyet' => $this->approvalNote ?: 'Từ chối',
         ]);
 
         // Send Lark notification
