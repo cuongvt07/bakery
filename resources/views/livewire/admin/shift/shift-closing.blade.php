@@ -263,6 +263,15 @@
                     alert('Lỗi copy. Vui lòng thử lại.');
                 });
             });
+
+            Livewire.on('show-alert', ({
+                type,
+                message
+            }) => {
+                alert((type === 'success' ? '✅ ' : '⚠️ ') + message);
+            });
         });
     </script>
+
+    @include('livewire.admin.shift.shift-closing-modal-snippet')
 </div>
