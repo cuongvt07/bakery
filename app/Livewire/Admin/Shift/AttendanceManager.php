@@ -212,6 +212,22 @@ class AttendanceManager extends Component
                           }
                     } elseif ($work->trang_thai == 'da_ket_thuc') {
                         $checkOut = substr($work->gio_ket_thuc, 0, 5) . ' (Est)';
+                        // Fallback calculation for completed shifts without Phieu
+                         $end = $work->shift_end_date_time; // Using accessor
+                         $start = $work->thoi_gian_checkin;
+                         
+                         $schStart = Carbon::parse($sch->gio_bat_dau);
+                         $schEnd = Carbon::parse($sch->gio_ket_thuc);
+                         $maxHours = $schStart->diffInHours($schEnd);
+                         if ($maxHours == 0) $maxHours = 8;
+                         
+                         if ($start) {
+                             $diff = $end->floatDiffInHours($start);
+                             $hours = min($diff, $maxHours); // No OT allowed for fallback
+                         } else {
+                             // No checkin but completed? Assume full shift
+                             $hours = $maxHours;
+                         }
                     }
                 } else {
                     // Check if date is in past
