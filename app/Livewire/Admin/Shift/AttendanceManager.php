@@ -71,44 +71,8 @@ class AttendanceManager extends Component
             // 4. Calculate Total Hours
             $totalHours = 0;
             foreach ($actualShifts as $shift) {
-                if ($shift->gio_bat_dau && $shift->gio_ket_thuc) {
-                    $start = Carbon::parse($shift->ngay_lam->format('Y-m-d') . ' ' . $shift->gio_bat_dau);
-                    
-                    $checkInTime = $shift->thoi_gian_checkin;
-                    $checkOutTime = null;
-                    
-                    // Calculate Max Hours from Schedule
-                    $sStart = Carbon::parse($shift->gio_bat_dau);
-                    $sEnd = Carbon::parse($shift->gio_ket_thuc);
-                    $maxHours = $sStart->diffInHours($sEnd);
-                    if ($maxHours == 0) $maxHours = 8;
-
-                    if ($shift->phieuChotCa) {
-                        // Combine date and time
-                        $checkOutDate = $shift->phieuChotCa->ngay_chot;
-                        $checkOutTimeStr = $shift->phieuChotCa->gio_chot;
-                        if ($checkOutDate && $checkOutTimeStr) {
-                            $checkOutTime = Carbon::parse($checkOutDate->format('Y-m-d') . ' ' . Carbon::parse($checkOutTimeStr)->format('H:i:s'));
-                        }
-                    } elseif ($shift->trang_thai == 'da_ket_thuc') {
-                        // Fallback
-                         $checkOutTime = $shift->shift_end_date_time;
-                         // If no checkin, assume full if completed?
-                         if (!$checkInTime) {
-                             $totalHours += $maxHours;
-                             continue;
-                         }
-                    }
-
-                    if ($checkInTime && $checkOutTime) {
-                        $diffInHours = $checkOutTime->floatDiffInHours($checkInTime);
-                        
-                        $isOt = $shift->phieuChotCa->ot ?? false;
-                        $hours = $isOt ? $diffInHours : min($diffInHours, $maxHours);
-                        
-                        $totalHours += max(0, $hours); // Ensure no negative
-                    }
-                }
+                // Use consistent calculation logic
+                $totalHours += $this->calculateWorkHours($shift);
             }
 
             $summary[] = [
@@ -215,7 +179,7 @@ class AttendanceManager extends Component
                                   $end->addDay();
                               }
                               
-                              $diff = abs($end->floatDiffInHours($start)); 
+                              $diff = $end->floatDiffInHours($start); 
                               
                               // Calculate max hours from schedule
                               $schStart = Carbon::parse($sch->gio_bat_dau);
@@ -239,7 +203,7 @@ class AttendanceManager extends Component
                          if ($maxHours == 0) $maxHours = 8;
                          
                          if ($start) {
-                             $diff = abs($end->floatDiffInHours($start));
+                             $diff = $end->floatDiffInHours($start);
                              $hours = min($diff, $maxHours); // No OT allowed for fallback
                              $hours = round(max(0, $hours), 2);
                          } else {
@@ -292,7 +256,7 @@ class AttendanceManager extends Component
                     'debug_max' => $maxHours ?? 'N/A',
                     'debug_start' => isset($start) && $start ? $start->format('H:i') : 'N/A',
                     'debug_end' => isset($end) && $end ? $end->format('H:i') : 'N/A',
-                    'debug_hours' => $hours
+                    'debug_hours' => "H:$hours D:" . ($diff??'N') . " M:" . ($maxHours??'N') . " S:" . (isset($start) && $start instanceof \Carbon\Carbon ? $start->format('d/m H:i') : 'N/A') . " E:" . (isset($end) && $end instanceof \Carbon\Carbon ? $end->format('d/m H:i') : 'N/A')
                 ];
                 
                 $dailyTotalHours += max(0, $hours);
@@ -502,5 +466,59 @@ class AttendanceManager extends Component
             $this->showDetail($this->selectedUserId);
         }
         $this->dispatch('alert', ['type' => 'success', 'message' => 'Đã đồng bộ công thành công!']);
+    }
+
+    private function calculateWorkHours($work)
+    {
+        // 1. Get Max Hours from Work (snapshot of schedule)
+        $maxHours = 8;
+        try {
+            if ($work->gio_bat_dau && $work->gio_ket_thuc) {
+                $s = Carbon::parse($work->gio_bat_dau);
+                $e = Carbon::parse($work->gio_ket_thuc);
+                $maxHours = $s->diffInHours($e);
+                if ($maxHours == 0) $maxHours = 8;
+            }
+        } catch (\Exception $e) {}
+
+        // 2. Strict Check: Must have Check-in
+        if (!$work->thoi_gian_checkin) return 0;
+        
+        $start = $work->thoi_gian_checkin;
+        $end = null;
+        $isOt = false;
+
+        if ($work->phieuChotCa) {
+             // Strict Check: Must have Check-out Time in Phieu
+             if (!$work->phieuChotCa->gio_chot) return 0;
+             
+             $ngayChot = $work->phieuChotCa->ngay_chot ?? $work->ngay_lam;
+             $gioChot = $work->phieuChotCa->gio_chot;
+             $gioChotStr = $gioChot instanceof \Carbon\Carbon ? $gioChot->format('H:i:s') : $gioChot;
+             
+             try {
+                $end = Carbon::parse($ngayChot->format('Y-m-d') . ' ' . $gioChotStr);
+             } catch (\Exception $e) { return 0; }
+             
+             $isOt = (bool)($work->phieuChotCa->ot ?? false);
+
+        } elseif ($work->trang_thai == 'da_ket_thuc') {
+             // Fallback for auto-completed shifts
+             $end = $work->shift_end_date_time;
+        } else {
+            return 0;
+        }
+
+        if (!$end) return 0;
+
+        // Overnight adjustment
+        if ($end->lt($start)) {
+            $end->addDay();
+        }
+        
+        $diff = abs($end->floatDiffInHours($start));
+        
+        $hours = $isOt ? $diff : min($diff, $maxHours);
+        return round(max(0, $hours), 2);
     }
 }

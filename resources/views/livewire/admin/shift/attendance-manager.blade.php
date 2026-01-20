@@ -23,7 +23,7 @@
                     <th class="px-6 py-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Tổng
                         Công (Ca)</th>
                     <th class="px-6 py-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Tổng
-                        Giờ (Max 8h/ca)</th>
+                        Giờ</th>
                     <th class="px-6 py-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Hành
                         động</th>
                 </tr>
