@@ -215,7 +215,7 @@ class AttendanceManager extends Component
                                   $end->addDay();
                               }
                               
-                              $diff = $end->floatDiffInHours($start); 
+                              $diff = abs($end->floatDiffInHours($start)); 
                               
                               // Calculate max hours from schedule
                               $schStart = Carbon::parse($sch->gio_bat_dau);
@@ -239,7 +239,7 @@ class AttendanceManager extends Component
                          if ($maxHours == 0) $maxHours = 8;
                          
                          if ($start) {
-                             $diff = $end->floatDiffInHours($start);
+                             $diff = abs($end->floatDiffInHours($start));
                              $hours = min($diff, $maxHours); // No OT allowed for fallback
                              $hours = round(max(0, $hours), 2);
                          } else {
@@ -292,7 +292,7 @@ class AttendanceManager extends Component
                     'debug_max' => $maxHours ?? 'N/A',
                     'debug_start' => isset($start) && $start ? $start->format('H:i') : 'N/A',
                     'debug_end' => isset($end) && $end ? $end->format('H:i') : 'N/A',
-                    'debug_hours' => "H:$hours D:" . ($diff??'N') . " M:" . ($maxHours??'N') . " S:" . (isset($start) && $start instanceof \Carbon\Carbon ? $start->format('d/m H:i') : 'N/A') . " E:" . (isset($end) && $end instanceof \Carbon\Carbon ? $end->format('d/m H:i') : 'N/A')
+                    'debug_hours' => $hours
                 ];
                 
                 $dailyTotalHours += max(0, $hours);
