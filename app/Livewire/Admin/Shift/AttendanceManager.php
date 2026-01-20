@@ -28,6 +28,9 @@ class AttendanceManager extends Component
     public $editingCheckIn;
     public $editingCheckOut;
     public $editingIsOt = false;
+    public $editingScheduleId;
+    public $editingDate;
+    public $editingNote;
 
     public function mount()
     {
@@ -254,6 +257,7 @@ class AttendanceManager extends Component
 
                 $shifts[] = [
                     'id' => $work->id ?? null,
+                    'schedule_id' => $sch->id,
                     'name' => $shiftName,
                     'is_extra' => false,
                     'schedule_time' => $sch->gio_bat_dau->format('H:i') . ' - ' . $sch->gio_ket_thuc->format('H:i'),
@@ -265,7 +269,8 @@ class AttendanceManager extends Component
                     'debug_diff' => $diff ?? 'N/A',
                     'debug_max' => $maxHours ?? 'N/A',
                     'debug_start' => isset($start) && $start ? $start->format('H:i') : 'N/A',
-                    'debug_end' => isset($end) && $end ? $end->format('H:i') : 'N/A'
+                    'debug_end' => isset($end) && $end ? $end->format('H:i') : 'N/A',
+                    'debug_hours' => $hours
                 ];
                 
                 $dailyTotalHours += max(0, $hours);
@@ -317,7 +322,8 @@ class AttendanceManager extends Component
                     'debug_diff' => $diff ?? 'N/A',
                     'debug_max' => $maxHours ?? 'N/A',
                     'debug_start' => isset($start) && $start ? $start->format('H:i') : 'N/A',
-                    'debug_end' => isset($end) && $end ? $end->format('H:i') : 'N/A'
+                    'debug_end' => isset($end) && $end ? $end->format('H:i') : 'N/A',
+                    'debug_hours' => $hours
                 ];
                 
                 $dailyTotalHours += max(0, $hours);
@@ -354,20 +360,33 @@ class AttendanceManager extends Component
         ])->layoutData(['hideBreadcrumbs' => true]);
     }
     
-    public function editShift($shiftId)
+    public function editShift($shiftId = null, $scheduleId = null, $date = null)
     {
-        $work = CaLamViec::with('phieuChotCa')->find($shiftId);
-        if (!$work) return;
-        
-        $this->editingShiftId = $work->id;
-        $this->editingCheckIn = $work->thoi_gian_checkin ? $work->thoi_gian_checkin->format('H:i') : '';
-        
-        if ($work->phieuChotCa) {
-             $this->editingCheckOut = Carbon::parse($work->phieuChotCa->gio_chot)->format('H:i');
-             $this->editingIsOt = (bool)($work->phieuChotCa->ot ?? false);
+        $this->resetValidation();
+        $this->editingShiftId = $shiftId;
+        $this->editingScheduleId = $scheduleId;
+        $this->editingDate = $date;
+
+        if ($shiftId) {
+            $work = CaLamViec::with('phieuChotCa')->find($shiftId);
+            if (!$work) return;
+            
+            $this->editingCheckIn = $work->thoi_gian_checkin ? $work->thoi_gian_checkin->format('H:i') : '';
+            
+            if ($work->phieuChotCa) {
+                 $this->editingCheckOut = Carbon::parse($work->phieuChotCa->gio_chot)->format('H:i');
+                 $this->editingIsOt = (bool)($work->phieuChotCa->ot ?? false);
+            } else {
+                 $this->editingCheckOut = '';
+                 $this->editingIsOt = false;
+            }
+            $this->editingNote = $work->ghi_chu;
         } else {
-             $this->editingCheckOut = '';
-             $this->editingIsOt = false;
+            // New Shift
+            $this->editingCheckIn = ''; 
+            $this->editingCheckOut = '';
+            $this->editingIsOt = false;
+            $this->editingNote = '';
         }
         
         $this->showEditModal = true;
@@ -380,22 +399,73 @@ class AttendanceManager extends Component
             'editingCheckOut' => 'required',
         ]);
         
-        $work = CaLamViec::find($this->editingShiftId);
-        if (!$work) return;
+        if ($this->editingShiftId) {
+            $work = CaLamViec::find($this->editingShiftId);
+        } elseif ($this->editingScheduleId) {
+            $sch = ShiftSchedule::find($this->editingScheduleId);
+            if (!$sch) return; // Should not happen
+            
+            $work = new CaLamViec();
+            $work->nguoi_dung_id = $this->selectedUserId; // from detail view
+            $work->ngay_lam = $this->editingDate;
+            $work->diem_ban_id = $sch->diem_ban_id;
+            $work->shift_template_id = $sch->shift_template_id;
+            $work->gio_bat_dau = $sch->gio_bat_dau;
+            $work->gio_ket_thuc = $sch->gio_ket_thuc;
+            $work->trang_thai = 'da_ket_thuc';
+            $work->save();
+        } else {
+             return;
+        }
         
         // Update Check-in
-        $checkInDateTime = Carbon::parse($work->ngay_lam->format('Y-m-d') . ' ' . $this->editingCheckIn);
-        $work->thoi_gian_checkin = $checkInDateTime;
+        if ($this->editingCheckIn) {
+            $checkInDateTime = Carbon::parse($work->ngay_lam->format('Y-m-d') . ' ' . $this->editingCheckIn);
+            $work->thoi_gian_checkin = $checkInDateTime;
+        }
+        $work->ghi_chu = $this->editingNote;
         $work->save();
         
         // Update Check-out (PhieuChotCa)
-        if ($work->phieuChotCa) {
-            $work->phieuChotCa->gio_chot = Carbon::parse($this->editingCheckOut)->toTimeString(); // Save as H:i:s string
-            $work->phieuChotCa->ot = $this->editingIsOt;
-            $work->phieuChotCa->save();
-        } else {
-            // Create Phieu if not exists (Admin force closing?)
-            // For now assume only editing existing closing
+        if ($this->editingCheckOut) {
+            if (!$work->phieuChotCa) {
+                 // Create new Phieu
+                 $phieu = new \App\Models\PhieuChotCa(); // Ensure class is imported or fully qualified
+                 $phieu->ca_lam_viec_id = $work->id;
+                 $phieu->ngay_chot = $work->ngay_lam; // Default same day? Or logic for overnight?
+                 // For overnight, if CheckOut < CheckIn (Time), maybe addDay?
+                 // Simple logic for now: same date unless specified (but UI only asks time).
+                 // Let's assume same date for simplicity or let Accessor handle? 
+                 // Actually PhieuChotCa stores DATE and TIME separately.
+                 // If CheckOut time (e.g. 07:00) < CheckIn time (23:00), usually Next Day.
+                 // Let's rely on manual correction if needed, or simple check:
+                 $ci = Carbon::parse($this->editingCheckIn);
+                 $co = Carbon::parse($this->editingCheckOut);
+                 if ($co->lt($ci)) {
+                      $phieu->ngay_chot = $work->ngay_lam->copy()->addDay();
+                 } else {
+                      $phieu->ngay_chot = $work->ngay_lam;
+                 }
+                 
+                 $phieu->gio_chot = $co->toTimeString();
+                 $phieu->diem_ban_id = $work->diem_ban_id;
+                 $phieu->nguoi_chot_id = $work->nguoi_dung_id;
+                 $phieu->tien_mat = 0;
+                 $phieu->tien_chuyen_khoan = 0;
+                 $phieu->tong_tien_thuc_te = 0;
+                 $phieu->tong_tien_ly_thuyet = 0;
+                 $phieu->tien_lech = 0;
+                 $phieu->hang_lech = []; 
+                 $phieu->ot = $this->editingIsOt;
+                 $phieu->save();
+            } else {
+                 // Logic for date rollover if user changed time?
+                 // Maybe keep existing date unless time implies rollover?
+                 // For now just update Time and OT.
+                 $work->phieuChotCa->gio_chot = Carbon::parse($this->editingCheckOut)->toTimeString();
+                 $work->phieuChotCa->ot = $this->editingIsOt;
+                 $work->phieuChotCa->save();
+            }
         }
         
         $this->showEditModal = false;

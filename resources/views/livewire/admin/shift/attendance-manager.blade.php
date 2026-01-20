@@ -245,7 +245,7 @@
                                                                         class="px-4 py-2 text-center font-mono text-gray-700">
                                                                         {{ $shift['actual_out'] }}</td>
                                                                     <td class="px-4 py-2 text-center font-bold text-gray-900"
-                                                                        title="Diff: {{ $shift['debug_diff'] }} | Max: {{ $shift['debug_max'] }} | Start: {{ $shift['debug_start'] }} | End: {{ $shift['debug_end'] }}">
+                                                                        title="Diff: {{ $shift['debug_diff'] }} | Max: {{ $shift['debug_max'] }} | Raw: {{ $shift['debug_hours'] }}">
                                                                         {{ $shift['hours'] }}</td>
                                                                     <td class="px-4 py-2 text-center text-lg">
                                                                         @if ($shift['hours'] > 8)
@@ -271,6 +271,13 @@
                                                                             <span
                                                                                 class="text-green-600 font-bold">OK</span>
                                                                         @endif
+                                                                    </td>
+                                                                    <td class="px-4 py-2 text-center">
+                                                                        <button
+                                                                            wire:click="editShift({{ $shift['id'] ?? 'null' }}, {{ $shift['schedule_id'] ?? 'null' }}, '{{ $day['date']->format('Y-m-d') }}')"
+                                                                            class="text-blue-500 hover:text-blue-700">
+                                                                            ✏️
+                                                                        </button>
                                                                     </td>
                                                                 </tr>
                                                             @endforeach
@@ -394,6 +401,11 @@
                                     <label for="is_ot" class="ml-2 block text-sm text-gray-900">
                                         Xác nhận OT (Overtime)
                                     </label>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">Ghi chú</label>
+                                    <textarea wire:model="editingNote" rows="3"
+                                        class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"></textarea>
                                 </div>
                                 <p class="text-xs text-gray-500 italic">Nếu tick OT, tổng giờ sẽ tính full thời gian
                                     thực tế. Nếu không, chỉ tính tối đa theo lịch (thương là 8h).</p>
