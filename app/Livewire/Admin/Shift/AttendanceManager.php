@@ -85,7 +85,7 @@ class AttendanceManager extends Component
                         $checkOutDate = $shift->phieuChotCa->ngay_chot;
                         $checkOutTimeStr = $shift->phieuChotCa->gio_chot;
                         if ($checkOutDate && $checkOutTimeStr) {
-                            $checkOutTime = Carbon::parse($checkOutDate->format('Y-m-d') . ' ' . $checkOutTimeStr);
+                            $checkOutTime = Carbon::parse($checkOutDate->format('Y-m-d') . ' ' . Carbon::parse($checkOutTimeStr)->format('H:i:s'));
                         }
                     } elseif ($shift->trang_thai == 'da_ket_thuc') {
                         // Fallback to shift end time if completed but no phieu (rare?)
@@ -188,8 +188,8 @@ class AttendanceManager extends Component
                     $checkIn = $work->thoi_gian_checkin ? $work->thoi_gian_checkin->format('H:i') : '-';
                     
                     if ($work->phieuChotCa) {
-                         $checkOut = Carbon::parse($work->phieuChotCa->gio_chot)->format('H:i');
-                         $end = Carbon::parse($work->phieuChotCa->ngay_chot->format('Y-m-d') . ' ' . $work->phieuChotCa->gio_chot);
+                          $checkOut = Carbon::parse($work->phieuChotCa->gio_chot)->format('H:i');
+                          $end = Carbon::parse($work->phieuChotCa->ngay_chot->format('Y-m-d') . ' ' . Carbon::parse($work->phieuChotCa->gio_chot)->format('H:i:s'));
                          $start = $work->thoi_gian_checkin;
                          if ($start) {
                              $diff = $end->floatDiffInHours($start); 
@@ -234,7 +234,7 @@ class AttendanceManager extends Component
                 
                 if ($work->phieuChotCa) {
                      $checkOut = Carbon::parse($work->phieuChotCa->gio_chot)->format('H:i');
-                     $end = Carbon::parse($work->phieuChotCa->ngay_chot->format('Y-m-d') . ' ' . $work->phieuChotCa->gio_chot);
+                     $end = Carbon::parse($work->phieuChotCa->ngay_chot->format('Y-m-d') . ' ' . Carbon::parse($work->phieuChotCa->gio_chot)->format('H:i:s'));
                      $start = $work->thoi_gian_checkin;
                      if ($start) {
                          $diff = $end->floatDiffInHours($start);
