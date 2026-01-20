@@ -43,14 +43,36 @@
                     {{ \Carbon\Carbon::parse($todayShift->gio_ket_thuc)->format('H:i') }}
                 </div>
 
-                @if ($todayAttendance)
-                    <div class="flex gap-2 text-sm bg-white/10 p-2 rounded-lg">
-                        @if ($todayAttendance->gio_vao)
-                            <span>Vào: {{ \Carbon\Carbon::parse($todayAttendance->gio_vao)->format('H:i') }}</span>
-                        @endif
-                        @if ($todayAttendance->gio_ra)
-                            <span class="border-l border-white/20 pl-2">Ra:
-                                {{ \Carbon\Carbon::parse($todayAttendance->gio_ra)->format('H:i') }}</span>
+                @if ($todayAttendance && $todayAttendance->thoi_gian_checkin)
+                    <div class="mt-4 space-y-2">
+                        <div class="flex justify-between items-center text-sm bg-white/10 p-2 rounded-lg">
+                            <span class="text-indigo-200">Giờ vào thực tế:</span>
+                            <span
+                                class="font-bold">{{ \Carbon\Carbon::parse($todayAttendance->thoi_gian_checkin)->format('H:i') }}</span>
+                        </div>
+
+                        @if ($todayAttendance->trang_thai === 'dang_lam')
+                            @php
+                                $expectedCheckout = $todayAttendance->expected_checkout_time;
+                                $now = now();
+                                $timeLeft = $now->diffForHumans($expectedCheckout, [
+                                    'parts' => 2,
+                                    'join' => false,
+                                    'short' => true,
+                                    'syntax' => \Carbon\CarbonInterface::DIFF_ABSOLUTE,
+                                ]);
+                                $isOvertime = $now->gt($expectedCheckout);
+                            @endphp
+                            <div class="flex justify-between items-center text-sm bg-white/10 p-2 rounded-lg">
+                                <span class="text-indigo-200">Dự kiến ra:</span>
+                                <span class="font-bold">{{ $expectedCheckout->format('H:i') }}</span>
+                            </div>
+
+                            <div
+                                class="flex justify-between items-center text-sm {{ $isOvertime ? 'bg-red-500/20 text-red-100' : 'bg-green-500/20 text-green-100' }} p-2 rounded-lg border {{ $isOvertime ? 'border-red-500/30' : 'border-green-500/30' }}">
+                                <span>{{ $isOvertime ? 'Quá giờ:' : 'Còn lại:' }}</span>
+                                <span class="font-bold">{{ $timeLeft }}</span>
+                            </div>
                         @endif
                     </div>
                 @endif
