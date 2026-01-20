@@ -199,9 +199,22 @@ class AttendanceManager extends Component
                     
                     if ($work->phieuChotCa) {
                           $checkOut = Carbon::parse($work->phieuChotCa->gio_chot)->format('H:i');
-                          $end = Carbon::parse($work->phieuChotCa->ngay_chot->format('Y-m-d') . ' ' . Carbon::parse($work->phieuChotCa->gio_chot)->format('H:i:s'));
-                         $start = $work->thoi_gian_checkin;
-                         if ($start) {
+                          
+                          // Robust End Time Calculation
+                          $ngayChot = $work->phieuChotCa->ngay_chot ?? $work->ngay_lam;
+                          $gioChot = $work->phieuChotCa->gio_chot;
+                          // Ensure string format
+                          $gioChotStr = $gioChot instanceof \Carbon\Carbon ? $gioChot->format('H:i:s') : $gioChot;
+                          
+                          $end = Carbon::parse($ngayChot->format('Y-m-d') . ' ' . $gioChotStr);
+                          $start = $work->thoi_gian_checkin;
+                          
+                          if ($start) {
+                              // Handle overnight if End < Start (and same day assumed)
+                              if ($end->lt($start)) {
+                                  $end->addDay();
+                              }
+                              
                               $diff = $end->floatDiffInHours($start); 
                               
                               // Calculate max hours from schedule
@@ -210,8 +223,9 @@ class AttendanceManager extends Component
                               $maxHours = $schStart->diffInHours($schEnd); // Usually 4 or 8
                               if ($maxHours == 0) $maxHours = 8; // Fallback
                               
-                              $isOt = $work->phieuChotCa->ot ?? false;
+                              $isOt = (bool)($work->phieuChotCa->ot ?? false);
                               $hours = $isOt ? $diff : min($diff, $maxHours);
+                              $hours = round(max(0, $hours), 2);
                           }
                     } elseif ($work->trang_thai == 'da_ket_thuc') {
                         $checkOut = substr($work->gio_ket_thuc, 0, 5) . ' (Est)';
@@ -245,6 +259,13 @@ class AttendanceManager extends Component
                 $templateName = $sch->shiftTemplate->name ?? 'Ca không tên';
                 $agencyName = $sch->agency->ten_diem_ban ?? 'Điểm chưa rõ';
                 $shiftName = "{$templateName} - {$agencyName}";
+
+                \Illuminate\Support\Facades\Log::info("DEBUG_HOURS: WorkID: " . ($work->id ?? 'null') . " Hours: $hours Diff: ".($diff??'N/A')." Max: ".($maxHours??'N/A') . " OT: " . ($isOt?'Y':'N'), [
+                    'start' => $start ?? 'N/A',
+                    'end' => $end ?? 'N/A',
+                    'phieu_ngay_chot' => $work->phieuChotCa->ngay_chot ?? 'null',
+                    'phieu_gio_chot' => $work->phieuChotCa->gio_chot ?? 'null',
+                ]);
 
                 \Illuminate\Support\Facades\Log::info("ATTENDANCE_DEBUG: WorkID: " . ($work->id ?? 'null') . " Date: $currentDate", [
                     'checkIn' => $checkIn,
@@ -470,5 +491,15 @@ class AttendanceManager extends Component
         
         $this->showEditModal = false;
         $this->showDetail($this->selectedUserId); // Refresh
+    }
+
+    public function syncAttendance()
+    {
+        // For now, just refresh the calculation by reloading
+        // Future: Save calculated hours to DB if column exists
+        if ($this->selectedUserId) {
+            $this->showDetail($this->selectedUserId);
+        }
+        $this->dispatch('alert', ['type' => 'success', 'message' => 'Đã đồng bộ công thành công!']);
     }
 }
