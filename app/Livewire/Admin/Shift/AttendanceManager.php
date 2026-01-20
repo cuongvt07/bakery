@@ -497,8 +497,12 @@ class AttendanceManager extends Component
              $gioChotStr = $gioChot instanceof \Carbon\Carbon ? $gioChot->format('H:i:s') : $gioChot;
              
              try {
-                $end = Carbon::parse($ngayChot->format('Y-m-d') . ' ' . $gioChotStr);
-             } catch (\Exception $e) { return 0; }
+                $dateStr = \Carbon\Carbon::parse($ngayChot)->format('Y-m-d');
+                $end = Carbon::parse($dateStr . ' ' . $gioChotStr);
+             } catch (\Exception $e) { 
+                 \Illuminate\Support\Facades\Log::error("CalcError: " . $e->getMessage());
+                 return 0; 
+             }
              
              $isOt = (bool)($work->phieuChotCa->ot ?? false);
 
