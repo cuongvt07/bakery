@@ -395,6 +395,9 @@ class ShiftClosing extends Component
             // Discrepancy = Actual - Theoretical
             $phieu->tien_lech = $actualTotal - $theoreticalTotal;
             
+            // Save OT flag
+            $phieu->ot = $this->isOvertime;
+            
             // Handle Image Uploads with Resizing
             $manager = new \Intervention\Image\ImageManager(new \Intervention\Image\Drivers\Gd\Driver());
 

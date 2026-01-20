@@ -22,6 +22,13 @@ class AttendanceManager extends Component
     public $detailData = [];
     public $selectedUser = null;
 
+    // Edit Modal
+    public $showEditModal = false;
+    public $editingShiftId = null;
+    public $editingCheckIn;
+    public $editingCheckOut;
+    public $editingIsOt = false;
+
     public function mount()
     {
         $this->month = now()->format('Y-m');
@@ -192,9 +199,17 @@ class AttendanceManager extends Component
                           $end = Carbon::parse($work->phieuChotCa->ngay_chot->format('Y-m-d') . ' ' . Carbon::parse($work->phieuChotCa->gio_chot)->format('H:i:s'));
                          $start = $work->thoi_gian_checkin;
                          if ($start) {
-                             $diff = $end->floatDiffInHours($start); 
-                             $hours = min($diff, 8);
-                         }
+                              $diff = $end->floatDiffInHours($start); 
+                              
+                              // Calculate max hours from schedule
+                              $schStart = Carbon::parse($sch->gio_bat_dau);
+                              $schEnd = Carbon::parse($sch->gio_ket_thuc);
+                              $maxHours = $schStart->diffInHours($schEnd); // Usually 4 or 8
+                              if ($maxHours == 0) $maxHours = 8; // Fallback
+                              
+                              $isOt = $work->phieuChotCa->ot ?? false;
+                              $hours = $isOt ? $diff : min($diff, $maxHours);
+                          }
                     } elseif ($work->trang_thai == 'da_ket_thuc') {
                         $checkOut = substr($work->gio_ket_thuc, 0, 5) . ' (Est)';
                     }
@@ -219,7 +234,8 @@ class AttendanceManager extends Component
                     'actual_in' => $checkIn,
                     'actual_out' => $checkOut,
                     'hours' => max(0, round($hours, 2)),
-                    'status' => $status
+                    'status' => $status,
+                    'is_ot' => $work->phieuChotCa->ot ?? false
                 ];
                 
                 $dailyTotalHours += max(0, $hours);
@@ -237,9 +253,21 @@ class AttendanceManager extends Component
                      $end = Carbon::parse($work->phieuChotCa->ngay_chot->format('Y-m-d') . ' ' . Carbon::parse($work->phieuChotCa->gio_chot)->format('H:i:s'));
                      $start = $work->thoi_gian_checkin;
                      if ($start) {
-                         $diff = $end->floatDiffInHours($start);
-                         $hours = min($diff, 8);
-                     }
+                          $diff = $end->floatDiffInHours($start);
+                          
+                           // Calculate max hours from schedule
+                           $templateStart = $work->shiftTemplate->start_time ?? '00:00';
+                           $templateEnd = $work->shiftTemplate->end_time ?? '00:00';
+                           $maxHours = 8; // Default for extra
+                           if ($templateStart && $templateEnd) {
+                               $s = Carbon::parse($templateStart);
+                               $e = Carbon::parse($templateEnd);
+                               $maxHours = $s->diffInHours($e);
+                           }
+
+                          $isOt = $work->phieuChotCa->ot ?? false;
+                          $hours = $isOt ? $diff : min($diff, $maxHours);
+                      }
                 }
 
                 $templateName = $work->shiftTemplate->name ?? 'Ca bổ sung';
@@ -253,7 +281,8 @@ class AttendanceManager extends Component
                     'actual_in' => $checkIn,
                     'actual_out' => $checkOut,
                     'hours' => max(0, round($hours, 2)),
-                    'status' => 'extra'
+                    'status' => 'extra',
+                    'is_ot' => $work->phieuChotCa->ot ?? false
                 ];
                 
                 $dailyTotalHours += max(0, $hours);
@@ -288,5 +317,53 @@ class AttendanceManager extends Component
         return view('livewire.admin.shift.attendance-manager', [
             'summary' => $this->attendanceSummary
         ])->layoutData(['hideBreadcrumbs' => true]);
+    }
+    
+    public function editShift($shiftId)
+    {
+        $work = CaLamViec::with('phieuChotCa')->find($shiftId);
+        if (!$work) return;
+        
+        $this->editingShiftId = $work->id;
+        $this->editingCheckIn = $work->thoi_gian_checkin ? $work->thoi_gian_checkin->format('H:i') : '';
+        
+        if ($work->phieuChotCa) {
+             $this->editingCheckOut = Carbon::parse($work->phieuChotCa->gio_chot)->format('H:i');
+             $this->editingIsOt = (bool)($work->phieuChotCa->ot ?? false);
+        } else {
+             $this->editingCheckOut = '';
+             $this->editingIsOt = false;
+        }
+        
+        $this->showEditModal = true;
+    }
+    
+    public function saveShift()
+    {
+        $this->validate([
+            'editingCheckIn' => 'required',
+            'editingCheckOut' => 'required',
+        ]);
+        
+        $work = CaLamViec::find($this->editingShiftId);
+        if (!$work) return;
+        
+        // Update Check-in
+        $checkInDateTime = Carbon::parse($work->ngay_lam->format('Y-m-d') . ' ' . $this->editingCheckIn);
+        $work->thoi_gian_checkin = $checkInDateTime;
+        $work->save();
+        
+        // Update Check-out (PhieuChotCa)
+        if ($work->phieuChotCa) {
+            $work->phieuChotCa->gio_chot = Carbon::parse($this->editingCheckOut)->toTimeString(); // Save as H:i:s string
+            $work->phieuChotCa->ot = $this->editingIsOt;
+            $work->phieuChotCa->save();
+        } else {
+            // Create Phieu if not exists (Admin force closing?)
+            // For now assume only editing existing closing
+        }
+        
+        $this->showEditModal = false;
+        $this->showDetail($this->selectedUserId); // Refresh
     }
 }
