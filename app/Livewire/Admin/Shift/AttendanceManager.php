@@ -235,7 +235,11 @@ class AttendanceManager extends Component
                     'actual_out' => $checkOut,
                     'hours' => max(0, round($hours, 2)),
                     'status' => $status,
-                    'is_ot' => $work->phieuChotCa->ot ?? false
+                    'is_ot' => $work->phieuChotCa->ot ?? false,
+                    'debug_diff' => $diff ?? 'N/A',
+                    'debug_max' => $maxHours ?? 'N/A',
+                    'debug_start' => isset($start) && $start ? $start->format('H:i') : 'N/A',
+                    'debug_end' => isset($end) && $end ? $end->format('H:i') : 'N/A'
                 ];
                 
                 $dailyTotalHours += max(0, $hours);
@@ -282,7 +286,11 @@ class AttendanceManager extends Component
                     'actual_out' => $checkOut,
                     'hours' => max(0, round($hours, 2)),
                     'status' => 'extra',
-                    'is_ot' => $work->phieuChotCa->ot ?? false
+                    'is_ot' => $work->phieuChotCa->ot ?? false,
+                    'debug_diff' => $diff ?? 'N/A',
+                    'debug_max' => $maxHours ?? 'N/A',
+                    'debug_start' => isset($start) && $start ? $start->format('H:i') : 'N/A',
+                    'debug_end' => isset($end) && $end ? $end->format('H:i') : 'N/A'
                 ];
                 
                 $dailyTotalHours += max(0, $hours);
