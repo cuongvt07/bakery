@@ -182,22 +182,6 @@ class AttendanceManager extends Component
                 $agencyName = $sch->agency->ten_diem_ban ?? 'Điểm chưa rõ';
                 $shiftName = "{$templateName} - {$agencyName}";
 
-                \Illuminate\Support\Facades\Log::info("DEBUG_HOURS: WorkID: " . ($work->id ?? 'null') . " Hours: $hours Diff: ".($diff??'N/A')." Max: ".($maxHours??'N/A') . " OT: " . ($isOt?'Y':'N'), [
-                    'start' => $start ?? 'N/A',
-                    'end' => $end ?? 'N/A',
-                    'phieu_ngay_chot' => $work->phieuChotCa->ngay_chot ?? 'null',
-                    'phieu_gio_chot' => $work->phieuChotCa->gio_chot ?? 'null',
-                ]);
-
-                \Illuminate\Support\Facades\Log::info("ATTENDANCE_DEBUG: WorkID: " . ($work->id ?? 'null') . " Date: $currentDate", [
-                    'checkIn' => $checkIn,
-                    'checkOut' => $checkOut,
-                    'diff' => $diff ?? 'null',
-                    'max' => $maxHours ?? 'null',
-                    'hours' => $hours,
-                    'isOt' => $isOt ?? 'null'
-                ]);
-
                 $shifts[] = [
                     'id' => $work->id ?? null,
                     'schedule_id' => $sch->id,
