@@ -33,15 +33,28 @@ class ShiftClosing extends Component
 
     public function mount()
     {
-        // 1. Get active shift for current user
-        $this->shift = CaLamViec::where('nguoi_dung_id', Auth::id())
+        // 1. Get all unclosed shifts for TODAY only
+        $unclosedShifts = CaLamViec::where('nguoi_dung_id', Auth::id())
             ->where('trang_thai', 'dang_lam')
-            ->first();
+            ->where('trang_thai_checkin', true)
+            ->whereDate('ngay_lam', Carbon::today()) // Only today's shifts
+            ->orderBy('thoi_gian_checkin', 'asc') // Oldest first
+            ->get();
             
-        if (!$this->shift) {
+        if ($unclosedShifts->isEmpty()) {
             session()->flash('error', 'Không có ca làm việc nào đang hoạt động!');
             return $this->redirect(route('admin.shift.check-in'));
         }
+        
+        // 2. If multiple shifts today → Show selector
+        if ($unclosedShifts->count() > 1) {
+            $this->unclosedShifts = $unclosedShifts;
+            $this->showShiftSelector = true;
+            return;
+        }
+        
+        // 3. Only one shift → Load it directly
+        $this->shift = $unclosedShifts->first();
         
         // 2. If checked in but not explicitly closing, redirect to POS
         // User should be at POS selling, not at closing page by accident
@@ -90,6 +103,18 @@ class ShiftClosing extends Component
         $this->calculate();
     }
     
+    // Checkout warning
+    public $showCheckoutWarning = false;
+    public $checkoutWarningType = null; // 'early', 'late', 'normal'
+    public $checkoutWarningMessage = '';
+    public $isOvertime = false;
+    
+    // Multi-shift handling (same day only)
+    public $unclosedShifts = [];
+    public $showShiftSelector = false;
+    public $hasOlderUnclosedShift = false;
+    public $olderShiftWarning = '';
+    
     public $cashSalesCount = 0;
     public $transferSalesCount = 0;
     public $cashSalesTotal = 0;
@@ -106,6 +131,77 @@ class ShiftClosing extends Component
         $this->transferSalesCount = $sales->where('phuong_thuc_thanh_toan', 'chuyen_khoan')->count();
         $this->cashSalesTotal = $sales->where('phuong_thuc_thanh_toan', 'tien_mat')->sum('tong_tien');
         $this->transferSalesTotal = $sales->where('phuong_thuc_thanh_toan', 'chuyen_khoan')->sum('tong_tien');
+    }
+    
+    /**
+     * Select which shift to close (when multiple shifts exist)
+     */
+    public function selectShiftToClose($shiftId)
+    {
+        $this->shift = CaLamViec::find($shiftId);
+        
+        if (!$this->shift) {
+            session()->flash('error', 'Không tìm thấy ca làm việc!');
+            return;
+        }
+        
+        // Check if there's an older unclosed shift (warning only, not blocking)
+        $olderShift = CaLamViec::where('nguoi_dung_id', Auth::id())
+            ->where('trang_thai', 'dang_lam')
+            ->where('trang_thai_checkin', true)
+            ->whereDate('ngay_lam', Carbon::today())
+            ->where('thoi_gian_checkin', '<', $this->shift->thoi_gian_checkin)
+            ->orderBy('thoi_gian_checkin', 'asc')
+            ->first();
+        
+        if ($olderShift) {
+            $this->hasOlderUnclosedShift = true;
+            $this->olderShiftWarning = "Bạn có ca " . 
+                Carbon::parse($olderShift->gio_bat_dau)->format('H:i') . 
+                " (check-in lúc " . $olderShift->thoi_gian_checkin->format('H:i') . 
+                ") chưa chốt. Bạn có chắc muốn chốt ca này trước?";
+        }
+        
+        $this->showShiftSelector = false;
+        $this->shiftId = $this->shift->id;
+        
+        // Continue with normal mount flow
+        if ($this->shift->trang_thai_checkin && !request()->has('confirm_closing')) {
+            return $this->redirect('/admin/pos');
+        }
+        
+        if (!$this->shift->trang_thai_checkin) {
+            session()->flash('error', 'Vui lòng check-in trước khi chốt ca!');
+            return $this->redirect(route('admin.shift.check-in'));
+        }
+        
+        // Load products and sales summary
+        $details = ChiTietCaLam::where('ca_lam_viec_id', $this->shiftId)
+            ->with('sanPham')
+            ->get()
+            ->map(function($item) {
+                return [
+                    'id' => $item->san_pham_id,
+                    'ten_san_pham' => $item->sanPham->ten_san_pham,
+                    'ma_san_pham' => $item->sanPham->ma_san_pham,
+                    'gia_ban' => $item->sanPham->gia_ban,
+                    'ton_dau_ca' => $item->so_luong_nhan_ca,
+                    'so_luong_ban' => $item->so_luong_ban,
+                    'so_luong_con_lai' => $item->so_luong_con_lai,
+                ];
+            })
+            ->toArray();
+            
+        $this->products = $details;
+        
+        if (empty($this->closingStock)) {
+            foreach ($this->products as $p) {
+                $this->closingStock[$p['id']] = $p['so_luong_con_lai'];
+            }
+        }
+        
+        $this->loadSalesSummary();
+        $this->calculate();
     }
     
     public function updated($propertyName)
@@ -144,6 +240,65 @@ class ShiftClosing extends Component
         $this->totalActual = $cashHolding + $transferTotal;
         
         $this->discrepancy = $this->totalActual - $this->totalTheoretical;
+    }
+    
+    /**
+     * Initiate checkout with warning check
+     */
+    public function initiateSubmit()
+    {
+        // Validate first
+        $this->validate([
+            'tienMat' => 'required|numeric|min:0',
+            'tienChuyenKhoan' => 'required|numeric|min:0',
+            'closingStock.*' => 'required|numeric|min:0',
+            'photosCash.*' => 'image|max:10240',
+            'photosStock.*' => 'image|max:10240',
+        ]);
+        
+        // Check expected checkout time
+        $expectedCheckoutTime = $this->shift->expected_checkout_time;
+        $now = now();
+        $gracePeriodEnd = $expectedCheckoutTime->copy()->addMinutes(15);
+        
+        if ($now->lt($expectedCheckoutTime)) {
+            // Early checkout
+            $totalMinutes = (int) $now->diffInMinutes($expectedCheckoutTime);
+            $timeDisplay = $this->formatMinutes($totalMinutes);
+            $this->checkoutWarningType = 'early';
+            $this->checkoutWarningMessage = "Bạn đang chốt ca sớm {$timeDisplay}. Bạn có chắc muốn chốt ca không?";
+        } elseif ($now->gt($gracePeriodEnd)) {
+            // Late checkout
+            $totalMinutes = (int) $expectedCheckoutTime->diffInMinutes($now);
+            $timeDisplay = $this->formatMinutes($totalMinutes);
+            $this->checkoutWarningType = 'late';
+            $this->checkoutWarningMessage = "Bạn đang chốt ca muộn {$timeDisplay}. Phiếu chốt ca sẽ được ghi chú: 'Chốt ca muộn - Quên chốt ca'.";
+        } else {
+            // Normal checkout
+            $this->checkoutWarningType = 'normal';
+            $this->checkoutWarningMessage = 'Xác nhận chốt ca?';
+        }
+        
+        $this->showCheckoutWarning = true;
+    }
+    
+    /**
+     * Format minutes to readable time
+     */
+    private function formatMinutes(int $minutes): string
+    {
+        if ($minutes < 60) {
+            return "{$minutes} phút";
+        }
+        
+        $hours = floor($minutes / 60);
+        $remainingMinutes = $minutes % 60;
+        
+        if ($remainingMinutes === 0) {
+            return "{$hours} giờ";
+        }
+        
+        return "{$hours} giờ {$remainingMinutes} phút";
     }
     
     // Generate text report for easy copy-paste
@@ -192,15 +347,30 @@ class ShiftClosing extends Component
 
     public function submit()
     {
-        $this->validate([
-            'tienMat' => 'required|numeric|min:0',
-            'tienChuyenKhoan' => 'required|numeric|min:0',
-            'closingStock.*' => 'required|numeric|min:0',
-            'photosCash.*' => 'image|max:10240',
-            'photosStock.*' => 'image|max:10240',
-        ]);
+        // Skip validation if already validated in initiateSubmit
+        if (!$this->showCheckoutWarning) {
+            $this->validate([
+                'tienMat' => 'required|numeric|min:0',
+                'tienChuyenKhoan' => 'required|numeric|min:0',
+                'closingStock.*' => 'required|numeric|min:0',
+                'photosCash.*' => 'image|max:10240',
+                'photosStock.*' => 'image|max:10240',
+            ]);
+        }
         
         DB::transaction(function () {
+            // Determine note based on checkout type
+            $autoNote = match($this->checkoutWarningType) {
+                'early' => 'Chốt ca sớm',
+                'late' => 'Chốt ca muộn - Quên chốt ca',
+                default => '',
+            };
+            
+            // Combine auto note with user note
+            $finalNote = $autoNote;
+            if (!empty($this->ghiChu)) {
+                $finalNote .= ($finalNote ? ' - ' : '') . $this->ghiChu;
+            }
             // 1. Create PhieuChotCa
             $phieu = new PhieuChotCa();
             $phieu->ma_phieu = 'PCC-' . time();
@@ -250,8 +420,9 @@ class ShiftClosing extends Component
             
             $phieu->ton_dau_ca = json_encode($tonDau);
             $phieu->ton_cuoi_ca = json_encode($tonCuoi);
-            $phieu->ghi_chu = $this->ghiChu;
+            $phieu->ghi_chu = $finalNote;
             $phieu->trang_thai = 'cho_duyet';
+            $phieu->ot = $this->isOvertime;
             
             $phieu->save();
             

@@ -92,8 +92,7 @@ class CheckIn extends Component
             ->where('trang_thai_checkin', true)
             ->where('trang_thai', 'dang_lam')
             ->whereDate('ngay_lam', '<=', Carbon::today())
-            ->orderBy('ngay_lam', 'desc')
-            ->orderBy('gio_bat_dau', 'desc')
+            ->orderBy('thoi_gian_checkin', 'asc') // Get oldest unclosed shift first
             ->first();
         
         if ($unclosed) {
@@ -151,6 +150,7 @@ class CheckIn extends Component
             ->where('trang_thai_checkin', true)
             ->where('trang_thai', 'dang_lam')
             ->whereDate('ngay_lam', '<=', Carbon::today())
+            ->orderBy('thoi_gian_checkin', 'asc') // Get oldest first
             ->first();
         
         if ($unclosed) {

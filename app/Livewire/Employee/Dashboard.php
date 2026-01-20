@@ -17,6 +17,7 @@ class Dashboard extends Component
     public $todayShift;
     public $todayAttendance;
     public $monthlyStats = [];
+    public $unclosedShifts = []; // All unclosed shifts (today only)
 
     public function mount()
     {
@@ -25,6 +26,14 @@ class Dashboard extends Component
         // Get employee's assigned agency (first agency for now)
         // In future, this should be from employee assignment table
         $this->agency = Agency::first(); // TODO: Get actual assigned agency
+        
+        // Get all unclosed shifts for TODAY only
+        $this->unclosedShifts = \App\Models\CaLamViec::where('nguoi_dung_id', $user->id)
+            ->where('trang_thai', 'dang_lam')
+            ->where('trang_thai_checkin', true)
+            ->whereDate('ngay_lam', Carbon::today())
+            ->orderBy('thoi_gian_checkin', 'asc')
+            ->get();
         
         // Get all registered shifts for today from shift_schedules
         $registeredShifts = ShiftSchedule::where('nguoi_dung_id', $user->id)
@@ -65,6 +74,7 @@ class Dashboard extends Component
                 ->where('shift_template_id', $shift->shift_template_id)
                 ->where('diem_ban_id', $shift->diem_ban_id)
                 ->whereDate('ngay_lam', $shift->ngay_lam)
+                ->orderBy('thoi_gian_checkin', 'desc') // Get most recent check-in
                 ->first();
             
             if ($caLamViec && $caLamViec->trang_thai !== 'da_ket_thuc' && !$caLamViec->phieuChotCa) {
