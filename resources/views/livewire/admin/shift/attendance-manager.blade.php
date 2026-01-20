@@ -97,7 +97,7 @@
                         <div class="flex items-center justify-between p-4 border-b">
                             <h3 class="text-xl font-bold text-gray-900" id="modal-title">
                                 Chi tiết chấm công - {{ $selectedUser->name ?? '' }} -
-                                {{ $currentMonth }}/{{ $currentYear }}
+                                {{ \Carbon\Carbon::parse($month)->format('m/Y') }}
                             </h3>
                             <button wire:click="syncAttendance"
                                 class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-3 rounded text-sm flex items-center">
