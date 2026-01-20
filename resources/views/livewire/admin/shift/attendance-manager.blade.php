@@ -99,9 +99,10 @@
                                 Chi tiết chấm công - {{ $selectedUser->name ?? '' }} -
                                 {{ \Carbon\Carbon::parse($month)->format('m/Y') }}
                             </h3>
-                            <button wire:click="syncAttendance"
+                            <button wire:click="syncAttendance" wire:loading.attr="disabled"
                                 class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-3 rounded text-sm flex items-center">
-                                🔄 Đồng bộ công
+                                <span wire:loading.remove wire:target="syncAttendance">🔄 Đồng bộ công</span>
+                                <span wire:loading wire:target="syncAttendance">⏳ Đang xử lý...</span>
                             </button>
                             <button wire:click="closeModal" class="text-gray-400 hover:text-gray-500">
                                 <span class="sr-only">Close</span>
