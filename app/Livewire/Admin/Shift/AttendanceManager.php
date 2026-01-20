@@ -292,7 +292,7 @@ class AttendanceManager extends Component
                     'debug_max' => $maxHours ?? 'N/A',
                     'debug_start' => isset($start) && $start ? $start->format('H:i') : 'N/A',
                     'debug_end' => isset($end) && $end ? $end->format('H:i') : 'N/A',
-                    'debug_hours' => $hours
+                    'debug_hours' => "H:$hours D:" . ($diff??'N') . " M:" . ($maxHours??'N') . " S:" . (isset($start) && $start instanceof \Carbon\Carbon ? $start->format('d/m H:i') : 'N/A') . " E:" . (isset($end) && $end instanceof \Carbon\Carbon ? $end->format('d/m H:i') : 'N/A')
                 ];
                 
                 $dailyTotalHours += max(0, $hours);
