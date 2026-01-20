@@ -209,7 +209,7 @@ class AttendanceManager extends Component
                           $end = Carbon::parse($ngayChot->format('Y-m-d') . ' ' . $gioChotStr);
                           $start = $work->thoi_gian_checkin;
                           
-                          if ($start) {
+                          if ($start && $gioChot) {
                               // Handle overnight if End < Start (and same day assumed)
                               if ($end->lt($start)) {
                                   $end->addDay();
@@ -241,9 +241,10 @@ class AttendanceManager extends Component
                          if ($start) {
                              $diff = $end->floatDiffInHours($start);
                              $hours = min($diff, $maxHours); // No OT allowed for fallback
+                             $hours = round(max(0, $hours), 2);
                          } else {
-                             // No checkin but completed? Assume full shift
-                             $hours = $maxHours;
+                             // User Request: If missing check-in/out, hours = 0
+                             $hours = 0;
                          }
                     }
                 } else {
