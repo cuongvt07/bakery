@@ -71,22 +71,15 @@ class AttendanceManager extends Component
                 if ($shift->gio_bat_dau && $shift->gio_ket_thuc) {
                     $start = Carbon::parse($shift->ngay_lam->format('Y-m-d') . ' ' . $shift->gio_bat_dau);
                     
-                    // If checkin/checkout exists and is valid, user might want to use that.
-                    // But usually for payroll, we compare scheduled vs actual.
-                    // The requirement says: "chỗ này sẽ đếm các ca đã checkin - chốt ca thành công"
-                    // "tổng thời gian làm việc (chốt ca - check in max chỉ được 8h / 1 ca)"
-                    
-                    // Let's look for Checkin/Checkout times. 
-                    // CaLamViec has 'thoi_gian_checkin'. Checkout is in 'phieuChotCa' or implied by status.
-                    // However, `CaLamViec` also has `gio_bat_dau` and `gio_ket_thuc` which might be the *assigned* time?
-                    // Let's check if there is real checkout time.
-                    // The `CheckIn` component creates `PhieuChotCa` with `gio_chot`. 
-                    
-                    // Let's prioritize actual PhieuChotCa times if available, otherwise fallback or 0.
-                    
                     $checkInTime = $shift->thoi_gian_checkin;
                     $checkOutTime = null;
                     
+                    // Calculate Max Hours from Schedule
+                    $sStart = Carbon::parse($shift->gio_bat_dau);
+                    $sEnd = Carbon::parse($shift->gio_ket_thuc);
+                    $maxHours = $sStart->diffInHours($sEnd);
+                    if ($maxHours == 0) $maxHours = 8;
+
                     if ($shift->phieuChotCa) {
                         // Combine date and time
                         $checkOutDate = $shift->phieuChotCa->ngay_chot;
@@ -95,14 +88,21 @@ class AttendanceManager extends Component
                             $checkOutTime = Carbon::parse($checkOutDate->format('Y-m-d') . ' ' . Carbon::parse($checkOutTimeStr)->format('H:i:s'));
                         }
                     } elseif ($shift->trang_thai == 'da_ket_thuc') {
-                        // Fallback to shift end time if completed but no phieu (rare?)
-                         $checkOutTime = Carbon::make($shift->ngay_lam->format('Y-m-d').' '.$shift->gio_ket_thuc);
+                        // Fallback
+                         $checkOutTime = $shift->shift_end_date_time;
+                         // If no checkin, assume full if completed?
+                         if (!$checkInTime) {
+                             $totalHours += $maxHours;
+                             continue;
+                         }
                     }
 
                     if ($checkInTime && $checkOutTime) {
-                        $diffInHours = $checkOutTime->diffInMinutes($checkInTime) / 60;
-                        // Max 8 hours
-                        $hours = min($diffInHours, 8);
+                        $diffInHours = $checkOutTime->floatDiffInHours($checkInTime);
+                        
+                        $isOt = $shift->phieuChotCa->ot ?? false;
+                        $hours = $isOt ? $diffInHours : min($diffInHours, $maxHours);
+                        
                         $totalHours += max(0, $hours); // Ensure no negative
                     }
                 }
@@ -243,7 +243,17 @@ class AttendanceManager extends Component
                 $agencyName = $sch->agency->ten_diem_ban ?? 'Điểm chưa rõ';
                 $shiftName = "{$templateName} - {$agencyName}";
 
+                \Illuminate\Support\Facades\Log::info("ATTENDANCE_DEBUG: WorkID: " . ($work->id ?? 'null') . " Date: $currentDate", [
+                    'checkIn' => $checkIn,
+                    'checkOut' => $checkOut,
+                    'diff' => $diff ?? 'null',
+                    'max' => $maxHours ?? 'null',
+                    'hours' => $hours,
+                    'isOt' => $isOt ?? 'null'
+                ]);
+
                 $shifts[] = [
+                    'id' => $work->id ?? null,
                     'name' => $shiftName,
                     'is_extra' => false,
                     'schedule_time' => $sch->gio_bat_dau->format('H:i') . ' - ' . $sch->gio_ket_thuc->format('H:i'),
@@ -295,6 +305,7 @@ class AttendanceManager extends Component
                 $shiftName = "{$templateName} - {$agencyName}";
 
                 $shifts[] = [
+                    'id' => $work->id,
                     'name' => $shiftName,
                     'is_extra' => true,
                     'schedule_time' => 'Bổ sung',
