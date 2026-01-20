@@ -248,8 +248,8 @@
                                                                     <td
                                                                         class="px-4 py-2 text-center font-mono text-gray-700">
                                                                         {{ $shift['actual_out'] }}</td>
-                                                                    <td class="px-4 py-2 text-center font-bold text-gray-900"
-                                                                        title="Diff: {{ $shift['debug_diff'] }} | Max: {{ $shift['debug_max'] }} | Raw: {{ $shift['debug_hours'] }}">
+                                                                    <td
+                                                                        class="px-4 py-2 text-center font-bold text-gray-900">
                                                                         {{ $shift['hours'] }}</td>
                                                                     <td class="px-4 py-2 text-center text-lg">
                                                                         @if ($shift['hours'] > 8)
