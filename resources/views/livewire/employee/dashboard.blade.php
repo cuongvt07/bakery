@@ -54,24 +54,48 @@
                         @if ($todayAttendance->trang_thai === 'dang_lam')
                             @php
                                 $expectedCheckout = $todayAttendance->expected_checkout_time;
-                                $now = now();
-                                $timeLeft = $now->diffForHumans($expectedCheckout, [
-                                    'parts' => 2,
-                                    'join' => false,
-                                    'short' => true,
-                                    'syntax' => \Carbon\CarbonInterface::DIFF_ABSOLUTE,
-                                ]);
-                                $isOvertime = $now->gt($expectedCheckout);
+                                $targetTime = $expectedCheckout->toIso8601String();
                             @endphp
+
                             <div class="flex justify-between items-center text-sm bg-white/10 p-2 rounded-lg">
                                 <span class="text-indigo-200">Dự kiến ra:</span>
                                 <span class="font-bold">{{ $expectedCheckout->format('H:i') }}</span>
                             </div>
 
-                            <div
-                                class="flex justify-between items-center text-sm {{ $isOvertime ? 'bg-red-500/20 text-red-100' : 'bg-green-500/20 text-green-100' }} p-2 rounded-lg border {{ $isOvertime ? 'border-red-500/30' : 'border-green-500/30' }}">
-                                <span>{{ $isOvertime ? 'Quá giờ:' : 'Còn lại:' }}</span>
-                                <span class="font-bold">{{ $timeLeft }}</span>
+                            <div x-data="{
+                                target: new Date('{{ $targetTime }}'),
+                                now: new Date(),
+                                timeDisplay: '',
+                                isOvertime: false,
+                                updateTime() {
+                                    this.now = new Date();
+                                    let diff = this.target - this.now;
+                                    this.isOvertime = diff < 0;
+                            
+                                    diff = Math.abs(diff);
+                            
+                                    const hours = Math.floor(diff / (1000 * 60 * 60));
+                                    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                                    const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+                            
+                                    let text = '';
+                                    if (hours > 0) text += hours + ' giờ ';
+                                    text += minutes + ' phút ';
+                            
+                                    // Show seconds if less than 1 hour remains or is overtime
+                                    if (hours === 0 || this.isOvertime) {
+                                        text += seconds + ' giây';
+                                    }
+                            
+                                    this.timeDisplay = text;
+                                }
+                            }" x-init="updateTime();
+                            setInterval(() => updateTime(), 1000)"
+                                class="flex justify-between items-center text-sm p-2 rounded-lg border transition-colors duration-300"
+                                :class="isOvertime ? 'bg-red-500/20 text-red-100 border-red-500/30' :
+                                    'bg-green-500/20 text-green-100 border-green-500/30'">
+                                <span x-text="isOvertime ? 'Quá giờ:' : 'Còn lại:'"></span>
+                                <span class="font-bold font-mono" x-text="timeDisplay"></span>
                             </div>
                         @endif
                     </div>
