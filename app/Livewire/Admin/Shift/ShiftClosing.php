@@ -377,8 +377,8 @@ class ShiftClosing extends Component
             $phieu->diem_ban_id = $this->shift->diem_ban_id;
             $phieu->nguoi_chot_id = Auth::id();
             $phieu->ca_lam_viec_id = $this->shiftId;
-            $phieu->ngay_chot = now();
-            $phieu->gio_chot = now();
+            $phieu->ngay_chot = now()->toDateString(); // Use string format
+            $phieu->gio_chot = now()->toTimeString(); // Use string format
             
             $phieu->tien_mat = $this->tienMat;
             $phieu->tien_chuyen_khoan = $this->tienChuyenKhoan;
