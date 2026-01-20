@@ -162,55 +162,12 @@ class AttendanceManager extends Component
                     $checkIn = $work->thoi_gian_checkin ? $work->thoi_gian_checkin->format('H:i') : '-';
                     
                     if ($work->phieuChotCa) {
-                          $checkOut = Carbon::parse($work->phieuChotCa->gio_chot)->format('H:i');
-                          
-                          // Robust End Time Calculation
-                          $ngayChot = $work->phieuChotCa->ngay_chot ?? $work->ngay_lam;
-                          $gioChot = $work->phieuChotCa->gio_chot;
-                          // Ensure string format
-                          $gioChotStr = $gioChot instanceof \Carbon\Carbon ? $gioChot->format('H:i:s') : $gioChot;
-                          
-                          $end = Carbon::parse($ngayChot->format('Y-m-d') . ' ' . $gioChotStr);
-                          $start = $work->thoi_gian_checkin;
-                          
-                          if ($start && $gioChot) {
-                              // Handle overnight if End < Start (and same day assumed)
-                              if ($end->lt($start)) {
-                                  $end->addDay();
-                              }
-                              
-                              $diff = $end->floatDiffInHours($start); 
-                              
-                              // Calculate max hours from schedule
-                              $schStart = Carbon::parse($sch->gio_bat_dau);
-                              $schEnd = Carbon::parse($sch->gio_ket_thuc);
-                              $maxHours = $schStart->diffInHours($schEnd); // Usually 4 or 8
-                              if ($maxHours == 0) $maxHours = 8; // Fallback
-                              
-                              $isOt = (bool)($work->phieuChotCa->ot ?? false);
-                              $hours = $isOt ? $diff : min($diff, $maxHours);
-                              $hours = round(max(0, $hours), 2);
-                          }
+                        $checkOut = Carbon::parse($work->phieuChotCa->gio_chot)->format('H:i');
                     } elseif ($work->trang_thai == 'da_ket_thuc') {
                         $checkOut = substr($work->gio_ket_thuc, 0, 5) . ' (Est)';
-                        // Fallback calculation for completed shifts without Phieu
-                         $end = $work->shift_end_date_time; // Using accessor
-                         $start = $work->thoi_gian_checkin;
-                         
-                         $schStart = Carbon::parse($sch->gio_bat_dau);
-                         $schEnd = Carbon::parse($sch->gio_ket_thuc);
-                         $maxHours = $schStart->diffInHours($schEnd);
-                         if ($maxHours == 0) $maxHours = 8;
-                         
-                         if ($start) {
-                             $diff = $end->floatDiffInHours($start);
-                             $hours = min($diff, $maxHours); // No OT allowed for fallback
-                             $hours = round(max(0, $hours), 2);
-                         } else {
-                             // User Request: If missing check-in/out, hours = 0
-                             $hours = 0;
-                         }
                     }
+                    
+                    $hours = $this->calculateWorkHours($work);
                 } else {
                     // Check if date is in past
                     if ($currentDate->lt(now())) {
@@ -252,11 +209,7 @@ class AttendanceManager extends Component
                     'hours' => max(0, round($hours, 2)),
                     'status' => $status,
                     'is_ot' => $work->phieuChotCa->ot ?? false,
-                    'debug_diff' => $diff ?? 'N/A',
-                    'debug_max' => $maxHours ?? 'N/A',
-                    'debug_start' => isset($start) && $start ? $start->format('H:i') : 'N/A',
-                    'debug_end' => isset($end) && $end ? $end->format('H:i') : 'N/A',
-                    'debug_hours' => "H:$hours D:" . ($diff??'N') . " M:" . ($maxHours??'N') . " S:" . (isset($start) && $start instanceof \Carbon\Carbon ? $start->format('d/m H:i') : 'N/A') . " E:" . (isset($end) && $end instanceof \Carbon\Carbon ? $end->format('d/m H:i') : 'N/A')
+                    'debug_hours' => $hours
                 ];
                 
                 $dailyTotalHours += max(0, $hours);
