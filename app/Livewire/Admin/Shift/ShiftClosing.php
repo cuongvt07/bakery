@@ -84,14 +84,16 @@ class ShiftClosing extends Component
 
                 $phieu->save();
 
-                // Update shift status
+                // Update shift status AND set total hours to 0
                 $shift->trang_thai = 'da_ket_thuc';
+                $shift->tong_gio_lam_viec = 0; // Checkout = Checkin → Total hours = 0
                 $shift->save();
 
                 \Log::info('ShiftClosing: Auto-closed shift', [
                     'shift_id' => $shift->id,
                     'ngay_lam' => $shift->ngay_lam->format('Y-m-d'),
-                    'phieu_id' => $phieu->id
+                    'phieu_id' => $phieu->id,
+                    'tong_gio_lam_viec' => 0
                 ]);
             }
         });

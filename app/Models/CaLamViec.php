@@ -37,10 +37,10 @@ class CaLamViec extends Model
      */
     public function getShiftEndDateTimeAttribute()
     {
-        $timeStr = is_string($this->gio_ket_thuc) 
-            ? $this->gio_ket_thuc 
+        $timeStr = is_string($this->gio_ket_thuc)
+            ? $this->gio_ket_thuc
             : $this->gio_ket_thuc->format('H:i:s');
-        
+
         return \Carbon\Carbon::createFromFormat(
             'Y-m-d H:i:s',
             $this->ngay_lam->format('Y-m-d') . ' ' . $timeStr
@@ -52,10 +52,10 @@ class CaLamViec extends Model
      */
     public function getShiftStartDateTimeAttribute()
     {
-        $timeStr = is_string($this->gio_bat_dau) 
-            ? $this->gio_bat_dau 
+        $timeStr = is_string($this->gio_bat_dau)
+            ? $this->gio_bat_dau
             : $this->gio_bat_dau->format('H:i:s');
-        
+
         return \Carbon\Carbon::createFromFormat(
             'Y-m-d H:i:s',
             $this->ngay_lam->format('Y-m-d') . ' ' . $timeStr
@@ -82,22 +82,22 @@ class CaLamViec extends Model
             // If not checked in yet, use shift_end_date_time
             return $this->shift_end_date_time;
         }
-        
+
         // Get shift template times as time strings
-        $startTimeStr = is_string($this->gio_bat_dau) 
-            ? $this->gio_bat_dau 
+        $startTimeStr = is_string($this->gio_bat_dau)
+            ? $this->gio_bat_dau
             : $this->gio_bat_dau->format('H:i:s');
-        $endTimeStr = is_string($this->gio_ket_thuc) 
-            ? $this->gio_ket_thuc 
+        $endTimeStr = is_string($this->gio_ket_thuc)
+            ? $this->gio_ket_thuc
             : $this->gio_ket_thuc->format('H:i:s');
-        
+
         // Parse template times on the shift date
         $templateStart = \Carbon\Carbon::createFromFormat('Y-m-d H:i:s', $this->ngay_lam->format('Y-m-d') . ' ' . $startTimeStr);
         $templateEnd = \Carbon\Carbon::createFromFormat('Y-m-d H:i:s', $this->ngay_lam->format('Y-m-d') . ' ' . $endTimeStr);
-        
+
         // Calculate shift duration in minutes
         $shiftDurationMinutes = $templateStart->diffInMinutes($templateEnd, false);
-        
+
         // Expected checkout = actual check-in + shift duration
         return $this->thoi_gian_checkin->copy()->addMinutes($shiftDurationMinutes);
     }
@@ -150,7 +150,8 @@ class CaLamViec extends Model
     /**
      * Calculate and save total hours worked
      * Called when sync button is clicked
-     * Calculates from check-in to checkout times
+     * Only calculates for CLOSED shifts (with phieuChotCa)
+     * Unclosed shifts will have total hours = 0
      */
     public function calculateAndSaveTotalHours()
     {
@@ -159,15 +160,26 @@ class CaLamViec extends Model
             $this->tong_gio_lam_viec = 0;
             return $this;
         }
-        
-        // Get actual checkout time from phieuChotCa (gio_chot)
-        // If shift not closed yet, use current time
-        $checkoutTime = $this->phieuChotCa?->gio_chot ?? now();
-        
+
+        // IMPORTANT: Only calculate for CLOSED shifts (with phieuChotCa)
+        // Unclosed shifts should have total hours = 0
+        if (!$this->phieuChotCa || !$this->phieuChotCa->gio_chot) {
+            $this->tong_gio_lam_viec = 0;
+            return $this;
+        }
+
+        // Get actual checkout time from phieuChotCa
+        $checkoutTime = $this->phieuChotCa->gio_chot;
+
+        // Parse checkout datetime properly
+        $ngayChot = $this->phieuChotCa->ngay_chot ?? $this->ngay_lam;
+        $gioChotStr = $checkoutTime instanceof \Carbon\Carbon ? $checkoutTime->format('H:i:s') : $checkoutTime;
+        $checkoutDateTime = \Carbon\Carbon::parse($ngayChot->format('Y-m-d') . ' ' . $gioChotStr);
+
         // Calculate minutes difference and convert to hours
-        $minutes = $this->thoi_gian_checkin->diffInMinutes($checkoutTime);
+        $minutes = $this->thoi_gian_checkin->diffInMinutes($checkoutDateTime);
         $totalHours = round($minutes / 60, 2); // Store with 2 decimal places
-        
+
         $this->tong_gio_lam_viec = $totalHours;
         return $this;
     }
@@ -178,7 +190,7 @@ class CaLamViec extends Model
     public function scopeUpcoming($query)
     {
         return $query->where('ngay_lam', '>=', today())
-                     ->where('trang_thai', 'chua_bat_dau');
+            ->where('trang_thai', 'chua_bat_dau');
     }
 
     public function scopeToday($query)
