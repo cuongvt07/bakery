@@ -68,18 +68,28 @@ class AttendanceManager extends Component
 
             $totalAttended = $actualShifts->count();
             
-            // 4. Calculate Total Hours
+            // 4. Calculate Total Hours - Use stored value from tong_gio_lam_viec
             $totalHours = 0;
             foreach ($actualShifts as $shift) {
-                // Use consistent calculation logic
-                $totalHours += $this->calculateWorkHours($shift);
+                // Use stored total hours from database (calculated during sync)
+                // Falls back to calculateWorkHours if not yet synced
+                $totalHours += $shift->tong_gio_lam_viec ?? $this->calculateWorkHours($shift);
             }
+            
+            // 5. Calculate Salary
+            // Hệ số lương = Lương tháng (không chia gì)
+            // Lương thực tế = Hệ số × Tổng giờ
+            $monthlySalary = $user->getSalaryForCalculation();
+            $hourlyRate = $monthlySalary; // Hệ số lương = lương tháng
+            $totalSalary = round($monthlySalary * $totalHours, 0); // Total = hệ số × hours
 
             $summary[] = [
                 'user' => $user,
                 'registered_count' => $registeredShifts,
                 'attended_count' => $totalAttended,
                 'total_hours' => round($totalHours, 2),
+                'hourly_rate' => $hourlyRate,
+                'total_salary' => $totalSalary,
             ];
         }
 
@@ -167,7 +177,9 @@ class AttendanceManager extends Component
                         $checkOut = substr($work->gio_ket_thuc, 0, 5) . ' (Est)';
                     }
                     
-                    $hours = $this->calculateWorkHours($work);
+                    // Use stored total hours from database (calculated during sync)
+                    // Falls back to calculateWorkHours if not yet synced
+                    $hours = $work->tong_gio_lam_viec ?? $this->calculateWorkHours($work);
                 } else {
                     // Check if date is in past
                     if ($currentDate->lt(now())) {
@@ -208,24 +220,31 @@ class AttendanceManager extends Component
                 
                 if ($work->phieuChotCa) {
                      $checkOut = Carbon::parse($work->phieuChotCa->gio_chot)->format('H:i');
-                     $end = Carbon::parse($work->phieuChotCa->ngay_chot->format('Y-m-d') . ' ' . Carbon::parse($work->phieuChotCa->gio_chot)->format('H:i:s'));
-                     $start = $work->thoi_gian_checkin;
-                     if ($start) {
-                          $diff = $end->floatDiffInHours($start);
-                          
-                           // Calculate max hours from schedule
-                           $templateStart = $work->shiftTemplate->start_time ?? '00:00';
-                           $templateEnd = $work->shiftTemplate->end_time ?? '00:00';
-                           $maxHours = 8; // Default for extra
-                           if ($templateStart && $templateEnd) {
-                               $s = Carbon::parse($templateStart);
-                               $e = Carbon::parse($templateEnd);
-                               $maxHours = $s->diffInHours($e);
-                           }
+                     // Use stored total hours from database (calculated during sync)
+                     // Falls back to calculation if not yet synced
+                     $hours = $work->tong_gio_lam_viec ?? 0;
+                     
+                     if (!$hours) {
+                          // Fallback: Calculate if not stored yet
+                          $end = Carbon::parse($work->phieuChotCa->ngay_chot->format('Y-m-d') . ' ' . Carbon::parse($work->phieuChotCa->gio_chot)->format('H:i:s'));
+                          $start = $work->thoi_gian_checkin;
+                          if ($start) {
+                               $diff = $end->floatDiffInHours($start);
+                               
+                                // Calculate max hours from schedule
+                                $templateStart = $work->shiftTemplate->start_time ?? '00:00';
+                                $templateEnd = $work->shiftTemplate->end_time ?? '00:00';
+                                $maxHours = 8; // Default for extra
+                                if ($templateStart && $templateEnd) {
+                                    $s = Carbon::parse($templateStart);
+                                    $e = Carbon::parse($templateEnd);
+                                    $maxHours = $s->diffInHours($e);
+                                }
 
-                          $isOt = $work->phieuChotCa->ot ?? false;
-                          $hours = $isOt ? $diff : min($diff, $maxHours);
-                      }
+                               $isOt = $work->phieuChotCa->ot ?? false;
+                               $hours = $isOt ? $diff : min($diff, $maxHours);
+                           }
+                     }
                 }
 
                 $templateName = $work->shiftTemplate->name ?? 'Ca bổ sung';
@@ -364,6 +383,25 @@ class AttendanceManager extends Component
                  // Let's rely on manual correction if needed, or simple check:
                  $ci = Carbon::parse($this->editingCheckIn);
                  $co = Carbon::parse($this->editingCheckOut);
+                 
+                 // Calculate actual hours worked
+                 $actualHours = $ci->diffInMinutes($co) / 60;
+                 
+                 // Get max hours from shift template
+                 $maxHours = 8;
+                 if ($work->gio_bat_dau && $work->gio_ket_thuc) {
+                     $templateStart = Carbon::parse($work->gio_bat_dau);
+                     $templateEnd = Carbon::parse($work->gio_ket_thuc);
+                     $maxHours = $templateStart->diffInHours($templateEnd);
+                     if ($maxHours == 0) $maxHours = 8;
+                 }
+                 
+                 // CAP hours if NOT OT: Only allow up to max shift hours
+                 if (!$this->editingIsOt && $actualHours > $maxHours) {
+                     $co = $ci->copy()->addHours($maxHours);
+                     $this->dispatch('alert', ['type' => 'warning', 'message' => "Giờ làm vượt quá lịch ca ({$maxHours}h). Tự động cap tối đa {$maxHours}h (chưa tick OT)"]);
+                 }
+                 
                  if ($co->lt($ci)) {
                       $phieu->ngay_chot = $work->ngay_lam->copy()->addDay();
                  } else {
@@ -385,7 +423,28 @@ class AttendanceManager extends Component
                  // Logic for date rollover if user changed time?
                  // Maybe keep existing date unless time implies rollover?
                  // For now just update Time and OT.
-                 $work->phieuChotCa->gio_chot = Carbon::parse($this->editingCheckOut)->toTimeString();
+                 $ci = Carbon::parse($this->editingCheckIn);
+                 $co = Carbon::parse($this->editingCheckOut);
+                 
+                 // Calculate actual hours worked
+                 $actualHours = $ci->diffInMinutes($co) / 60;
+                 
+                 // Get max hours from shift template
+                 $maxHours = 8;
+                 if ($work->gio_bat_dau && $work->gio_ket_thuc) {
+                     $templateStart = Carbon::parse($work->gio_bat_dau);
+                     $templateEnd = Carbon::parse($work->gio_ket_thuc);
+                     $maxHours = $templateStart->diffInHours($templateEnd);
+                     if ($maxHours == 0) $maxHours = 8;
+                 }
+                 
+                 // CAP hours if NOT OT: Only allow up to max shift hours
+                 if (!$this->editingIsOt && $actualHours > $maxHours) {
+                     $co = $ci->copy()->addHours($maxHours);
+                     $this->dispatch('alert', ['type' => 'warning', 'message' => "Giờ làm vượt quá lịch ca ({$maxHours}h). Tự động cap tối đa {$maxHours}h (chưa tick OT)"]);
+                 }
+                 
+                 $work->phieuChotCa->gio_chot = $co->toTimeString();
                  $work->phieuChotCa->ot = $this->editingIsOt;
                  $work->phieuChotCa->save();
             }
@@ -397,12 +456,20 @@ class AttendanceManager extends Component
 
     public function syncAttendance()
     {
-        // For now, just refresh the calculation by reloading
-        // Future: Save calculated hours to DB if column exists
+        // Calculate and save total hours for all shifts with check-in
+        $shifts = \App\Models\CaLamViec::whereNotNull('thoi_gian_checkin')->get();
+        
+        foreach ($shifts as $shift) {
+            // Calculate and save total hours
+            $shift->calculateAndSaveTotalHours()->save();
+        }
+        
+        // Reload detail if user is selected
         if ($this->selectedUserId) {
             $this->showDetail($this->selectedUserId);
         }
-        $this->dispatch('alert', ['type' => 'success', 'message' => 'Đã đồng bộ công thành công!']);
+        
+        $this->dispatch('alert', ['type' => 'success', 'message' => 'Đã đồng bộ công thành công! Tính toán giờ làm được lưu lại.']);
     }
 
     private function calculateWorkHours($work)

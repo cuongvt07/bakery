@@ -22,6 +22,7 @@ class CaLamViec extends Model
         'tien_mat_dau_ca',
         'ghi_chu',
         'shift_template_id',
+        'tong_gio_lam_viec',
     ];
 
     protected $casts = [
@@ -63,14 +64,12 @@ class CaLamViec extends Model
 
     /**
      * Get total hours worked in this shift
-     * Returns float (e.g., 4.5 for 4 hours 30 minutes)
+     * Returns stored value from tong_gio_lam_viec column
+     * This is calculated and saved when sync button is clicked
      */
     public function getTotalHoursAttribute()
     {
-        $start = $this->shift_start_date_time;
-        $end = $this->shift_end_date_time;
-        
-        return $end->diffInMinutes($start) / 60;
+        return $this->tong_gio_lam_viec ?? 0;
     }
 
     /**
@@ -146,6 +145,31 @@ class CaLamViec extends Model
     public function shiftTemplate(): BelongsTo
     {
         return $this->belongsTo(ShiftTemplate::class, 'shift_template_id');
+    }
+
+    /**
+     * Calculate and save total hours worked
+     * Called when sync button is clicked
+     * Calculates from check-in to checkout times
+     */
+    public function calculateAndSaveTotalHours()
+    {
+        // If not checked in yet, set to 0
+        if (!$this->thoi_gian_checkin) {
+            $this->tong_gio_lam_viec = 0;
+            return $this;
+        }
+        
+        // Get actual checkout time from phieuChotCa (gio_chot)
+        // If shift not closed yet, use current time
+        $checkoutTime = $this->phieuChotCa?->gio_chot ?? now();
+        
+        // Calculate minutes difference and convert to hours
+        $minutes = $this->thoi_gian_checkin->diffInMinutes($checkoutTime);
+        $totalHours = round($minutes / 60, 2); // Store with 2 decimal places
+        
+        $this->tong_gio_lam_viec = $totalHours;
+        return $this;
     }
 
     /**

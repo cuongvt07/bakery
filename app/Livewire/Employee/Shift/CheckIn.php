@@ -286,10 +286,10 @@ class CheckIn extends Component
     {
         $agencyId = $this->shift->diem_ban_id;
         
-        // Find all distributions for this agency, today only, with status 'chua_nhan'
+        // Find all distributions for this agency, with status 'chua_nhan'
+        // NO DATE FILTER - show all pending distributions even from previous days
         $distributions = PhanBoHangDiemBan::with(['product'])
             ->where('diem_ban_id', $agencyId)
-            ->whereDate('created_at', Carbon::today())
             ->where('trang_thai', 'chua_nhan')
             ->get();
             
@@ -297,13 +297,15 @@ class CheckIn extends Component
         $this->receivedStock = [];
         $this->maxStock = [];
         
+        $uniqueProducts = [];
+        
         foreach ($distributions as $dist) {
             if ($dist->product) {
                 $product = $dist->product;
                 
                 // Add to products list if not already there
                 if (!isset($this->receivedStock[$product->id])) {
-                    $this->products[] = $product;
+                    $uniqueProducts[$product->id] = $product;
                     $this->receivedStock[$product->id] = null; // Default to null for placeholder behavior
                     $this->maxStock[$product->id] = 0;
                 }
@@ -312,6 +314,8 @@ class CheckIn extends Component
                 $this->maxStock[$product->id] += $dist->so_luong;
             }
         }
+        
+        $this->products = array_values($uniqueProducts);
     }
     
     public function fillMaxStock($productId)
@@ -377,35 +381,36 @@ class CheckIn extends Component
             $this->shift->update($updateData);
             
             if ($checkinType === 'sales') {
-                // 2. Create Shift Details (ChiTietCaLam)
-                foreach ($this->products as $p) {
-                    // Treat null as 0
-                    $qty = $this->receivedStock[$p->id] ? $this->receivedStock[$p->id] : 0;
-                    
-                    if ($qty > 0) {
-                        ChiTietCaLam::create([
-                            'ca_lam_viec_id' => $this->shift->id,
-                            'san_pham_id' => $p->id,
-                            'so_luong_nhan_ca' => $qty,
-                            'so_luong_giao_ca' => 0,
-                            'so_luong_ban' => 0,
-                        ]);
-                    }
-                }
+            // 2. Create/Update Shift Details (ChiTietCaLam)
+            foreach ($this->products as $p) {
+                // Treat null as 0
+                $qty = $this->receivedStock[$p->id] ? $this->receivedStock[$p->id] : 0;
                 
-                // 3. Mark distributions as received
-                $agencyId = $this->shift->diem_ban_id;
-                $startTime = Carbon::parse($this->shift->gio_bat_dau);
-                $session = $startTime->lt(Carbon::parse('12:00:00')) ? 'sang' : 'chieu';
-                
-                PhanBoHangDiemBan::where('diem_ban_id', $agencyId)
-                    ->whereDate('created_at', Carbon::today())
-                    ->where('buoi', $session)
-                    ->where('trang_thai', 'chua_nhan')
-                    ->update([
-                        'trang_thai' => 'da_nhan',
-                        'nguoi_nhan_id' => Auth::id(),
+                if ($qty > 0) {
+                    $detail = ChiTietCaLam::firstOrNew([
+                        'ca_lam_viec_id' => $this->shift->id,
+                        'san_pham_id' => $p->id,
                     ]);
+                    
+                    // Add to existing quantity if any
+                    $detail->so_luong_nhan_ca = ($detail->so_luong_nhan_ca ?? 0) + $qty;
+                    $detail->save();
+                }
+            }
+            
+            // 3. Mark distributions as received (ALL pending for this session)
+            $agencyId = $this->shift->diem_ban_id;
+            $startTime = Carbon::parse($this->shift->gio_bat_dau);
+            $session = $startTime->lt(Carbon::parse('12:00:00')) ? 'sang' : 'chieu';
+            
+            PhanBoHangDiemBan::where('diem_ban_id', $agencyId)
+                // NO DATE FILTER - receive all pending
+                ->where('buoi', $session)
+                ->where('trang_thai', 'chua_nhan')
+                ->update([
+                    'trang_thai' => 'da_nhan',
+                    'nguoi_nhan_id' => Auth::id(),
+                ]);
             }
         });
         

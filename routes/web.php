@@ -92,6 +92,7 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::get('/production-batches', App\Livewire\Admin\Production\ProductionBatchList::class)->name('production-batches.index');
     Route::get('/production-batches/create', App\Livewire\Admin\Production\ProductionBatchForm::class)->name('production-batches.create');
     Route::get('/production-batches/{id}/edit', App\Livewire\Admin\Production\ProductionBatchForm::class)->name('production-batches.edit');
+    Route::get('/batches/monitoring', App\Livewire\Admin\Batch\BatchMonitoring::class)->name('batches.monitoring');
     // Route::get('/expiry-report', App\Livewire\Admin\Production\ExpiryReport::class)->name('expiry-report.index');
     Route::get('/attendance', App\Livewire\Admin\Shift\AttendanceManager::class)->name('attendance.index');
     

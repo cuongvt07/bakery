@@ -24,6 +24,10 @@
                         Công (Ca)</th>
                     <th class="px-6 py-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Tổng
                         Giờ</th>
+                    <th class="px-6 py-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Hệ số
+                        Lương (₫/h)</th>
+                    <th class="px-6 py-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Lương
+                        (VNĐ)</th>
                     <th class="px-6 py-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Hành
                         động</th>
                 </tr>
@@ -63,6 +67,12 @@
                         <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-bold text-gray-800">
                             {{ $row['total_hours'] }} h
                         </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-semibold text-blue-700 bg-blue-50">
+                            {{ number_format($row['hourly_rate']) }} ₫
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-bold text-green-700 bg-green-50">
+                            {{ number_format($row['total_salary']) }} ₫
+                        </td>
                         <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
                             <button wire:click="showDetail({{ $row['user']->id }})"
                                 class="text-amber-600 hover:text-amber-900 bg-amber-50 hover:bg-amber-100 px-3 py-1.5 rounded-lg transition-colors">
@@ -72,7 +82,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="6" class="px-6 py-10 text-center text-gray-500 italic">
+                        <td colspan="8" class="px-6 py-10 text-center text-gray-500 italic">
                             Không có dữ liệu chấm công cho tháng này
                         </td>
                     </tr>

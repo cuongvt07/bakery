@@ -1,4 +1,4 @@
-<div class="min-h-screen bg-gray-50 pb-80" x-data="{ wakeLock: null }" x-init="
+<div class="min-h-screen bg-gray-50 pb-80" x-data="{ wakeLock: null }" x-init="(() => {
     // Request Wake Lock to keep screen on
     if ('wakeLock' in navigator) {
         navigator.wakeLock.request('screen').then(lock => {
@@ -8,7 +8,7 @@
             console.log('Wake lock error:', err);
         });
     }
-">
+})()">
     {{-- Sticky Header --}}
     <div class="sticky top-0 z-10 bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg">
         <div class="px-4 py-4">

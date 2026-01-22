@@ -148,20 +148,36 @@
                                                         <div class="flex-1 min-w-0 mr-2">
                                                             <p class="text-sm font-semibold text-gray-900 truncate">
                                                                 {{ $detail->product->ten_san_pham }}</p>
-                                                            <p class="text-xs text-gray-600">
-                                                                Tổng: {{ $avail['total'] }} | Đã:
-                                                                {{ $avail['distributed'] }} | <span
-                                                                    class="{{ $avail['available'] > 0 ? 'text-green-600' : 'text-red-600' }}">Còn:
-                                                                    {{ $avail['available'] }}</span>
-                                                            </p>
+                                                            <div class="text-xs text-gray-700 space-y-0.5">
+                                                                <div class="flex gap-2 flex-wrap">
+                                                                    <span class="bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded font-medium text-xs">
+                                                                        📦 Tổng: <span class="font-bold">{{ $avail['total'] }}</span>
+                                                                    </span>
+                                                                    <span class="bg-purple-100 text-purple-800 px-1.5 py-0.5 rounded font-medium text-xs">
+                                                                        📤 Phân: <span class="font-bold">{{ $avail['distributed_to_agency'] ?? 0 }}</span>
+                                                                    </span>
+                                                                    <span class="bg-orange-100 text-orange-800 px-1.5 py-0.5 rounded font-medium text-xs">
+                                                                        🛒 Bán: <span class="font-bold">{{ $avail['sold_at_agency'] ?? 0 }}</span>
+                                                                    </span>
+                                                                    <span class="bg-green-100 text-green-800 px-1.5 py-0.5 rounded font-bold text-xs">
+                                                                        ✅ Còn: <span class="font-bold">{{ $avail['available'] }}</span>
+                                                                    </span>
+                                                                </div>
+                                                                <p class="text-gray-500 text-xs cursor-help" 
+                                                                   title="Tính toán: Tổng={{ $avail['total'] }} - Hỏng={{ $avail['failed'] ?? 0 }} - Điều chỉnh={{ $avail['adjusted'] ?? 0 }} - Bán={{ $avail['sold_at_agency'] ?? 0 }} + Trả={{ $avail['returned'] ?? 0 }} = Còn={{ $avail['available'] }}">
+                                                                    💡 Tổng - Hỏng - Điều chỉnh - Bán + Trả = Còn lại
+                                                                </p>
+                                                            </div>
                                                         </div>
                                                         <div class="flex-shrink-0">
                                                             <input type="number"
-                                                                wire:model.live="distributionData.{{ $batch->id }}.{{ $detail->san_pham_id }}"
-                                                                min="0" max="{{ $avail['available'] }}"
+                                                                wire:model.live.debounce.500ms="distributionData.{{ $batch->id }}.{{ $detail->san_pham_id }}"
+                                                                min="0" 
+                                                                max="{{ $avail['available'] }}"
                                                                 @if ($productFull) disabled @endif
-                                                                class="w-20 px-2 py-1.5 text-center text-lg font-bold text-indigo-600 border border-gray-300 rounded focus:ring-2 focus:ring-indigo-500 disabled:bg-gray-100"
-                                                                placeholder="0">
+                                                                class="w-20 px-2 py-1.5 text-center text-lg font-bold text-indigo-600 border {{ $currentQty > $avail['available'] ? 'border-red-500 bg-red-50' : 'border-gray-300' }} rounded focus:ring-2 focus:ring-indigo-500 disabled:bg-gray-100 transition-colors"
+                                                                placeholder="0"
+                                                                title="Tối đa: {{ $avail['available'] }}">
                                                         </div>
                                                     </div>
                                                 @endforeach

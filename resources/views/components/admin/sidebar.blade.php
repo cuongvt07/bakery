@@ -313,6 +313,10 @@
                                 class="bg-red-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full min-w-[20px] text-center">{{ $pendingRequestsCount }}</span>
                         @endif
                     </a>
+                    <a href="{{ route('admin.batches.monitoring') }}"
+                        class="flex items-center px-3 py-2 rounded-md text-sm transition-all {{ request()->routeIs('admin.batches.monitoring') ? 'text-amber-700 bg-amber-50 font-medium' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">
+                        Quản lý Mẻ (Điểm bán)
+                    </a>
                 </div>
             </details>
 

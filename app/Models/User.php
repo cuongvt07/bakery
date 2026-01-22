@@ -120,6 +120,24 @@ class User extends Authenticatable
     }
 
     /**
+     * Get salary for calculation: chinh_thuc first, then thu_viec, then co_ban
+     * Returns monthly salary (hourly is calculated by dividing by standard work hours)
+     * Priority: chinh_thuc (if > 0) > thu_viec (if > 0) > co_ban
+     */
+    public function getSalaryForCalculation()
+    {
+        // Priority: chinh_thuc > thu_viec > co_ban
+        // Check value > 0, not just null (to handle 0 values correctly)
+        if ($this->luong_chinh_thuc > 0) {
+            return $this->luong_chinh_thuc;
+        }
+        if ($this->luong_thu_viec > 0) {
+            return $this->luong_thu_viec;
+        }
+        return $this->luong_co_ban ?? 0;
+    }
+
+    /**
      * Check if contract is expired
      */
     public function isContractExpired(): bool

@@ -449,6 +449,49 @@ class ShiftClosing extends Component
                     ->where('san_pham_id', $p['id'])
                     ->where('ngay', Carbon::today())
                     ->update(['ton_cuoi_ca' => $this->closingStock[$p['id']]]);
+                
+                // Log sales to batch history (FIFO - deduct from oldest batches first)
+                if ($sold > 0) {
+                    // Get distributions for this product at this shop, ordered by batch production date (oldest first)
+                    $distributions = \App\Models\PhanBoHangDiemBan::where('diem_ban_id', $this->shift->diem_ban_id)
+                        ->where('san_pham_id', $p['id'])
+                        ->whereNotNull('me_san_xuat_id')
+                        ->orderBy('created_at', 'asc')
+                        ->get();
+                    
+                    $remainingSold = $sold;
+                    foreach ($distributions as $dist) {
+                        if ($remainingSold <= 0) break;
+                        
+                        // Check how much was already sold from this distribution
+                        $alreadySold = \App\Models\LichSuCapNhatMe::where('me_san_xuat_id', $dist->me_san_xuat_id)
+                            ->where('san_pham_id', $p['id'])
+                            ->where('diem_ban_id', $this->shift->diem_ban_id)
+                            ->where('loai', \App\Models\LichSuCapNhatMe::LOAI_BAN)
+                            ->sum('so_luong_doi'); // Will be negative
+                        
+                        $availableFromDist = $dist->so_luong + $alreadySold; // so_luong is positive, alreadySold is negative
+                        
+                        if ($availableFromDist > 0) {
+                            $deduct = min($remainingSold, $availableFromDist);
+                            
+                            \App\Models\LichSuCapNhatMe::create([
+                                'me_san_xuat_id' => $dist->me_san_xuat_id,
+                                'san_pham_id' => $p['id'],
+                                'diem_ban_id' => $this->shift->diem_ban_id,
+                                'loai' => \App\Models\LichSuCapNhatMe::LOAI_BAN,
+                                'ca_lam_viec_id' => $this->shiftId,
+                                'nguoi_cap_nhat_id' => Auth::id(),
+                                'so_luong_doi' => -$deduct, // Negative = sold
+                                'du_lieu_cu' => $availableFromDist,
+                                'du_lieu_moi' => $availableFromDist - $deduct,
+                                'ghi_chu' => 'Bán ca ' . ($this->shift->gio_bat_dau < '12:00:00' ? 'sáng' : 'chiều'),
+                            ]);
+                            
+                            $remainingSold -= $deduct;
+                        }
+                    }
+                }
             }
         });
         

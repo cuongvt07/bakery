@@ -11,6 +11,7 @@ use Livewire\Attributes\Layout;
 use Livewire\WithPagination;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
+use Livewire\Attributes\Url;
 
 #[Layout('components.layouts.app')]
 class ShiftManagement extends Component
@@ -18,7 +19,8 @@ class ShiftManagement extends Component
     use WithPagination;
 
     // Tabs
-    public $activeTab = 'stores'; // 'stores' | 'workshop'
+    #[Url(as: 'tab')]
+    public $activeTab = 'stores'; // 'stores' | 'workshop' | 'batches'
 
     // Filters
     public $dateFrom = '';
@@ -97,7 +99,7 @@ class ShiftManagement extends Component
     public function updatedEmployeeFilter() { $this->resetPage(); }
     public function updatedStatusFilter() { $this->resetPage(); }
     public function updatedSearch() { $this->resetPage(); }
-    public function updatedActiveTab() { $this->resetPage(); $this->agencyFilter = ''; }
+
 
     public function setTab($tab)
     {
@@ -614,6 +616,27 @@ class ShiftManagement extends Component
         }
     }
     
+    // ... existing setDetailTab ...
+
+    public function updatedActiveTab() 
+    { 
+        $this->resetPage(); 
+        if ($this->activeTab !== 'stores' && $this->activeTab !== 'workshop') {
+             $this->agencyFilter = '';
+        }
+    }
+    
+
+    
+
+    
+    // KEEP OLD METHOD for compatibility/reference but redirect or deprecate? 
+    // Actually the old method depended on $this->selectedShift. 
+    // We should enable the new method to be called from the new UI.
+
+    // ... (Keep existing updateBatchFailure but refactor if needed) ...
+    
+    // Employee Filter Logic (Existing)
     private function getFilteredEmployees()
     {
         $query = User::where('vai_tro', 'nhan_vien');
