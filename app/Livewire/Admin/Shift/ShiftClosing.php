@@ -14,16 +14,19 @@ use Carbon\Carbon;
 #[Layout('components.layouts.app')]
 class ShiftClosing extends Component
 {
+    #[\Livewire\Attributes\Url]
+    public $confirm_closing = null;
+
     public $shiftId;
     public $shift;
     public $products = [];
-    
+
     // Inputs
     public $closingStock = []; // [product_id => quantity]
     public $tienMat = 0;
     public $tienChuyenKhoan = 0;
     public $ghiChu = '';
-    
+
     // Calculated
     public $totalTheoretical = 0;
     public $totalActual = 0;
@@ -33,6 +36,16 @@ class ShiftClosing extends Component
 
     public function mount()
     {
+        // DEBUG: Log entry point
+        \Log::info('ShiftClosing mount() called', [
+            'user_id' => Auth::id(),
+            'user_role' => Auth::user()->vai_tro,
+            'confirm_closing_property' => $this->confirm_closing,
+            'has_confirm_closing_request' => request()->has('confirm_closing'),
+            'confirm_closing_value' => request()->get('confirm_closing'),
+            'all_params' => request()->all()
+        ]);
+
         // 1. Get all unclosed shifts for TODAY only
         $unclosedShifts = CaLamViec::where('nguoi_dung_id', Auth::id())
             ->where('trang_thai', 'dang_lam')
@@ -40,41 +53,56 @@ class ShiftClosing extends Component
             ->whereDate('ngay_lam', Carbon::today()) // Only today's shifts
             ->orderBy('thoi_gian_checkin', 'asc') // Oldest first
             ->get();
-            
+
         if ($unclosedShifts->isEmpty()) {
+            \Log::info('ShiftClosing: No unclosed shifts found, redirecting to check-in');
             session()->flash('error', 'Không có ca làm việc nào đang hoạt động!');
             return $this->redirect(route('admin.shift.check-in'));
         }
-        
+
         // 2. If multiple shifts today → Show selector
         if ($unclosedShifts->count() > 1) {
+            \Log::info('ShiftClosing: Multiple shifts found, showing selector');
             $this->unclosedShifts = $unclosedShifts;
             $this->showShiftSelector = true;
             return;
         }
-        
+
         // 3. Only one shift → Load it directly
         $this->shift = $unclosedShifts->first();
-        
+
+        \Log::info('ShiftClosing: Shift loaded', [
+            'shift_id' => $this->shift->id,
+            'trang_thai_checkin' => $this->shift->trang_thai_checkin,
+            'confirm_closing_property' => $this->confirm_closing
+        ]);
+
         // 2. If checked in but not explicitly closing, redirect to POS
         // User should be at POS selling, not at closing page by accident
-        if ($this->shift->trang_thai_checkin && !request()->has('confirm_closing')) {
-            return $this->redirect('/admin/pos');
+        if ($this->shift->trang_thai_checkin && !$this->confirm_closing) {
+            \Log::info('ShiftClosing: Missing confirm_closing parameter, redirecting to POS');
+            if (Auth::user()->vai_tro === 'nhan_vien') {
+                return $this->redirect(route('employee.pos'));
+            }
+            return $this->redirect(route('admin.pos.quick-sale'));
         }
-        
+
         // 3. Must be checked in to close shift
         if (!$this->shift->trang_thai_checkin) {
+            \Log::info('ShiftClosing: Not checked in, redirecting to check-in');
             session()->flash('error', 'Vui lòng check-in trước khi chốt ca!');
             return $this->redirect(route('admin.shift.check-in'));
         }
-        
+
+        \Log::info('ShiftClosing: All checks passed, loading shift closing form');
+
         $this->shiftId = $this->shift->id;
-        
+
         // 4. Load products using Eloquent with accessor
         $details = ChiTietCaLam::where('ca_lam_viec_id', $this->shiftId)
             ->with('sanPham')
             ->get()
-            ->map(function($item) {
+            ->map(function ($item) {
                 return [
                     'id' => $item->san_pham_id,
                     'ten_san_pham' => $item->sanPham->ten_san_pham,
@@ -86,9 +114,9 @@ class ShiftClosing extends Component
                 ];
             })
             ->toArray();
-            
+
         $this->products = $details;
-        
+
         // 5. Auto-fill with remaining stock ONLY if not already set
         // This prevents resetting user's manual edits
         if (empty($this->closingStock)) {
@@ -96,55 +124,55 @@ class ShiftClosing extends Component
                 $this->closingStock[$p['id']] = $p['so_luong_con_lai']; // Auto-fill with current remaining
             }
         }
-        
+
         // 6. Load sales summary
         $this->loadSalesSummary();
-        
+
         $this->calculate();
     }
-    
+
     // Checkout warning
     public $showCheckoutWarning = false;
     public $checkoutWarningType = null; // 'early', 'late', 'normal'
     public $checkoutWarningMessage = '';
     public $isOvertime = false;
-    
+
     // Multi-shift handling (same day only)
     public $unclosedShifts = [];
     public $showShiftSelector = false;
     public $hasOlderUnclosedShift = false;
     public $olderShiftWarning = '';
-    
+
     public $cashSalesCount = 0;
     public $transferSalesCount = 0;
     public $cashSalesTotal = 0;
     public $transferSalesTotal = 0;
-    
+
     public function loadSalesSummary()
     {
         // Get all confirmed pending sales for this shift
         $sales = \App\Models\PendingSale::where('ca_lam_viec_id', $this->shiftId)
             ->where('trang_thai', 'confirmed')
             ->get();
-        
+
         $this->cashSalesCount = $sales->where('phuong_thuc_thanh_toan', 'tien_mat')->count();
         $this->transferSalesCount = $sales->where('phuong_thuc_thanh_toan', 'chuyen_khoan')->count();
         $this->cashSalesTotal = $sales->where('phuong_thuc_thanh_toan', 'tien_mat')->sum('tong_tien');
         $this->transferSalesTotal = $sales->where('phuong_thuc_thanh_toan', 'chuyen_khoan')->sum('tong_tien');
     }
-    
+
     /**
      * Select which shift to close (when multiple shifts exist)
      */
     public function selectShiftToClose($shiftId)
     {
         $this->shift = CaLamViec::find($shiftId);
-        
+
         if (!$this->shift) {
             session()->flash('error', 'Không tìm thấy ca làm việc!');
             return;
         }
-        
+
         // Check if there's an older unclosed shift (warning only, not blocking)
         $olderShift = CaLamViec::where('nguoi_dung_id', Auth::id())
             ->where('trang_thai', 'dang_lam')
@@ -153,33 +181,36 @@ class ShiftClosing extends Component
             ->where('thoi_gian_checkin', '<', $this->shift->thoi_gian_checkin)
             ->orderBy('thoi_gian_checkin', 'asc')
             ->first();
-        
+
         if ($olderShift) {
             $this->hasOlderUnclosedShift = true;
-            $this->olderShiftWarning = "Bạn có ca " . 
-                Carbon::parse($olderShift->gio_bat_dau)->format('H:i') . 
-                " (check-in lúc " . $olderShift->thoi_gian_checkin->format('H:i') . 
+            $this->olderShiftWarning = "Bạn có ca " .
+                Carbon::parse($olderShift->gio_bat_dau)->format('H:i') .
+                " (check-in lúc " . $olderShift->thoi_gian_checkin->format('H:i') .
                 ") chưa chốt. Bạn có chắc muốn chốt ca này trước?";
         }
-        
+
         $this->showShiftSelector = false;
         $this->shiftId = $this->shift->id;
-        
+
         // Continue with normal mount flow
-        if ($this->shift->trang_thai_checkin && !request()->has('confirm_closing')) {
-            return $this->redirect('/admin/pos');
+        if ($this->shift->trang_thai_checkin && !$this->confirm_closing) {
+            if (Auth::user()->vai_tro === 'nhan_vien') {
+                return $this->redirect(route('employee.pos'));
+            }
+            return $this->redirect(route('admin.pos.quick-sale'));
         }
-        
+
         if (!$this->shift->trang_thai_checkin) {
             session()->flash('error', 'Vui lòng check-in trước khi chốt ca!');
             return $this->redirect(route('admin.shift.check-in'));
         }
-        
+
         // Load products and sales summary
         $details = ChiTietCaLam::where('ca_lam_viec_id', $this->shiftId)
             ->with('sanPham')
             ->get()
-            ->map(function($item) {
+            ->map(function ($item) {
                 return [
                     'id' => $item->san_pham_id,
                     'ten_san_pham' => $item->sanPham->ten_san_pham,
@@ -191,19 +222,19 @@ class ShiftClosing extends Component
                 ];
             })
             ->toArray();
-            
+
         $this->products = $details;
-        
+
         if (empty($this->closingStock)) {
             foreach ($this->products as $p) {
                 $this->closingStock[$p['id']] = $p['so_luong_con_lai'];
             }
         }
-        
+
         $this->loadSalesSummary();
         $this->calculate();
     }
-    
+
     public function updated($propertyName)
     {
         // Only recalculate when money-related fields change, NOT when stock changes
@@ -211,37 +242,37 @@ class ShiftClosing extends Component
             $this->calculate();
         }
     }
-    
+
     public function calculate()
     {
         $this->totalTheoretical = 0;
         $this->soldQuantities = [];
-        
+
         foreach ($this->products as $p) {
             $opening = $p['ton_dau_ca'];
             $closing = (float) ($this->closingStock[$p['id']] ?? 0);
-            
+
             $sold = $opening - $closing;
             $this->soldQuantities[$p['id']] = $sold;
-            
+
             $revenue = $sold * $p['gia_ban'];
             $this->totalTheoretical += $revenue;
         }
-        
+
         // Expected Cash = Opening Cash + Cash Sales Total (from confirmed orders)
-        $openingCash = (float)($this->shift->tien_mat_dau_ca ?? 0);
-        $cashSalesTotal = (float)$this->cashSalesTotal; // From confirmed pending sales
+        $openingCash = (float) ($this->shift->tien_mat_dau_ca ?? 0);
+        $cashSalesTotal = (float) $this->cashSalesTotal; // From confirmed pending sales
         $this->expectedCash = $openingCash + $cashSalesTotal;
-        
+
         // Actual Total = Cash Holding + Transfer Total
-        $cashHolding = (float)$this->tienMat;
-        $transferTotal = (float)$this->transferSalesTotal;
-        
+        $cashHolding = (float) $this->tienMat;
+        $transferTotal = (float) $this->transferSalesTotal;
+
         $this->totalActual = $cashHolding + $transferTotal;
-        
+
         $this->discrepancy = $this->totalActual - $this->totalTheoretical;
     }
-    
+
     /**
      * Initiate checkout with warning check
      */
@@ -255,12 +286,12 @@ class ShiftClosing extends Component
             'photosCash.*' => 'image|max:10240',
             'photosStock.*' => 'image|max:10240',
         ]);
-        
+
         // Check expected checkout time
         $expectedCheckoutTime = $this->shift->expected_checkout_time;
         $now = now();
         $gracePeriodEnd = $expectedCheckoutTime->copy()->addMinutes(15);
-        
+
         if ($now->lt($expectedCheckoutTime)) {
             // Early checkout
             $totalMinutes = (int) $now->diffInMinutes($expectedCheckoutTime);
@@ -278,10 +309,10 @@ class ShiftClosing extends Component
             $this->checkoutWarningType = 'normal';
             $this->checkoutWarningMessage = 'Xác nhận chốt ca?';
         }
-        
+
         $this->showCheckoutWarning = true;
     }
-    
+
     /**
      * Format minutes to readable time
      */
@@ -290,38 +321,38 @@ class ShiftClosing extends Component
         if ($minutes < 60) {
             return "{$minutes} phút";
         }
-        
+
         $hours = floor($minutes / 60);
         $remainingMinutes = $minutes % 60;
-        
+
         if ($remainingMinutes === 0) {
             return "{$hours} giờ";
         }
-        
+
         return "{$hours} giờ {$remainingMinutes} phút";
     }
-    
+
     // Generate text report for easy copy-paste
     public function generateReport()
     {
-        $cashHolding = (float)($this->tienMat ?? 0);
-        $openingCash = (float)($this->shift->tien_mat_dau_ca ?? 0);
+        $cashHolding = (float) ($this->tienMat ?? 0);
+        $openingCash = (float) ($this->shift->tien_mat_dau_ca ?? 0);
         $cashRevenue = $cashHolding - $openingCash;
-        
+
         $report = "📊 BÁO CÁO CHỐT CA\n\n";
-        
+
         // Cash breakdown
         $report .= "💰 TIỀN MẶT:\n";
-        $report .= "- Tiền đầu ca: " . number_format($openingCash/1000, 0) . "k\n";
-        $report .= "- Tiền đang giữ: " . number_format($cashHolding/1000, 0) . "k\n";
-        $report .= "- Doanh thu TM: " . number_format($cashRevenue/1000, 0) . "k\n";
-        
+        $report .= "- Tiền đầu ca: " . number_format($openingCash / 1000, 0) . "k\n";
+        $report .= "- Tiền đang giữ: " . number_format($cashHolding / 1000, 0) . "k\n";
+        $report .= "- Doanh thu TM: " . number_format($cashRevenue / 1000, 0) . "k\n";
+
         // Transfer info
         if ($this->transferSalesCount > 0) {
             $report .= "\n💳 CHUYỂN KHOẢN:\n";
-            $report .= "- " . $this->transferSalesCount . " đơn - " . number_format($this->transferSalesTotal/1000, 0) . "k\n";
+            $report .= "- " . $this->transferSalesCount . " đơn - " . number_format($this->transferSalesTotal / 1000, 0) . "k\n";
         }
-        
+
         // Stock list
         $report .= "\n📦 TỒN KHO:\n";
         foreach ($this->products as $p) {
@@ -330,16 +361,16 @@ class ShiftClosing extends Component
                 $report .= "Còn {$remaining} " . $p['ten_san_pham'] . "\n";
             }
         }
-        
+
         // Total reconciliation
         $report .= "\n📝 ĐỐI SOÁT:\n";
-        $report .= "- Lý thuyết: " . number_format($this->totalTheoretical/1000, 0) . "k\n";
-        $report .= "- Thực tế: " . number_format($this->totalActual/1000, 0) . "k\n";
-        $report .= "- Chênh lệch: " . number_format($this->discrepancy/1000, 0) . "k" . ($this->discrepancy == 0 ? " ✅" : "") . "\n";
-        
+        $report .= "- Lý thuyết: " . number_format($this->totalTheoretical / 1000, 0) . "k\n";
+        $report .= "- Thực tế: " . number_format($this->totalActual / 1000, 0) . "k\n";
+        $report .= "- Chênh lệch: " . number_format($this->discrepancy / 1000, 0) . "k" . ($this->discrepancy == 0 ? " ✅" : "") . "\n";
+
         return $report;
     }
-    
+
     use \Livewire\WithFileUploads;
 
     public $photosCash = []; // Array of UploadedFile
@@ -357,15 +388,15 @@ class ShiftClosing extends Component
                 'photosStock.*' => 'image|max:10240',
             ]);
         }
-        
+
         DB::transaction(function () {
             // Determine note based on checkout type
-            $autoNote = match($this->checkoutWarningType) {
+            $autoNote = match ($this->checkoutWarningType) {
                 'early' => 'Chốt ca sớm',
                 'late' => 'Chốt ca muộn - Quên chốt ca',
                 default => '',
             };
-            
+
             // Combine auto note with user note
             $finalNote = $autoNote;
             if (!empty($this->ghiChu)) {
@@ -379,25 +410,25 @@ class ShiftClosing extends Component
             $phieu->ca_lam_viec_id = $this->shiftId;
             $phieu->ngay_chot = now()->toDateString(); // Use string format
             $phieu->gio_chot = now()->toTimeString(); // Use string format
-            
+
             $phieu->tien_mat = $this->tienMat;
             $phieu->tien_chuyen_khoan = $this->tienChuyenKhoan;
-            
+
             // Theoretical Total = Expected Cash + Transfer Sales
             // Expected Cash = Opening Cash + Cash Sales
             $theoreticalTotal = $this->expectedCash + $this->transferSalesTotal;
             $phieu->tong_tien_ly_thuyet = $theoreticalTotal;
-            
+
             // Actual Total = Cash Holding + Transfer (should match input)
             $actualTotal = $this->tienMat + $this->tienChuyenKhoan;
             $phieu->tong_tien_thuc_te = $actualTotal;
-            
+
             // Discrepancy = Actual - Theoretical
             $phieu->tien_lech = $actualTotal - $theoreticalTotal;
-            
+
             // Save OT flag
             $phieu->ot = $this->isOvertime;
-            
+
             // Handle Image Uploads with Resizing
             $manager = new \Intervention\Image\ImageManager(new \Intervention\Image\Drivers\Gd\Driver());
 
@@ -412,7 +443,7 @@ class ShiftClosing extends Component
                 $stockPaths[] = $this->resizeAndStore($photo, 'shift-closing/stock', $manager);
             }
             $phieu->anh_hang_hoa = json_encode($stockPaths);
-            
+
             // Prepare JSON data
             $tonDau = [];
             $tonCuoi = [];
@@ -420,19 +451,19 @@ class ShiftClosing extends Component
                 $tonDau[$p['id']] = $p['ton_dau_ca'];
                 $tonCuoi[$p['id']] = $this->closingStock[$p['id']];
             }
-            
+
             $phieu->ton_dau_ca = json_encode($tonDau);
             $phieu->ton_cuoi_ca = json_encode($tonCuoi);
             $phieu->ghi_chu = $finalNote;
             $phieu->trang_thai = 'cho_duyet';
             $phieu->ot = $this->isOvertime;
-            
+
             $phieu->save();
-            
+
             // 2. Update Shift status
-            $this->shift->trang_thai = 'da_ket_thuc'; 
+            $this->shift->trang_thai = 'da_ket_thuc';
             $this->shift->save();
-            
+
             // 3. Update ChiTietCaLam (Closing Stock & Sold)
             foreach ($this->products as $p) {
                 $sold = $this->soldQuantities[$p['id']] ?? 0;
@@ -442,14 +473,14 @@ class ShiftClosing extends Component
                         'so_luong_giao_ca' => $this->closingStock[$p['id']],
                         'so_luong_ban' => $sold
                     ]);
-                    
+
                 // Update Daily Stock (TonKhoDiemBan) as well to keep it in sync
                 DB::table('ton_kho_diem_ban')
                     ->where('diem_ban_id', $this->shift->diem_ban_id)
                     ->where('san_pham_id', $p['id'])
                     ->where('ngay', Carbon::today())
                     ->update(['ton_cuoi_ca' => $this->closingStock[$p['id']]]);
-                
+
                 // Log sales to batch history (FIFO - deduct from oldest batches first)
                 if ($sold > 0) {
                     // Get distributions for this product at this shop, ordered by batch production date (oldest first)
@@ -458,23 +489,24 @@ class ShiftClosing extends Component
                         ->whereNotNull('me_san_xuat_id')
                         ->orderBy('created_at', 'asc')
                         ->get();
-                    
+
                     $remainingSold = $sold;
                     foreach ($distributions as $dist) {
-                        if ($remainingSold <= 0) break;
-                        
+                        if ($remainingSold <= 0)
+                            break;
+
                         // Check how much was already sold from this distribution
                         $alreadySold = \App\Models\LichSuCapNhatMe::where('me_san_xuat_id', $dist->me_san_xuat_id)
                             ->where('san_pham_id', $p['id'])
                             ->where('diem_ban_id', $this->shift->diem_ban_id)
                             ->where('loai', \App\Models\LichSuCapNhatMe::LOAI_BAN)
                             ->sum('so_luong_doi'); // Will be negative
-                        
+
                         $availableFromDist = $dist->so_luong + $alreadySold; // so_luong is positive, alreadySold is negative
-                        
+
                         if ($availableFromDist > 0) {
                             $deduct = min($remainingSold, $availableFromDist);
-                            
+
                             \App\Models\LichSuCapNhatMe::create([
                                 'me_san_xuat_id' => $dist->me_san_xuat_id,
                                 'san_pham_id' => $p['id'],
@@ -487,15 +519,21 @@ class ShiftClosing extends Component
                                 'du_lieu_moi' => $availableFromDist - $deduct,
                                 'ghi_chu' => 'Bán ca ' . ($this->shift->gio_bat_dau < '12:00:00' ? 'sáng' : 'chiều'),
                             ]);
-                            
+
                             $remainingSold -= $deduct;
                         }
                     }
                 }
             }
         });
-        
+
         session()->flash('message', 'Chốt ca thành công! Hệ thống đã ghi nhận.');
+
+        // Redirect based on user role
+        if (Auth::user()->vai_tro === 'nhan_vien') {
+            return redirect()->route('employee.dashboard');
+        }
+
         return redirect()->route('admin.dashboard');
     }
 
@@ -504,33 +542,33 @@ class ShiftClosing extends Component
         $date = now()->format('d/m/Y');
         $shiftName = "Ca " . ($this->shift->gio_bat_dau < '12:00:00' ? 'Sáng' : 'Chiều');
         $userName = Auth::user()->ho_ten;
-        
+
         $text = "📊 BÁO CÁO CHỐT CA - $date\n";
         $text .= "━━━━━━━━━━━━━━━━━━━━\n";
         $text .= "👤 Nhân viên: $userName\n";
         $text .= "🕒 $shiftName\n\n";
-        
+
         $text .= "💰 TIỀN MẶT\n";
         $text .= "Hiện tại: " . number_format($this->tienMat) . "đ\n\n";
-        
+
         $text .= "📝 ĐƠN HÀNG\n";
         $text .= "💵 TM: {$this->cashSalesCount} đơn - " . number_format($this->cashSalesTotal) . "đ\n";
         $text .= "💳 CK: {$this->transferSalesCount} đơn - " . number_format($this->transferSalesTotal) . "đ\n\n";
-        
+
         $text .= "📦 TỒN KHO (So với đầu ca)\n";
         foreach ($this->products as $p) {
             $dauCa = $p['ton_dau_ca'];
             $cuoiCa = $this->closingStock[$p['id']] ?? 0;
             $ban = $dauCa - $cuoiCa;
-            
+
             $text .= "• {$p['ten_san_pham']}: {$cuoiCa} (bán {$ban})\n";
         }
-        
+
         if (!empty($this->ghiChu)) {
             $text .= "\n📌 GHI CHÚ\n";
             $text .= $this->ghiChu . "\n";
         }
-        
+
         $this->dispatch('copy-to-clipboard', text: $text);
         $this->dispatch('show-alert', [
             'type' => 'success',
@@ -548,7 +586,7 @@ class ShiftClosing extends Component
         $filename = md5($photo->getClientOriginalName() . time()) . '.jpg';
         $path = $folder . '/' . $filename;
         $fullPath = storage_path('app/public/' . $path);
-        
+
         // Ensure directory exists
         if (!file_exists(dirname($fullPath))) {
             mkdir(dirname($fullPath), 0755, true);
