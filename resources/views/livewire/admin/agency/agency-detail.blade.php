@@ -93,6 +93,57 @@
         <div class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-4 rounded">{{ session('success') }}</div>
     @endif
 
+    <!-- Tickets List (Only in Alerts Tab) -->
+    @if($activeTab === 'canh_bao' && isset($tickets) && $tickets->count() > 0)
+        <div class="mb-6 bg-white rounded-lg shadow-sm overflow-hidden border border-red-100">
+            <div class="px-6 py-4 border-b border-red-100 bg-red-50 flex justify-between items-center">
+                <h3 class="text-lg font-bold text-red-800 flex items-center gap-2">
+                    <span>🚨 Tickets Khẩn Cấp</span>
+                    <span class="px-2 py-0.5 bg-red-200 text-red-800 text-xs rounded-full">{{ $tickets->count() }}</span>
+                </h3>
+            </div>
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ngày giờ</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nhân viên</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nội dung</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Trạng thái</th>
+                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Thao tác</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    @foreach($tickets as $ticket)
+                        <tr class="hover:bg-red-50/30">
+                            <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
+                                {{ $ticket->created_at->format('d/m/Y H:i') }}
+                            </td>
+                            <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">
+                                {{ $ticket->nguoiDung->ho_ten ?? 'N/A' }}
+                                <div class="text-xs text-gray-500">{{ $ticket->nguoiDung->ma_nhan_vien ?? '' }}</div>
+                            </td>
+                            <td class="px-4 py-3 text-sm text-gray-600 max-w-xs">
+                                <div class="truncate" title="{{ $ticket->reason_text }}">
+                                    {{ $ticket->reason_text }}
+                                </div>
+                            </td>
+                            <td class="px-4 py-3 whitespace-nowrap">
+                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full {{ $ticket->trang_thai === 'pending' || $ticket->trang_thai === 'cho_duyet' ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800' }}">
+                                    {{ $ticket->trang_thai === 'pending' || $ticket->trang_thai === 'cho_duyet' ? 'Chưa xử lý' : 'Đã xử lý' }}
+                                </span>
+                            </td>
+                            <td class="px-4 py-3 whitespace-nowrap text-right text-sm font-medium">
+                                <button wire:click="viewTicketDetail({{ $ticket->id }})" class="text-indigo-600 hover:text-indigo-900 bg-indigo-50 px-3 py-1 rounded hover:bg-indigo-100 transition-colors">
+                                    Chi tiết
+                                </button>
+                            </td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
+    @endif
+
     <!-- Notes List -->
     @if($notes->count() > 0)
         <div class="bg-white rounded-lg shadow-sm overflow-hidden">
@@ -247,6 +298,60 @@
         <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
             <div class="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto" wire:click.stop>
                 <livewire:admin.agency.location-list :agencyId="$agency->id" :key="'locs-'.$agency->id" />
+            </div>
+        </div>
+    @endif
+
+    <!-- Ticket Detail Modal -->
+    @if($showTicketModal && $selectedTicket)
+        <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" wire:click="closeTicketModal">
+            <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto" wire:click.stop>
+                <div class="bg-red-600 rounded-t-xl px-6 py-4 flex justify-between items-center sticky top-0">
+                    <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                        Chi tiết Ticket Khẩn Cấp
+                    </h3>
+                    <button wire:click="closeTicketModal" class="text-white hover:bg-white/20 rounded-lg p-1.5">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+                </div>
+                
+                <div class="p-6 space-y-4">
+                    <div class="flex items-center gap-3 pb-4 border-b">
+                        <div class="bg-gray-100 p-2 rounded-full">
+                            <svg class="w-6 h-6 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                        </div>
+                        <div>
+                            <div class="font-bold text-gray-900">{{ $selectedTicket->nguoiDung->ho_ten ?? 'N/A' }}</div>
+                            <div class="text-sm text-gray-500">{{ $selectedTicket->nguoiDung->ma_nhan_vien ?? '' }}</div>
+                        </div>
+                        <div class="ml-auto text-sm text-gray-500">
+                            {{ $selectedTicket->created_at->format('d/m/Y H:i') }}
+                        </div>
+                    </div>
+                    
+                    <div class="bg-red-50 p-4 rounded-lg border border-red-100">
+                        <h4 class="font-bold text-red-800 text-sm mb-2">NỘI DUNG YÊU CẦU</h4>
+                        <p class="text-gray-800 whitespace-pre-wrap">{{ $selectedTicket->reason_text }}</p>
+                    </div>
+                    
+                    @if($selectedTicket->trang_thai === 'pending' || $selectedTicket->trang_thai === 'cho_duyet')
+                        <div class="pt-4 flex justify-end gap-3">
+                            <button wire:click="closeTicketModal" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg">Đóng</button>
+                            <button wire:click="resolveTicket({{ $selectedTicket->id }})" class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-bold rounded-lg flex items-center gap-2">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                                Đánh dấu đã xử lý
+                            </button>
+                        </div>
+                    @else
+                        <div class="pt-4 border-t text-center">
+                            <span class="inline-flex items-center gap-1 text-green-600 font-bold bg-green-50 px-4 py-2 rounded-lg">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                                Đã được xử lý
+                            </span>
+                        </div>
+                    @endif
+                </div>
             </div>
         </div>
     @endif
