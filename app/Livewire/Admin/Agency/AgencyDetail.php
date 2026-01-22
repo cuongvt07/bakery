@@ -6,6 +6,7 @@ use App\Models\Agency;
 use App\Models\AgencyNote;
 use App\Models\NoteType;
 use App\Models\AgencyLocation;
+use App\Models\YeuCauCaLam;
 use Livewire\Component;
 use Livewire\Attributes\Layout;
 
@@ -18,16 +19,20 @@ class AgencyDetail extends Component
     public $activeTab = 'all';
     public $showTypeModal = false;
     public $showLocationModal = false;
-    
+
     // Filter & Search
     public $search = '';
     public $statusFilter = ''; // '', 'processed', 'pending'
     public $dateFilter = '';
-    
+
     // Note form modal
     public $showNoteModal = false;
     public $editingNoteId = null;
-    
+
+    // Ticket modal
+    public $showTicketModal = false;
+    public $selectedTicket = null;
+
     // Form fields
     public $loai = '';
     public $tieu_de = '';
@@ -42,18 +47,28 @@ class AgencyDetail extends Component
     public function mount($id)
     {
         $this->agency = Agency::find($id); // Remove 'notes' eager load as we query manually
-        if (!$this->agency) abort(404);
+        if (!$this->agency)
+            abort(404);
     }
-    
+
     // Reset pagination when filtering
-    public function updatedSearch() { $this->resetPage(); }
-    public function updatedStatusFilter() { $this->resetPage(); }
-    public function updatedActiveTab() { $this->resetPage(); }
+    public function updatedSearch()
+    {
+        $this->resetPage();
+    }
+    public function updatedStatusFilter()
+    {
+        $this->resetPage();
+    }
+    public function updatedActiveTab()
+    {
+        $this->resetPage();
+    }
 
     public function openAddNoteModal()
     {
         $this->reset(['editingNoteId', 'loai', 'tieu_de', 'noi_dung', 'ngay_nhac_nho', 'muc_do_quan_trong', 'vi_tri_id', 'mo_ta_vi_tri', 'dia_diem', 'ma_vat_dung']);
-        
+
         // Auto-select type based on active tab
         if ($this->activeTab !== 'all') {
             $this->loai = $this->activeTab;
@@ -65,7 +80,7 @@ class AgencyDetail extends Component
     public function openEditNoteModal($noteId)
     {
         $note = AgencyNote::findOrFail($noteId);
-        
+
         $this->editingNoteId = $note->id;
         $this->loai = $note->loai;
         $this->tieu_de = $note->tieu_de;
@@ -76,7 +91,7 @@ class AgencyDetail extends Component
         $this->mo_ta_vi_tri = $note->metadata['mo_ta_vi_tri'] ?? '';
         $this->dia_diem = $note->metadata['dia_diem'] ?? '';
         $this->ma_vat_dung = $note->metadata['ma_vat_dung'] ?? '';
-        
+
         $this->showNoteModal = true;
     }
 
@@ -115,7 +130,7 @@ class AgencyDetail extends Component
             AgencyNote::create($data);
             session()->flash('success', 'Thêm ghi chú thành công');
         }
-        
+
         $this->showNoteModal = false;
     }
 
@@ -142,8 +157,43 @@ class AgencyDetail extends Component
         if ($note && $note->diem_ban_id === $this->agency->id) {
             $note->da_xu_ly = !$note->da_xu_ly;
             $note->save();
-            
+
             session()->flash('success', 'Đã cập nhật trạng thái');
+        }
+    }
+
+    /**
+     * Show ticket detail modal
+     */
+    public function viewTicketDetail($ticketId)
+    {
+        $this->selectedTicket = YeuCauCaLam::with(['nguoiDung', 'diemBan'])->find($ticketId);
+        if ($this->selectedTicket && $this->selectedTicket->diem_ban_id === $this->agency->id) {
+            $this->showTicketModal = true;
+        }
+    }
+
+    /**
+     * Close ticket modal
+     */
+    public function closeTicketModal()
+    {
+        $this->showTicketModal = false;
+        $this->selectedTicket = null;
+    }
+
+    /**
+     * Resolve/complete a ticket
+     */
+    public function resolveTicket($ticketId)
+    {
+        $ticket = YeuCauCaLam::find($ticketId);
+        if ($ticket && $ticket->diem_ban_id === $this->agency->id && $ticket->loai_yeu_cau === 'ticket') {
+            $ticket->trang_thai = 'approved'; // Mark as resolved
+            $ticket->save();
+
+            session()->flash('success', 'Đã xử lý ticket thành công');
+            $this->closeTicketModal();
         }
     }
 
@@ -165,9 +215,9 @@ class AgencyDetail extends Component
 
         // Filter by search
         if ($this->search) {
-            $query->where(function($q) {
+            $query->where(function ($q) {
                 $q->where('tieu_de', 'like', '%' . $this->search . '%')
-                  ->orWhere('noi_dung', 'like', '%' . $this->search . '%');
+                    ->orWhere('noi_dung', 'like', '%' . $this->search . '%');
             });
         }
 
@@ -177,7 +227,7 @@ class AgencyDetail extends Component
         } elseif ($this->statusFilter === 'pending') {
             $query->where('da_xu_ly', false);
         }
-        
+
         // Filter by date (approximate filter for created_at or reminder)
         if ($this->dateFilter) {
             $query->whereDate('created_at', $this->dateFilter);
@@ -187,7 +237,29 @@ class AgencyDetail extends Component
         }
 
         $notes = $query->orderBy('created_at', 'desc')
-                      ->paginate(10);
+            ->paginate(10);
+
+        // Query tickets for this agency (shown in alerts tab)
+        $ticketsQuery = YeuCauCaLam::where('diem_ban_id', $this->agency->id)
+            ->where('loai_yeu_cau', 'ticket')
+            ->with(['nguoiDung']);
+
+        // Filter tickets by status if needed
+        if ($this->statusFilter === 'processed') {
+            $ticketsQuery->where('trang_thai', 'approved');
+        } elseif ($this->statusFilter === 'pending') {
+            $ticketsQuery->where('trang_thai', 'pending');
+        }
+
+        // Filter by search
+        if ($this->search) {
+            $ticketsQuery->where(function ($q) {
+                $q->where('ly_do', 'like', '%' . $this->search . '%')
+                    ->orWhere('ghi_chu', 'like', '%' . $this->search . '%');
+            });
+        }
+
+        $tickets = $ticketsQuery->orderBy('created_at', 'desc')->get();
 
         $locations = AgencyLocation::where('diem_ban_id', $this->agency->id)
             ->orderBy('ma_vi_tri')
@@ -195,6 +267,7 @@ class AgencyDetail extends Component
 
         return view('livewire.admin.agency.agency-detail', [
             'notes' => $notes,
+            'tickets' => $tickets,
             'noteTypes' => $noteTypes,
             'locations' => $locations,
         ]);

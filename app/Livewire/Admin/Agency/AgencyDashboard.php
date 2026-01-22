@@ -6,6 +6,7 @@ use App\Models\Agency;
 use App\Models\AgencyNote;
 use App\Models\NoteType;
 use App\Models\AgencyLocation;
+use App\Models\YeuCauCaLam;
 use Livewire\Component;
 use Livewire\Attributes\Layout;
 
@@ -13,12 +14,12 @@ use Livewire\Attributes\Layout;
 class AgencyDashboard extends Component
 {
     public $statusFilter = 'all'; // all, ok, warning, critical
-    
+
     // Note form modal
     public $showNoteModal = false;
     public $editingNoteId = null;
     public $selectedAgencyId = null;
-    
+
     // Form fields
     public $loai = '';
     public $tieu_de = '';
@@ -66,44 +67,48 @@ class AgencyDashboard extends Component
         }
 
         AgencyNote::create($data);
-        
+
         $this->showNoteModal = false;
         session()->flash('message', 'Thêm ghi chú thành công');
     }
 
     public function render()
     {
-        $agencies = Agency::with(['notes' => function($q) {
-            $q->where('da_xu_ly', false)
-              ->orderBy('muc_do_quan_trong', 'desc')
-              ->orderBy('ngay_nhac_nho');
-        }])->where('trang_thai', 'hoat_dong')
-          ->get();
+        $agencies = Agency::with([
+            'notes' => function ($q) {
+                $q->where('da_xu_ly', false)
+                    ->orderBy('muc_do_quan_trong', 'desc')
+                    ->orderBy('ngay_nhac_nho');
+            }
+        ])->where('trang_thai', 'hoat_dong')
+            ->get();
 
         // Calculate status for each agency
-        $agencies = $agencies->map(function($agency) {
+        $agencies = $agencies->map(function ($agency) {
             $overdueCount = $agency->notes->filter(fn($note) => $note->isOverdue())->count();
             $urgentCount = $agency->notes->where('muc_do_quan_trong', 'khan_cap')->count();
-            $highCount = $agency->notes->where('muc_do_quan_trong', 'cao')->count();
-            
-            // Determine overall status
-            if ($overdueCount > 0 || $urgentCount > 0) {
-                $agency->status = 'critical'; // Red
+
+            // Count pending tickets for this agency
+            $pendingTickets = YeuCauCaLam::where('diem_ban_id', $agency->id)
+                ->where('loai_yeu_cau', 'ticket')
+                ->where('trang_thai', 'pending')
+                ->count();
+
+            // Determine overall status (RED or GREEN only, no yellow)
+            if ($pendingTickets > 0 || $overdueCount > 0 || $urgentCount > 0) {
+                $agency->status = 'critical'; // Red - Cần xử lý
                 $agency->statusColor = 'red';
                 $agency->statusLabel = '🔴 Cần xử lý';
-            } elseif ($highCount > 0) {
-                $agency->status = 'warning'; // Yellow
-                $agency->statusColor = 'yellow';
-                $agency->statusLabel = '🟡 Cảnh báo';
             } else {
-                $agency->status = 'ok'; // Green
+                $agency->status = 'ok'; // Green - Ổn định
                 $agency->statusColor = 'green';
                 $agency->statusLabel = '🟢 Ổn định';
             }
-            
+
             $agency->overdueCount = $overdueCount;
             $agency->pendingCount = $agency->notes->count();
-            
+            $agency->pendingTickets = $pendingTickets;
+
             return $agency;
         });
 
@@ -113,11 +118,11 @@ class AgencyDashboard extends Component
         }
 
         // Get note types and locations for modal form
-        $noteTypes = $this->selectedAgencyId 
-            ? NoteType::where('diem_ban_id', $this->selectedAgencyId)->get() 
+        $noteTypes = $this->selectedAgencyId
+            ? NoteType::where('diem_ban_id', $this->selectedAgencyId)->get()
             : collect();
-        
-        $locations = $this->selectedAgencyId 
+
+        $locations = $this->selectedAgencyId
             ? AgencyLocation::where('diem_ban_id', $this->selectedAgencyId)->orderBy('ma_vi_tri')->get()
             : collect();
 

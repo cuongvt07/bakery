@@ -21,7 +21,7 @@ class AdminShiftRequests extends Component
     public $filterStatus = 'cho_duyet'; // Default to pending
     public $filterType = '';
     public $searchTerm = '';
-    
+
     public $selectedRequest = null;
     public $showDetailModal = false;
     public $approvalNote = '';
@@ -64,7 +64,8 @@ class AdminShiftRequests extends Component
 
     public function approveRequest()
     {
-        if (!$this->selectedRequest) return;
+        if (!$this->selectedRequest)
+            return;
 
         DB::transaction(function () {
             // Update request status
@@ -98,7 +99,8 @@ class AdminShiftRequests extends Component
 
     public function rejectRequest()
     {
-        if (!$this->selectedRequest) return;
+        if (!$this->selectedRequest)
+            return;
 
         $this->selectedRequest->update([
             'trang_thai' => 'tu_choi',
@@ -127,7 +129,7 @@ class AdminShiftRequests extends Component
                 'ngay_duyet' => now(),
                 'ghi_chu_duyet' => 'Duyệt hàng loạt',
             ]);
-            
+
             $this->sendApprovalLarkNotification($request, 'approved');
         }
 
@@ -142,26 +144,26 @@ class AdminShiftRequests extends Component
         try {
             $user = $request->nguoiDung;
             $approver = Auth::user();
-            
+
             // Parse ly_do JSON for all types
             $lyDoData = json_decode($request->ly_do, true);
             $isJsonLyDo = is_array($lyDoData);
-            
+
             // Determine header and color based on action
             $isApproved = $action === 'approved';
             $headerIcon = $isApproved ? '✅' : '❌';
             $headerColor = $isApproved ? 'green' : 'red';
             $actionText = $isApproved ? 'ĐÃ DUYỆT' : 'ĐÃ TỪ CHỐI';
-            
+
             // Build type label
             $typeLabels = [
                 'xin_ca' => 'XIN CA',
-                'doi_ca' => 'CHUYỂN CA', 
+                'doi_ca' => 'CHUYỂN CA',
                 'xin_nghi' => 'NGHỈ CA',
                 'ticket' => 'TICKET HỖ TRỢ',
             ];
             $typeLabel = $typeLabels[$request->loai_yeu_cau] ?? strtoupper($request->loai_yeu_cau);
-            
+
             // Common employee info line (compact)
             $employeeLine = sprintf(
                 "**👤 %s** (%s) | **✍️ Duyệt bởi:** %s",
@@ -169,15 +171,15 @@ class AdminShiftRequests extends Component
                 $user->ma_nhan_vien ?? 'N/A',
                 $approver->ho_ten ?? $approver->name ?? 'Admin'
             );
-            
+
             // Build content based on request type
             $contentLines = [$employeeLine];
-            
+
             if ($request->loai_yeu_cau === 'doi_ca' && $isJsonLyDo) {
                 // Chuyển ca - parse full JSON
                 $contentLines[] = ''; // empty line
                 $contentLines[] = '**🔄 THÔNG TIN CHUYỂN CA:**';
-                
+
                 // Ca cũ
                 if (!empty($lyDoData['shift_schedule_id'])) {
                     $oldSchedule = ShiftSchedule::with(['shiftTemplate', 'agency'])->find($lyDoData['shift_schedule_id']);
@@ -190,7 +192,7 @@ class AdminShiftRequests extends Component
                         );
                     }
                 }
-                
+
                 // Ca mới
                 if (!empty($lyDoData['new_shift_name'])) {
                     $newAgency = Agency::find($lyDoData['new_agency_id'] ?? null);
@@ -201,14 +203,14 @@ class AdminShiftRequests extends Component
                         $newAgency->ten_diem_ban ?? 'N/A'
                     );
                 }
-                
 
-                
+
+
             } elseif ($request->loai_yeu_cau === 'xin_nghi' && $isJsonLyDo) {
                 // Nghỉ ca - parse JSON
                 $contentLines[] = '';
                 $contentLines[] = '**🛑 THÔNG TIN NGHỈ CA:**';
-                
+
                 if (!empty($lyDoData['shift_schedule_id'])) {
                     $schedule = ShiftSchedule::with(['shiftTemplate', 'agency'])->find($lyDoData['shift_schedule_id']);
                     if ($schedule) {
@@ -221,16 +223,16 @@ class AdminShiftRequests extends Component
                         );
                     }
                 }
-                
 
-                
+
+
             } elseif ($request->loai_yeu_cau === 'ticket' && $isJsonLyDo) {
                 // Ticket hỗ trợ
                 $contentLines[] = sprintf("**🏪 Điểm bán:** %s", $lyDoData['agency_name'] ?? 'N/A');
                 $contentLines[] = '';
                 $contentLines[] = '**📢 NỘI DUNG YÊU CẦU:**';
                 $contentLines[] = $lyDoData['message'] ?? 'Không có nội dung';
-                
+
             } elseif ($request->loai_yeu_cau === 'xin_ca') {
                 // Xin ca
                 $contentLines[] = '';
@@ -242,19 +244,19 @@ class AdminShiftRequests extends Component
                     $contentLines[] = sprintf("**⏰ Giờ:** %s - %s", $request->gio_bat_dau, $request->gio_ket_thuc);
                 }
 
-                
+
             } else {
                 // Fallback for unknown format
                 $contentLines[] = sprintf("**📝 Nội dung:** %s", $request->ly_do ?? 'Không có');
             }
-            
+
             // Add approval note
             $contentLines[] = '';
             $contentLines[] = sprintf("**💬 Ghi chú duyệt:** %s", $request->ghi_chu_duyet ?: 'Không có');
-            
+
             // Build final content
             $content = implode("\n", $contentLines);
-            
+
             $card = [
                 'msg_type' => 'interactive',
                 'card' => [
@@ -276,11 +278,11 @@ class AdminShiftRequests extends Component
                     ],
                 ],
             ];
-            
+
             Http::withHeaders([
                 'Content-Type' => 'application/json',
             ])->post(self::LARK_APPROVAL_WEBHOOK, $card);
-            
+
         } catch (\Exception $e) {
             \Log::error('Admin approval Lark notification failed: ' . $e->getMessage());
         }
@@ -288,7 +290,9 @@ class AdminShiftRequests extends Component
 
     public function render()
     {
-        $query = YeuCauCaLam::with(['nguoiDung', 'caLamViec']);
+        // IMPORTANT: Filter OUT tickets - they are now shown in Agency Dashboard
+        $query = YeuCauCaLam::with(['nguoiDung', 'caLamViec'])
+            ->whereIn('loai_yeu_cau', ['doi_ca', 'xin_nghi']); // Exclude 'ticket'
 
         if ($this->filterStatus) {
             $query->where('trang_thai', $this->filterStatus);
@@ -299,20 +303,30 @@ class AdminShiftRequests extends Component
         }
 
         if ($this->searchTerm) {
-            $query->whereHas('nguoiDung', function($q) {
+            $query->whereHas('nguoiDung', function ($q) {
                 $q->where('ho_ten', 'like', '%' . $this->searchTerm . '%')
-                  ->orWhere('ma_nhan_vien', 'like', '%' . $this->searchTerm . '%');
+                    ->orWhere('ma_nhan_vien', 'like', '%' . $this->searchTerm . '%');
             });
         }
 
         $requests = $query->orderBy('created_at', 'desc')->paginate(20);
 
-        // Statistics
+        // Statistics (exclude tickets)
         $stats = [
-            'pending' => YeuCauCaLam::where('trang_thai', 'cho_duyet')->count(),
-            'approved' => YeuCauCaLam::where('trang_thai', 'da_duyet')->whereDate('ngay_duyet', Carbon::today())->count(),
-            'rejected' => YeuCauCaLam::where('trang_thai', 'tu_choi')->whereDate('ngay_duyet', Carbon::today())->count(),
-            'total_today' => YeuCauCaLam::whereDate('created_at', Carbon::today())->count(),
+            'pending' => YeuCauCaLam::where('trang_thai', 'cho_duyet')
+                ->whereIn('loai_yeu_cau', ['doi_ca', 'xin_nghi'])
+                ->count(),
+            'approved' => YeuCauCaLam::where('trang_thai', 'da_duyet')
+                ->whereIn('loai_yeu_cau', ['doi_ca', 'xin_nghi'])
+                ->whereDate('ngay_duyet', Carbon::today())
+                ->count(),
+            'rejected' => YeuCauCaLam::where('trang_thai', 'tu_choi')
+                ->whereIn('loai_yeu_cau', ['doi_ca', 'xin_nghi'])
+                ->whereDate('ngay_duyet', Carbon::today())
+                ->count(),
+            'total_today' => YeuCauCaLam::whereDate('created_at', Carbon::today())
+                ->whereIn('loai_yeu_cau', ['doi_ca', 'xin_nghi'])
+                ->count(),
         ];
 
         return view('livewire.admin.shift.admin-shift-requests', [
