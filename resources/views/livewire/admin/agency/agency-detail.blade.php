@@ -43,8 +43,13 @@
                 <!-- Dynamic Type Tabs -->
                 @foreach($noteTypes as $type)
                     <button wire:click="$set('activeTab', '{{ $type->ma_loai }}')"
-                            class="px-6 py-3 border-b-2 font-medium text-sm whitespace-nowrap {{ $activeTab === $type->ma_loai ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300' }}">
+                            class="px-6 py-3 border-b-2 font-medium text-sm whitespace-nowrap flex items-center gap-1 {{ $activeTab === $type->ma_loai ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300' }}">
                         {{ $type->display_label }}
+                        @if($type->ma_loai === 'canh_bao' && isset($pendingTicketCount) && $pendingTicketCount > 0)
+                            <span class="ml-1 bg-red-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full min-w-[20px] text-center">
+                                {{ $pendingTicketCount }}
+                            </span>
+                        @endif
                     </button>
                 @endforeach
             </nav>

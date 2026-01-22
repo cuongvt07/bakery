@@ -261,6 +261,12 @@ class AgencyDetail extends Component
 
         $tickets = $ticketsQuery->orderBy('created_at', 'desc')->get();
 
+        // Count pending tickets for the badge
+        $pendingTicketCount = YeuCauCaLam::where('diem_ban_id', $this->agency->id)
+            ->where('loai_yeu_cau', 'ticket')
+            ->where('trang_thai', 'cho_duyet')
+            ->count();
+
         $locations = AgencyLocation::where('diem_ban_id', $this->agency->id)
             ->orderBy('ma_vi_tri')
             ->get();
@@ -270,6 +276,7 @@ class AgencyDetail extends Component
             'tickets' => $tickets,
             'noteTypes' => $noteTypes,
             'locations' => $locations,
+            'pendingTicketCount' => $pendingTicketCount,
         ]);
     }
 }
