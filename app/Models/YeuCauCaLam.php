@@ -11,6 +11,7 @@ class YeuCauCaLam extends Model
 
     protected $fillable = [
         'nguoi_dung_id',
+        'diem_ban_id',
         'loai_yeu_cau',
         'ca_lam_viec_id',
         'ngay_mong_muon',
@@ -46,6 +47,11 @@ class YeuCauCaLam extends Model
         return $this->belongsTo(User::class, 'nguoi_duyet_id');
     }
 
+    public function diemBan(): BelongsTo
+    {
+        return $this->belongsTo(Agency::class, 'diem_ban_id');
+    }
+
     /**
      * Scopes
      */
@@ -68,7 +74,7 @@ class YeuCauCaLam extends Model
     {
         return $query->where('loai_yeu_cau', $loai);
     }
-    
+
     /**
      * Accessors
      */
@@ -77,20 +83,20 @@ class YeuCauCaLam extends Model
         $lyDoData = json_decode($this->ly_do, true);
         return $lyDoData['reason'] ?? '(Không có lý do)';
     }
-    
+
     public function getShiftScheduleIdAttribute()
     {
         $lyDoData = json_decode($this->ly_do, true);
         return $lyDoData['shift_schedule_id'] ?? null;
     }
-    
+
     public function getNewShiftInfoAttribute()
     {
         $lyDoData = json_decode($this->ly_do, true);
         if (!isset($lyDoData['new_shift_name'])) {
             return null;
         }
-        
+
         return [
             'agency_id' => $lyDoData['new_agency_id'] ?? null,
             'date' => $lyDoData['new_shift_date'] ?? null,

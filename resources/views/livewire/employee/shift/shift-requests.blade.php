@@ -158,6 +158,33 @@
                         </div>
                     @endif
 
+                    @if (in_array($requestType, ['doi_ca', 'xin_nghi']))
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                {{ $requestType === 'doi_ca' ? 'Ca hiện tại' : 'Ca xin nghỉ' }}
+                            </label>
+                            <div class="px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg text-gray-700">
+                                @if($selectedShiftInfo)
+                                    <div class="flex flex-col gap-1">
+                                        <div class="font-bold text-gray-900">
+                                            {{ $selectedShiftInfo['date'] }} ({{ $selectedShiftInfo['day'] }})
+                                        </div>
+                                        <div class="text-sm">
+                                            ⏰ {{ $selectedShiftInfo['time'] }}
+                                        </div>
+                                        <div class="text-sm text-gray-500">
+                                            📍 {{ $selectedShiftInfo['agency'] }}
+                                        </div>
+                                    </div>
+                                @elseif($selectedShiftId)
+                                    Ca #{{ $selectedShiftId }} (Đang tải thông tin...)
+                                @else
+                                    <span class="text-red-500">⚠ Chưa chọn ca. Vui lòng chọn từ Lịch làm việc.</span>
+                                @endif
+                            </div>
+                        </div>
+                    @endif
+
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">Lý do *</label>
                         <textarea wire:model="requestNote" rows="4" class="w-full px-4 py-3 border border-gray-300 rounded-lg"
