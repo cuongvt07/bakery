@@ -39,7 +39,7 @@
         @forelse($agencies as $agency)
             <div onclick="window.location='{{ route('admin.agencies.detail', $agency->id) }}'" 
                  class="bg-white rounded-lg shadow hover:shadow-lg transition-shadow border-l-4 cursor-pointer
-                       {{ $agency->statusColor === 'red' ? 'border-red-500' : ($agency->statusColor === 'yellow' ? 'border-yellow-500' : 'border-green-500') }}">
+                       {{ $agency->pendingTickets > 0 ? 'bg-red-50 border-red-500' : ($agency->statusColor === 'red' ? 'border-red-500' : ($agency->statusColor === 'yellow' ? 'border-yellow-500' : 'border-green-500')) }}">
                 <div class="p-4">
                     <!-- Header -->
                     <div class="flex justify-between items-start mb-3">
@@ -80,7 +80,13 @@
                                 <span>quá hạn</span>
                             </div>
                         @endif
-                        @if($agency->pendingCount > 0)
+                        
+                        @if($agency->pendingTickets > 0)
+                            <div class="flex items-center gap-1 font-bold text-red-600">
+                                <span class="text-lg">🚨</span>
+                                <span>{{ $agency->pendingTickets }} Tickets Khẩn Cấp</span>
+                            </div>
+                        @elseif($agency->pendingCount > 0)
                             <div class="flex items-center gap-1">
                                 <span class="font-semibold">📋 {{ $agency->pendingCount }}</span>
                                 <span>việc cần làm</span>
