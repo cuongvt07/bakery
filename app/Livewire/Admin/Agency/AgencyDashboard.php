@@ -91,7 +91,7 @@ class AgencyDashboard extends Component
             // Count pending tickets for this agency
             $pendingTickets = YeuCauCaLam::where('diem_ban_id', $agency->id)
                 ->where('loai_yeu_cau', 'ticket')
-                ->where('trang_thai', 'pending')
+                ->where('trang_thai', 'cho_duyet')
                 ->count();
 
             // Determine overall status (RED or GREEN only, no yellow)
