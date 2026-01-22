@@ -34,6 +34,122 @@ class ShiftClosing extends Component
     public $discrepancy = 0;
     public $soldQuantities = []; // [product_id => quantity]
 
+    /**
+     * Auto-close all unclosed shifts before today
+     * Sets checkout time = checkin time so total working hours = 0
+     */
+    private function autoCloseOldShifts()
+    {
+        $oldShifts = CaLamViec::where('nguoi_dung_id', Auth::id())
+            ->where('trang_thai', 'dang_lam')
+            ->where('trang_thai_checkin', true)
+            ->whereDate('ngay_lam', '<', Carbon::today())
+            ->orderBy('ngay_lam', 'asc')
+            ->get();
+
+        if ($oldShifts->isEmpty()) {
+            \Log::info('ShiftClosing: No old unclosed shifts found');
+            return;
+        }
+
+        \Log::info('ShiftClosing: Auto-closing old shifts', [
+            'count' => $oldShifts->count(),
+            'shift_ids' => $oldShifts->pluck('id')->toArray()
+        ]);
+
+        DB::transaction(function () use ($oldShifts) {
+            foreach ($oldShifts as $shift) {
+                // Create PhieuChotCa with checkout time = checkin time (total hours = 0)
+                $phieu = new PhieuChotCa();
+                $phieu->ma_phieu = 'PCC-AUTO-' . $shift->id . '-' . time();
+                $phieu->diem_ban_id = $shift->diem_ban_id;
+                $phieu->nguoi_chot_id = Auth::id();
+                $phieu->ca_lam_viec_id = $shift->id;
+
+                // Use checkin time as checkout time (total hours = 0)
+                $checkoutTime = $shift->thoi_gian_checkin ?? now();
+                $phieu->ngay_chot = $checkoutTime->toDateString();
+                $phieu->gio_chot = $checkoutTime->toTimeString();
+
+                $phieu->tien_mat = $shift->tien_mat_dau_ca ?? 0;
+                $phieu->tien_chuyen_khoan = 0;
+                $phieu->tong_tien_thuc_te = $shift->tien_mat_dau_ca ?? 0;
+                $phieu->tong_tien_ly_thuyet = 0;
+                $phieu->tien_lech = 0;
+                $phieu->ton_dau_ca = json_encode([]);
+                $phieu->ton_cuoi_ca = json_encode([]);
+                $phieu->ghi_chu = 'Tự động chốt - Quên chốt ca (Giờ checkout = Giờ checkin, Tổng công = 0)';
+                $phieu->trang_thai = 'cho_duyet';
+                $phieu->ot = false;
+
+                $phieu->save();
+
+                // Update shift status
+                $shift->trang_thai = 'da_ket_thuc';
+                $shift->save();
+
+                \Log::info('ShiftClosing: Auto-closed shift', [
+                    'shift_id' => $shift->id,
+                    'ngay_lam' => $shift->ngay_lam->format('Y-m-d'),
+                    'phieu_id' => $phieu->id
+                ]);
+            }
+        });
+    }
+
+    /**
+     * Create check-in for current shift if employee forgot to check in
+     */
+    private function createCheckInForCurrentShift()
+    {
+        // Find today's registered shift
+        $schedule = \App\Models\ShiftSchedule::with(['agency', 'shiftTemplate'])
+            ->where('nguoi_dung_id', Auth::id())
+            ->whereDate('ngay_lam', Carbon::today())
+            ->whereIn('trang_thai', ['approved', 'pending'])
+            ->first();
+
+        if (!$schedule) {
+            \Log::info('ShiftClosing: No registered shift for today');
+            return null;
+        }
+
+        // Check if ca_lam_viec already exists
+        $existingShift = CaLamViec::where('shift_template_id', $schedule->shift_template_id)
+            ->where('nguoi_dung_id', $schedule->nguoi_dung_id)
+            ->where('diem_ban_id', $schedule->diem_ban_id)
+            ->whereDate('ngay_lam', $schedule->ngay_lam)
+            ->first();
+
+        if ($existingShift) {
+            \Log::info('ShiftClosing: Shift already exists for today', ['shift_id' => $existingShift->id]);
+            return $existingShift;
+        }
+
+        \Log::info('ShiftClosing: Creating check-in for current shift', [
+            'schedule_id' => $schedule->id,
+            'shift_template_id' => $schedule->shift_template_id
+        ]);
+
+        // Create new shift with auto check-in
+        $shift = CaLamViec::create([
+            'diem_ban_id' => $schedule->diem_ban_id,
+            'nguoi_dung_id' => Auth::id(),
+            'ngay_lam' => now(),
+            'gio_bat_dau' => $schedule->gio_bat_dau,
+            'gio_ket_thuc' => $schedule->gio_ket_thuc,
+            'trang_thai' => 'dang_lam',
+            'trang_thai_checkin' => true,
+            'thoi_gian_checkin' => now(),
+            'shift_template_id' => $schedule->shift_template_id,
+            'ghi_chu' => 'Quên check-in - Tự động tạo khi chốt ca',
+        ]);
+
+        \Log::info('ShiftClosing: Created shift', ['shift_id' => $shift->id]);
+
+        return $shift;
+    }
+
     public function mount()
     {
         // DEBUG: Log entry point
@@ -46,6 +162,10 @@ class ShiftClosing extends Component
             'all_params' => request()->all()
         ]);
 
+        // STEP 0: Auto-close old unclosed shifts and create check-in for current shift if needed
+        $this->autoCloseOldShifts();
+        $autoCreatedShift = $this->createCheckInForCurrentShift();
+
         // 1. Get all unclosed shifts for TODAY only
         $unclosedShifts = CaLamViec::where('nguoi_dung_id', Auth::id())
             ->where('trang_thai', 'dang_lam')
@@ -55,7 +175,15 @@ class ShiftClosing extends Component
             ->get();
 
         if ($unclosedShifts->isEmpty()) {
-            \Log::info('ShiftClosing: No unclosed shifts found, redirecting to check-in');
+            \Log::info('ShiftClosing: No unclosed shifts found');
+
+            // If we just auto-created a shift, show friendly message
+            if ($autoCreatedShift) {
+                session()->flash('info', 'Đã tạo check-in tự động cho ca hôm nay. Vui lòng chốt ca.');
+                // Reload to show the newly created shift
+                return $this->redirect(route(Auth::user()->vai_tro === 'nhan_vien' ? 'employee.shifts.closing' : 'admin.shift.closing', ['confirm_closing' => 1]));
+            }
+
             session()->flash('error', 'Không có ca làm việc nào đang hoạt động!');
             return $this->redirect(route('admin.shift.check-in'));
         }
