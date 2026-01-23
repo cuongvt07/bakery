@@ -202,13 +202,9 @@ class ProductionBatchForm extends Component
                 $index = $parts[1];
                 $recipe = Recipe::find($value);
                 if ($recipe) {
-                    // Always default to recipe's product if it has one
+                    // Default to recipe's product if it has one, otherwise keep current selection
                     if ($recipe->san_pham_id) {
                         $this->products[$index]['san_pham_id'] = $recipe->san_pham_id;
-                    } else {
-                        // If recipe has no product, clear it to force selection (or keep it if we want to be sticky?)
-                        // User likely needs to select a new one.
-                        $this->products[$index]['san_pham_id'] = '';
                     }
                 }
             }
