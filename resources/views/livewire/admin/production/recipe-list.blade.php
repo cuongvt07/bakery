@@ -72,7 +72,7 @@
                         <tr class="hover:bg-gray-50 transition-colors">
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-indigo-600">{{ $recipe->ma_cong_thuc }}</td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $recipe->ten_cong_thuc }}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ $recipe->product->ten_san_pham }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ $recipe->product->ten_san_pham ?? '---' }}</td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{{ $recipe->so_luong_san_xuat }} {{ $recipe->don_vi_san_xuat }}</td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm">
                                 <div class="text-gray-900 font-semibold">{{ number_format($recipe->chi_phi_uoc_tinh, 0, ',', '.') }} đ</div>
