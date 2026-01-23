@@ -124,19 +124,28 @@
                                         </button>
                                     @endif
                                     
-                                    <div class="grid grid-cols-10 gap-3">
-                                        <div class="col-span-7">
+                                    <div class="grid grid-cols-10 gap-2">
+                                        <div class="col-span-4">
                                             <label class="block text-xs font-medium text-gray-600 mb-1">Công thức *</label>
-                                            <select wire:model.live="products.{{ $index }}.cong_thuc_id" class="w-full px-3 py-2 text-sm border border-gray-300 rounded">
+                                            <select wire:model.live="products.{{ $index }}.cong_thuc_id" class="w-full px-2 py-2 text-sm border border-gray-300 rounded">
                                                 <option value="">-- Chọn công thức --</option>
                                                 @foreach($recipes as $recipe)
                                                     <option value="{{ $recipe->id }}">{{ $recipe->ten_cong_thuc }}</option>
                                                 @endforeach
                                             </select>
                                         </div>
-                                        <div class="col-span-3">
-                                            <label class="block text-xs font-medium text-gray-600 mb-1">SL dự kiến *</label>
-                                            <input type="number" wire:model.live="products.{{ $index }}.so_luong_du_kien" min="1" class="w-full px-3 py-2 text-sm border border-gray-300 rounded" placeholder="100">
+                                        <div class="col-span-4">
+                                            <label class="block text-xs font-medium text-gray-600 mb-1">Sản phẩm *</label>
+                                            <select wire:model.live="products.{{ $index }}.san_pham_id" class="w-full px-2 py-2 text-sm border border-gray-300 rounded">
+                                                <option value="">-- Chọn sản phẩm --</option>
+                                                @foreach($allProducts as $p)
+                                                    <option value="{{ $p->id }}">{{ $p->ten_san_pham }}</option>
+                                                @endforeach
+                                            </select>
+                                        </div>
+                                        <div class="col-span-2">
+                                            <label class="block text-xs font-medium text-gray-600 mb-1">SL dự kiến</label>
+                                            <input type="number" wire:model.live="products.{{ $index }}.so_luong_du_kien" min="1" class="w-full px-2 py-2 text-sm border border-gray-300 rounded" placeholder="100">
                                         </div>
                                     </div>
                                     

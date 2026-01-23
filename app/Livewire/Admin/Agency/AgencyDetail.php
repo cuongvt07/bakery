@@ -189,8 +189,27 @@ class AgencyDetail extends Component
     {
         $ticket = YeuCauCaLam::find($ticketId);
         if ($ticket && $ticket->diem_ban_id === $this->agency->id && $ticket->loai_yeu_cau === 'ticket') {
-            $ticket->trang_thai = 'approved'; // Mark as resolved
+            $ticket->trang_thai = 'da_duyet'; // Update to consistent 'da_duyet' (approved)
+            $ticket->nguoi_duyet_id = \Illuminate\Support\Facades\Auth::id();
+            $ticket->ngay_duyet = now();
+            $ticket->ghi_chu_duyet = 'Đã xử lý xong';
             $ticket->save();
+
+            // Notify the store (Broadcast) as requested for Tickets
+            // "mong muốn tất cả sẽ đều biết" -> Broadcast to store
+            try {
+                $agencyName = $this->agency->ten_diem_ban ?? 'Cửa hàng';
+                $adminName = \Illuminate\Support\Facades\Auth::user()->ho_ten ?? 'Admin';
+
+                app(\App\Services\NotificationService::class)->sendToStore(
+                    $ticket->diem_ban_id,
+                    'Thông báo xử lý Ticket',
+                    "Ticket '{$ticket->ly_do}' tại {$agencyName} đã được xử lý bởi {$adminName}.",
+                    'he_thong'
+                );
+            } catch (\Exception $e) {
+                \Log::error('Error sending ticket broadcast: ' . $e->getMessage());
+            }
 
             session()->flash('success', 'Đã xử lý ticket thành công');
             $this->closeTicketModal();

@@ -5,6 +5,7 @@ namespace App\Livewire\Admin\Production;
 use App\Models\ProductionBatch;
 use App\Models\ProductionBatchDetail;
 use App\Models\Recipe;
+use App\Models\Product;
 use Livewire\Component;
 use Livewire\Attributes\Layout;
 use Livewire\WithFileUploads;
@@ -27,7 +28,7 @@ class ProductionBatchForm extends Component
 
     // Products in this batch
     public $products = []; // [[cong_thuc_id, so_luong_du_kien]]
-    
+
     // QC fields
     public $qcData = []; // [detail_id => failed_qty]
     public $ghi_chu_qc = '';
@@ -48,22 +49,23 @@ class ProductionBatchForm extends Component
             $this->trang_thai = $this->batch->trang_thai;
             $this->ghi_chu_qc = $this->batch->ghi_chu_qc ?? '';
             $this->existingImages = $this->batch->anh_qc ?? [];
-            
+
             // Load products from details
             foreach ($this->batch->details as $detail) {
                 $this->products[] = [
                     'detail_id' => $detail->id,
                     'cong_thuc_id' => $detail->cong_thuc_id,
+                    'san_pham_id' => $detail->san_pham_id,
                     'so_luong_du_kien' => $detail->so_luong_du_kien,
                     'so_luong_that_bai' => $detail->so_luong_that_bai,
                     'so_luong_thuc_te' => $detail->so_luong_thuc_te,
                 ];
-                
+
                 $this->qcData[$detail->id] = $detail->so_luong_that_bai;
             }
         } else {
             // Start with one empty product slot
-            $this->products = [['cong_thuc_id' => '', 'so_luong_du_kien' => 100]];
+            $this->products = [['cong_thuc_id' => '', 'san_pham_id' => '', 'so_luong_du_kien' => 100]];
             // Auto-generate batch code
             $this->generateBatchCode();
         }
@@ -91,7 +93,7 @@ class ProductionBatchForm extends Component
 
     public function addProduct()
     {
-        $this->products[] = ['cong_thuc_id' => '', 'so_luong_du_kien' => 100];
+        $this->products[] = ['cong_thuc_id' => '', 'san_pham_id' => '', 'so_luong_du_kien' => 100];
     }
 
     public function removeProduct($index)
@@ -107,6 +109,7 @@ class ProductionBatchForm extends Component
             'ngay_san_xuat' => 'required|date',
             'products' => 'required|array|min:1',
             'products.*.cong_thuc_id' => 'required|exists:cong_thuc_san_xuat,id',
+            'products.*.san_pham_id' => 'required|exists:san_pham,id',
             'products.*.so_luong_du_kien' => 'required|integer|min:1',
         ]);
 
@@ -119,7 +122,7 @@ class ProductionBatchForm extends Component
                 'han_su_dung' => $this->han_su_dung,
                 'trang_thai' => $this->trang_thai,
             ];
-            
+
             // If completing, set QC user
             if ($this->trang_thai === 'hoan_thanh') {
                 $data['nguoi_qc_id'] = Auth::id();
@@ -135,28 +138,28 @@ class ProductionBatchForm extends Component
 
             // Create details for each product
             foreach ($this->products as $product) {
-                $recipe = Recipe::find($product['cong_thuc_id']);
-                
+                // $recipe = Recipe::find($product['cong_thuc_id']);
+
                 $detailData = [
                     'me_san_xuat_id' => $this->batch->id,
                     'cong_thuc_id' => $product['cong_thuc_id'],
-                    'san_pham_id' => $recipe->san_pham_id,
+                    'san_pham_id' => $product['san_pham_id'],
                     'so_luong_du_kien' => $product['so_luong_du_kien'],
                 ];
-                
+
                 // If status is hoan_thanh, save QC data
                 if ($this->trang_thai === 'hoan_thanh') {
                     $failedQty = $product['so_luong_that_bai'] ?? 0;
                     $detailData['so_luong_that_bai'] = $failedQty;
                     $detailData['so_luong_thuc_te'] = $product['so_luong_du_kien'] - $failedQty;
-                    $detailData['ti_le_hong'] = $product['so_luong_du_kien'] > 0 
-                        ? ($failedQty / $product['so_luong_du_kien']) * 100 
+                    $detailData['ti_le_hong'] = $product['so_luong_du_kien'] > 0
+                        ? ($failedQty / $product['so_luong_du_kien']) * 100
                         : 0;
                 }
-                
+
                 ProductionBatchDetail::create($detailData);
             }
-            
+
             // If completing, deduct ingredients
             if ($this->trang_thai === 'hoan_thanh') {
                 $this->batch->deductIngredientsFromInventory();
@@ -191,15 +194,43 @@ class ProductionBatchForm extends Component
         return redirect()->route('admin.production-batches.index');
     }
 
+    public function updated($propertyName, $value)
+    {
+        if (str_contains($propertyName, 'products.') && str_ends_with($propertyName, '.cong_thuc_id')) {
+            $parts = explode('.', $propertyName); // products.INDEX.cong_thuc_id
+            if (count($parts) === 3) {
+                $index = $parts[1];
+                $recipe = Recipe::find($value);
+                if ($recipe) {
+                    // Always default to recipe's product if it has one
+                    if ($recipe->san_pham_id) {
+                        $this->products[$index]['san_pham_id'] = $recipe->san_pham_id;
+                    } else {
+                        // If recipe has no product, clear it to force selection (or keep it if we want to be sticky?)
+                        // User likely needs to select a new one.
+                        $this->products[$index]['san_pham_id'] = '';
+                    }
+                }
+            }
+        }
+
+        // Also call parent or existing updated hooks logic if any (none seen in previous view)
+        // Wait, there was updatedBuoi and updatedNgaySanXuat, those are specific methods.
+        // There was no generic updated method in the file I viewed.
+    }
+
     public function render()
     {
         $recipes = Recipe::where('trang_thai', 'hoat_dong')
-                        ->with('product')
-                        ->orderBy('ten_cong_thuc')
-                        ->get();
+            ->with('product')
+            ->orderBy('ten_cong_thuc')
+            ->get();
+
+        $allProducts = Product::where('trang_thai', 'con_hang')->orderBy('ten_san_pham')->get();
 
         return view('livewire.admin.production.production-batch-form', [
             'recipes' => $recipes,
+            'allProducts' => $allProducts,
         ]);
     }
 }

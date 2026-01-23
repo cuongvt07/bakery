@@ -21,16 +21,7 @@
                     @error('ten_cong_thuc') <span class="text-red-500 text-sm mt-1">{{ $message }}</span> @enderror
                 </div>
 
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Sản phẩm đầu ra</label>
-                    <select wire:model="san_pham_id" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500">
-                        <option value="">-- Chọn sản phẩm --</option>
-                        @foreach ($products as $product)
-                            <option value="{{ $product->id }}">{{ $product->ten_san_pham }}</option>
-                        @endforeach
-                    </select>
-                    @error('san_pham_id') <span class="text-red-500 text-sm mt-1">{{ $message }}</span> @enderror
-                </div>
+
 
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Số lượng/mẻ</label>

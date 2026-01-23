@@ -24,7 +24,7 @@ class RecipeForm extends Component
 
     // Nguyên liệu
     public $ingredients = [];
-    
+
     public function mount($id = null)
     {
         if ($id) {
@@ -81,7 +81,7 @@ class RecipeForm extends Component
         if (count($parts) === 2 && $parts[1] === 'nguyen_lieu_id') {
             $index = $parts[0];
             $ingredientId = $value;
-            
+
             if ($ingredientId) {
                 $ingredient = Ingredient::find($ingredientId);
                 if ($ingredient) {
@@ -113,7 +113,7 @@ class RecipeForm extends Component
     // Computed properties for cost calculation
     public function getTotalCostProperty()
     {
-        return collect($this->ingredients)->sum(function($ing) {
+        return collect($this->ingredients)->sum(function ($ing) {
             $qty = (float) ($ing['so_luong'] ?? 0);
             $price = (float) ($ing['don_gia'] ?? 0);
             return $qty * $price;
@@ -133,7 +133,7 @@ class RecipeForm extends Component
         $this->validate([
             'ma_cong_thuc' => 'required|unique:cong_thuc_san_xuat,ma_cong_thuc,' . ($this->recipe->id ?? 'NULL'),
             'ten_cong_thuc' => 'required|min:2',
-            'san_pham_id' => 'required|exists:san_pham,id',
+            'san_pham_id' => 'nullable|exists:san_pham,id',
             'so_luong_san_xuat' => 'required|integer|min:1',
             'ingredients' => 'required|array|min:1',
             'ingredients.*.nguyen_lieu_id' => 'required|exists:nguyen_lieu,id',
@@ -145,7 +145,7 @@ class RecipeForm extends Component
             $data = [
                 'ma_cong_thuc' => $this->ma_cong_thuc,
                 'ten_cong_thuc' => $this->ten_cong_thuc,
-                'san_pham_id' => $this->san_pham_id,
+                'san_pham_id' => $this->san_pham_id ?: null,
                 'so_luong_san_xuat' => $this->so_luong_san_xuat,
                 'don_vi_san_xuat' => $this->don_vi_san_xuat,
                 'mo_ta' => $this->mo_ta,

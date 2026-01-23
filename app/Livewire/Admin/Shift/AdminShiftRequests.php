@@ -88,6 +88,18 @@ class AdminShiftRequests extends Component
                     'ghi_chu' => 'Tạo từ yêu cầu #' . $this->selectedRequest->id,
                 ]);
             }
+
+            // Send Notification
+            try {
+                app(\App\Services\NotificationService::class)->sendToUser(
+                    $this->selectedRequest->nguoi_tao_id, // Note: DB column is nguoi_dung_id but relation is nguoiDung. Using nguoi_dung_id from model.
+                    'Yêu cầu đã được duyệt',
+                    "Yêu cầu '{$this->selectedRequest->loai_yeu_cau}' của bạn đã được duyệt.",
+                    'he_thong'
+                );
+            } catch (\Exception $e) {
+                \Log::error('Error sending notification: ' . $e->getMessage());
+            }
         });
 
         // Send Lark notification
@@ -108,6 +120,18 @@ class AdminShiftRequests extends Component
             'ngay_duyet' => now(),
             'ghi_chu_duyet' => $this->approvalNote ?: 'Từ chối',
         ]);
+
+        // Send Notification
+        try {
+            app(\App\Services\NotificationService::class)->sendToUser(
+                $this->selectedRequest->nguoi_dung_id,
+                'Yêu cầu bị từ chối',
+                "Yêu cầu '{$this->selectedRequest->loai_yeu_cau}' của bạn đã bị từ chối. Lý do: " . ($this->approvalNote ?: 'Không có lý do'),
+                'canh_bao'
+            );
+        } catch (\Exception $e) {
+            \Log::error('Error sending notification: ' . $e->getMessage());
+        }
 
         // Send Lark notification
         $this->sendApprovalLarkNotification($this->selectedRequest, 'rejected');
