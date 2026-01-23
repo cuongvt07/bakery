@@ -106,21 +106,20 @@
             </div>
         @endif
     </div>
+    <style>
+        @keyframes bell-shake {
+            0% { transform: rotate(0); }
+            15% { transform: rotate(5deg); }
+            30% { transform: rotate(-5deg); }
+            45% { transform: rotate(4deg); }
+            60% { transform: rotate(-4deg); }
+            75% { transform: rotate(2deg); }
+            85% { transform: rotate(-2deg); }
+            100% { transform: rotate(0); }
+        }
+        .animate-bell-shake {
+            animation: bell-shake 2s infinite;
+            transform-origin: top center;
+        }
+    </style>
 </div>
-
-<style>
-    @keyframes bell-shake {
-        0% { transform: rotate(0); }
-        15% { transform: rotate(5deg); }
-        30% { transform: rotate(-5deg); }
-        45% { transform: rotate(4deg); }
-        60% { transform: rotate(-4deg); }
-        75% { transform: rotate(2deg); }
-        85% { transform: rotate(-2deg); }
-        100% { transform: rotate(0); }
-    }
-    .animate-bell-shake {
-        animation: bell-shake 2s infinite;
-        transform-origin: top center;
-    }
-</style>
