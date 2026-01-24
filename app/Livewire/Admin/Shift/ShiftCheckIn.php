@@ -18,57 +18,57 @@ class ShiftCheckIn extends Component
     public $hasActiveShift = false;
     public $isCheckedIn = false;
     public $shift;
-    
+
     // Inputs
     public $openingCash = 0;
     public $receivedStock = []; // [product_id => quantity]
     public $products = [];
-    
+
     public function mount()
     {
         $this->checkShiftStatus();
-        
+
         // If already checked in, redirect to POS immediately
         if ($this->isCheckedIn) {
             return $this->redirect('/admin/pos', navigate: true);
         }
     }
-    
+
     public function checkShiftStatus()
     {
         $user = Auth::user();
-        
+
         // 1. Check for active shift
         $this->shift = CaLamViec::where('nguoi_dung_id', $user->id)
             ->where('trang_thai', 'dang_lam')
             ->first();
-            
+
         if ($this->shift) {
             $this->hasActiveShift = true;
             $this->isCheckedIn = $this->shift->trang_thai_checkin;
-            
+
             if (!$this->isCheckedIn) {
                 $this->loadDistributedStock();
             }
         }
     }
-    
+
     public function startShift()
     {
         // Find assigned agency
         $assignment = NhanVienDiemBan::where('nguoi_dung_id', Auth::id())
             ->where('ngay_bat_dau', '<=', now())
-            ->where(function($q) {
+            ->where(function ($q) {
                 $q->whereNull('ngay_ket_thuc')
-                  ->orWhere('ngay_ket_thuc', '>=', now());
+                    ->orWhere('ngay_ket_thuc', '>=', now());
             })
             ->first();
-            
+
         if (!$assignment) {
             session()->flash('error', 'Bạn chưa được phân công vào điểm bán nào!');
             return;
         }
-        
+
         $shift = CaLamViec::create([
             'diem_ban_id' => $assignment->diem_ban_id,
             'nguoi_dung_id' => Auth::id(),
@@ -78,70 +78,91 @@ class ShiftCheckIn extends Component
             'trang_thai' => 'dang_lam',
             'trang_thai_checkin' => false,
         ]);
-        
+
         $this->checkShiftStatus();
     }
-    
+
+    public $stockSources = []; // [product_id => ['distribution' => x, 'handover' => y]]
+
     public function loadDistributedStock()
     {
         $agencyId = $this->shift->diem_ban_id;
-        
+
         // Determine Session based on Shift Start Time
         $startTime = Carbon::parse($this->shift->gio_bat_dau);
         $session = $startTime->lt(Carbon::parse('12:00:00')) ? 'sang' : 'chieu';
-        
-        // Debug logging
-        \Log::info('Loading distributed stock', [
-            'agency_id' => $agencyId,
-            'session' => $session,
-            'date' => Carbon::today()->toDateString()
-        ]);
-        
-        // Find all distributions for this agency, today, and session
-        // Load product directly via san_pham_id (multi-product batch support)
+
+        // 1. Load Distributions (Factory -> Agency)
         $distributions = PhanBoHangDiemBan::with(['product'])
             ->where('diem_ban_id', $agencyId)
             ->whereDate('created_at', Carbon::today())
             ->where('buoi', $session)
             ->where('trang_thai', 'chua_nhan')
             ->get();
-            
-        \Log::info('Found distributions', [
-            'count' => $distributions->count(),
-            'distributions' => $distributions->toArray()
-        ]);
-            
+
+        // 2. Load Handover (Previous Shift -> Current Shift)
+        // Find the LATEST closed shift at this agency
+        $lastShift = CaLamViec::where('diem_ban_id', $agencyId)
+            ->where('trang_thai', 'da_ket_thuc')
+            ->where('id', '!=', $this->shift->id) // Exclude current
+            ->latest('gio_ket_thuc') // Latest end time
+            ->first();
+
+        $handoverDetails = collect();
+        if ($lastShift) {
+            $handoverDetails = ChiTietCaLam::where('ca_lam_viec_id', $lastShift->id)
+                ->where('so_luong_giao_ca', '>', 0)
+                ->get();
+        }
+
         $this->products = [];
         $this->receivedStock = [];
-        
+        $this->stockSources = [];
+
+        // Process Distributions
         foreach ($distributions as $dist) {
             if ($dist->product) {
-                $product = $dist->product;
-                
-                // Add to products list if not already there
-                if (!isset($this->receivedStock[$product->id])) {
-                    $this->products[] = $product;
-                    $this->receivedStock[$product->id] = 0;
+                $pId = $dist->product->id;
+
+                if (!isset($this->receivedStock[$pId])) {
+                    $this->products[] = $dist->product;
+                    $this->receivedStock[$pId] = 0;
+                    $this->stockSources[$pId] = ['distribution' => 0, 'handover' => 0];
                 }
-                
-                // Add quantity from this distribution
-                $this->receivedStock[$product->id] += $dist->so_luong;
+
+                $this->receivedStock[$pId] += $dist->so_luong;
+                $this->stockSources[$pId]['distribution'] += $dist->so_luong;
             }
         }
-        
-        \Log::info('Loaded products', [
-            'products_count' => count($this->products),
-            'receivedStock' => $this->receivedStock
-        ]);
+
+        // Process Handover
+        foreach ($handoverDetails as $detail) {
+            $pId = $detail->san_pham_id;
+
+            // If product not already in list (from distribution), load it
+            if (!isset($this->receivedStock[$pId])) {
+                $product = \App\Models\Product::find($pId);
+                if ($product) {
+                    $this->products[] = $product;
+                    $this->receivedStock[$pId] = 0;
+                    $this->stockSources[$pId] = ['distribution' => 0, 'handover' => 0];
+                }
+            }
+
+            if (isset($this->receivedStock[$pId])) {
+                $this->receivedStock[$pId] += $detail->so_luong_giao_ca;
+                $this->stockSources[$pId]['handover'] += $detail->so_luong_giao_ca;
+            }
+        }
     }
-    
+
     public function confirmCheckIn()
     {
         $this->validate([
             'openingCash' => 'required|numeric|min:0',
             'receivedStock.*' => 'required|numeric|min:0',
         ]);
-        
+
         DB::transaction(function () {
             // 1. Update Shift
             $this->shift->update([
@@ -149,7 +170,7 @@ class ShiftCheckIn extends Component
                 'trang_thai_checkin' => true,
                 'thoi_gian_checkin' => now(),
             ]);
-            
+
             // 2. Create Shift Details (ChiTietCaLam)
             foreach ($this->products as $p) {
                 $qty = $this->receivedStock[$p->id] ?? 0;
@@ -163,12 +184,12 @@ class ShiftCheckIn extends Component
                     ]);
                 }
             }
-            
+
             // 3. Mark distributions as received
             $agencyId = $this->shift->diem_ban_id;
             $startTime = Carbon::parse($this->shift->gio_bat_dau);
             $session = $startTime->lt(Carbon::parse('12:00:00')) ? 'sang' : 'chieu';
-            
+
             PhanBoHangDiemBan::where('diem_ban_id', $agencyId)
                 ->whereDate('created_at', Carbon::today())
                 ->where('buoi', $session)
@@ -178,13 +199,13 @@ class ShiftCheckIn extends Component
                     'nguoi_nhan_id' => Auth::id(),
                 ]);
         });
-        
+
         session()->flash('success', 'Check-in thành công! Chuyển đến POS...');
-        
+
         // Redirect to POS (Livewire way)
         return $this->redirect('/admin/pos', navigate: true);
     }
-    
+
     public function render()
     {
         return view('livewire.admin.shift.shift-check-in');

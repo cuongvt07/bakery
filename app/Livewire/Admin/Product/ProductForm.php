@@ -49,6 +49,18 @@ class ProductForm extends Component
             'so_luong_quy_doi' => 'nullable|integer|min:1',
             'trang_thai' => 'required|in:con_hang,het_hang,ngung_ban',
         ]);
+    }
+
+    public function messages()
+    {
+        return [
+            'ten_san_pham.required' => 'Tên sản phẩm là bắt buộc.',
+            'ten_san_pham.min' => 'Tên sản phẩm phải có ít nhất 2 ký tự.',
+            'gia_ban.required' => 'Giá bán là bắt buộc.',
+            'gia_ban.min' => 'Giá bán không được nhỏ hơn 0.',
+            'don_vi_tinh.required' => 'Đơn vị tính là bắt buộc.',
+            'so_luong_quy_doi.min' => 'Số lượng quy đổi phải lớn hơn 0.',
+        ];
 
         $data = [
             'ten_san_pham' => $this->ten_san_pham,

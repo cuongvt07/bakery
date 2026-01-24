@@ -133,6 +133,7 @@
                                                     <option value="{{ $recipe->id }}">{{ $recipe->ten_cong_thuc }}</option>
                                                 @endforeach
                                             </select>
+                                            @error("products.{$index}.cong_thuc_id") <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
                                         </div>
                                         <div class="col-span-4">
                                             <label class="block text-xs font-medium text-gray-600 mb-1">Sản phẩm *</label>
@@ -142,10 +143,12 @@
                                                     <option value="{{ $p->id }}">{{ $p->ten_san_pham }}</option>
                                                 @endforeach
                                             </select>
+                                            @error("products.{$index}.san_pham_id") <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
                                         </div>
                                         <div class="col-span-2">
                                             <label class="block text-xs font-medium text-gray-600 mb-1">SL dự kiến</label>
                                             <input type="number" wire:model.live="products.{{ $index }}.so_luong_du_kien" min="1" class="w-full px-2 py-2 text-sm border border-gray-300 rounded" placeholder="100">
+                                            @error("products.{$index}.so_luong_du_kien") <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
                                         </div>
                                     </div>
                                     

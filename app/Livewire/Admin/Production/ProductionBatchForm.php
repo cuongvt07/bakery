@@ -112,6 +112,20 @@ class ProductionBatchForm extends Component
             'products.*.san_pham_id' => 'required|exists:san_pham,id',
             'products.*.so_luong_du_kien' => 'required|integer|min:1',
         ]);
+    }
+
+    public function messages()
+    {
+        return [
+            'ma_me.required' => 'Mã mẻ là bắt buộc.',
+            'ma_me.unique' => 'Mã mẻ đã tồn tại.',
+            'ngay_san_xuat.required' => 'Ngày sản xuất là bắt buộc.',
+            'products.required' => 'Cần ít nhất một sản phẩm.',
+            'products.*.cong_thuc_id.required' => 'Vui lòng chọn công thức.',
+            'products.*.san_pham_id.required' => 'Vui lòng chọn sản phẩm.',
+            'products.*.so_luong_du_kien.required' => 'Nhập số lượng dự kiến.',
+            'products.*.so_luong_du_kien.min' => 'Số lượng phải lớn hơn 0.',
+        ];
 
         DB::transaction(function () {
             $data = [

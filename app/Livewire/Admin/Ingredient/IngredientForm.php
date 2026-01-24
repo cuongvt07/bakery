@@ -42,9 +42,24 @@ class IngredientForm extends Component
             'ton_kho_toi_thieu' => 'required|numeric|min:0',
             'tong_tien_nhap' => 'required|numeric|min:0',
         ]);
-        
+    }
+
+    public function messages()
+    {
+        return [
+            'ten_nguyen_lieu.required' => 'Tên nguyên liệu là bắt buộc.',
+            'ten_nguyen_lieu.min' => 'Tên nguyên liệu phải có ít nhất 2 ký tự.',
+            'don_vi_tinh.required' => 'Đơn vị tính là bắt buộc.',
+            'ton_kho_hien_tai.required' => 'Vui lòng nhập số lượng nhập.',
+            'ton_kho_hien_tai.min' => 'Số lượng phải lớn hơn 0.',
+            'ton_kho_toi_thieu.required' => 'Nhập mức tồn kho tối thiểu (có thể là 0).',
+            'ton_kho_toi_thieu.min' => 'Tồn kho tối thiểu không được âm.',
+            'tong_tien_nhap.required' => 'Nhập tổng tiền nhập hàng.',
+            'tong_tien_nhap.min' => 'Tổng tiền không được âm.',
+        ];
+
         // Tự động tính giá nhập = Tổng tiền / Số lượng
-        $this->gia_nhap = $this->ton_kho_hien_tai > 0 
+        $this->gia_nhap = $this->ton_kho_hien_tai > 0
             ? round($this->tong_tien_nhap / $this->ton_kho_hien_tai, 2)
             : 0;
 

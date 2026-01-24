@@ -66,13 +66,30 @@
                         <label class="block text-sm font-medium text-gray-700 mb-2">Xác nhận số lượng bánh nhận <span class="text-red-500">*</span></label>
                         <div class="bg-gray-50 rounded-lg border border-gray-200 divide-y divide-gray-200">
                             @foreach($products as $p)
-                                <div class="p-3 flex items-center justify-between">
-                                    <div class="flex-1">
-                                        <span class="font-medium text-gray-900">{{ $p->ten_san_pham }}</span>
-                                        <div class="text-xs text-gray-500">{{ number_format($p->gia_ban/1000) }}k</div>
+                                <div class="p-3 bg-white">
+                                    <div class="flex justify-between items-center mb-2">
+                                        <span class="font-bold text-gray-900">{{ $p->ten_san_pham }}</span>
+                                        <span class="text-xs text-gray-500">{{ number_format($p->gia_ban/1000) }}k</span>
                                     </div>
-                                    <div class="w-24">
-                                        <input type="number" inputmode="numeric" wire:model="receivedStock.{{ $p->id }}" class="block w-full text-center border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 font-bold" placeholder="0">
+                                    
+                                    <div class="grid grid-cols-12 gap-2 items-center text-sm">
+                                        <!-- Breakdown -->
+                                        <div class="col-span-8 flex space-x-3 text-xs text-gray-600 bg-gray-50 p-2 rounded">
+                                            <div>
+                                                <span class="block text-gray-400">Từ xưởng</span>
+                                                <span class="font-semibold text-blue-600">{{ $stockSources[$p->id]['distribution'] ?? 0 }}</span>
+                                            </div>
+                                            <div class="border-l border-gray-300 pl-3">
+                                                <span class="block text-gray-400">Ca trước</span>
+                                                <span class="font-semibold text-orange-600">{{ $stockSources[$p->id]['handover'] ?? 0 }}</span>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Total Input -->
+                                        <div class="col-span-4">
+                                            <label class="block text-[10px] text-center text-gray-400 mb-0.5">TỔNG NHẬN</label>
+                                            <input type="number" inputmode="numeric" wire:model="receivedStock.{{ $p->id }}" class="block w-full text-center border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 font-bold text-gray-900" placeholder="0">
+                                        </div>
                                     </div>
                                 </div>
                             @endforeach
