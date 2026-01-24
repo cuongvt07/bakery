@@ -104,19 +104,38 @@ class ShiftClosing extends Component
      */
     private function createCheckInForCurrentShift()
     {
-        // Find today's registered shift
-        $schedule = \App\Models\ShiftSchedule::with(['agency', 'shiftTemplate'])
+        // Strategy: Look for a schedule that SHOULD have been checked in but wasn't.
+        // 1. Look for today's schedule
+        $query = \App\Models\ShiftSchedule::with(['agency', 'shiftTemplate'])
             ->where('nguoi_dung_id', Auth::id())
-            ->whereDate('ngay_lam', Carbon::today())
-            ->whereIn('trang_thai', ['approved', 'pending'])
-            ->first();
+            ->whereIn('trang_thai', ['approved', 'pending']);
+
+        // Handle overnight/late shifts: If check-in is early morning (00:00 - 06:00), 
+        // also check yesterday's schedules that might have ended late.
+        if (now()->hour < 6) {
+            $schedule = (clone $query)->whereDate('ngay_lam', Carbon::today()->subDay())
+                ->orderBy('gio_ket_thuc', 'desc')
+                ->first();
+
+            if (!$schedule) {
+                // If no yesterday schedule, check today
+                $schedule = (clone $query)->whereDate('ngay_lam', Carbon::today())
+                    ->orderBy('gio_bat_dau', 'asc')
+                    ->first();
+            }
+        } else {
+            // Normal case: Check today
+            $schedule = $query->whereDate('ngay_lam', Carbon::today())
+                ->orderBy('gio_bat_dau', 'asc')
+                ->first();
+        }
 
         if (!$schedule) {
-            \Log::info('ShiftClosing: No registered shift for today');
+            \Log::info('ShiftClosing: No registered shift found for auto-checkin');
             return null;
         }
 
-        // Check if ca_lam_viec already exists
+        // Check if ca_lam_viec already exists for this schedule
         $existingShift = CaLamViec::where('shift_template_id', $schedule->shift_template_id)
             ->where('nguoi_dung_id', $schedule->nguoi_dung_id)
             ->where('diem_ban_id', $schedule->diem_ban_id)
@@ -124,20 +143,20 @@ class ShiftClosing extends Component
             ->first();
 
         if ($existingShift) {
-            \Log::info('ShiftClosing: Shift already exists for today', ['shift_id' => $existingShift->id]);
             return $existingShift;
         }
 
-        \Log::info('ShiftClosing: Creating check-in for current shift', [
+        \Log::info('ShiftClosing: Creating auto check-in', [
             'schedule_id' => $schedule->id,
-            'shift_template_id' => $schedule->shift_template_id
+            'date' => $schedule->ngay_lam
         ]);
 
-        // Create new shift with auto check-in
+        // Create new shift with auto check-in "Late"
+        // Set check-in time = now (Closing time) so duration is effectively 0
         $shift = CaLamViec::create([
             'diem_ban_id' => $schedule->diem_ban_id,
             'nguoi_dung_id' => Auth::id(),
-            'ngay_lam' => now(),
+            'ngay_lam' => $schedule->ngay_lam, // Use schedule date (could be yesterday)
             'gio_bat_dau' => $schedule->gio_bat_dau,
             'gio_ket_thuc' => $schedule->gio_ket_thuc,
             'trang_thai' => 'dang_lam',
@@ -159,75 +178,61 @@ class ShiftClosing extends Component
             'user_id' => Auth::id(),
             'user_role' => Auth::user()->vai_tro,
             'confirm_closing_property' => $this->confirm_closing,
-            'has_confirm_closing_request' => request()->has('confirm_closing'),
-            'confirm_closing_value' => request()->get('confirm_closing'),
-            'all_params' => request()->all()
         ]);
 
-        // STEP 0: Auto-close old unclosed shifts and create check-in for current shift if needed
+        // 1. Auto-close OLD shifts (strictly before today)
         $this->autoCloseOldShifts();
-        $autoCreatedShift = $this->createCheckInForCurrentShift();
 
-        // 1. Get all unclosed shifts for TODAY only
-        $unclosedShifts = CaLamViec::where('nguoi_dung_id', Auth::id())
+        // 2. Find ANY active shift for this user (priority: latest created)
+        // We removed date constraint because if it's 'dang_lam', it should be closable.
+        // autoCloseOldShifts handles the stale ones.
+        $activeShift = CaLamViec::where('nguoi_dung_id', Auth::id())
             ->where('trang_thai', 'dang_lam')
             ->where('trang_thai_checkin', true)
-            ->whereDate('ngay_lam', Carbon::today()) // Only today's shifts
-            ->orderBy('thoi_gian_checkin', 'asc') // Oldest first
-            ->get();
+            ->latest() // Get the most recent one
+            ->first();
 
-        if ($unclosedShifts->isEmpty()) {
-            \Log::info('ShiftClosing: No unclosed shifts found');
+        // 3. If no active shift, try to Auto-Checkin (Forgot Check-in case)
+        if (!$activeShift) {
+            $activeShift = $this->createCheckInForCurrentShift();
 
-            // If we just auto-created a shift, show friendly message
-            if ($autoCreatedShift) {
-                session()->flash('info', 'Đã tạo check-in tự động cho ca hôm nay. Vui lòng chốt ca.');
-                // Reload to show the newly created shift
-                return $this->redirect(route(Auth::user()->vai_tro === 'nhan_vien' ? 'employee.shifts.closing' : 'admin.shift.closing', ['confirm_closing' => 1]));
+            if ($activeShift) {
+                // If we just created it, notify user
+                session()->flash('info', 'Đã tạo check-in tự động cho ca hiện tại. Vui lòng chốt ca.');
             }
+        }
 
-            session()->flash('error', 'Không có ca làm việc nào đang hoạt động!');
+        // 4. Final Check
+        if (!$activeShift) {
+            \Log::info('ShiftClosing: No active shift found and could not auto-create');
+            session()->flash('error', 'Không tìm thấy ca làm việc nào đang hoạt động!');
             return $this->redirect(route('admin.shift.check-in'));
         }
 
-        // 2. If multiple shifts today → Show selector
-        if ($unclosedShifts->count() > 1) {
-            \Log::info('ShiftClosing: Multiple shifts found, showing selector');
-            $this->unclosedShifts = $unclosedShifts;
-            $this->showShiftSelector = true;
-            return;
-        }
+        // 5. Set the shift and proceed
+        $this->shift = $activeShift;
+        $this->shiftId = $this->shift->id;
 
-        // 3. Only one shift → Load it directly
-        $this->shift = $unclosedShifts->first();
+        \Log::info('ShiftClosing: Working with shift', ['shift_id' => $this->shift->id]);
 
-        \Log::info('ShiftClosing: Shift loaded', [
-            'shift_id' => $this->shift->id,
-            'trang_thai_checkin' => $this->shift->trang_thai_checkin,
-            'confirm_closing_property' => $this->confirm_closing
-        ]);
-
-        // 2. If checked in but not explicitly closing, redirect to POS
-        // User should be at POS selling, not at closing page by accident
+        // Check if user is trying to access closing pages incorrectly
         if ($this->shift->trang_thai_checkin && !$this->confirm_closing) {
-            \Log::info('ShiftClosing: Missing confirm_closing parameter, redirecting to POS');
+            // Logic to redirect to POS if not explicitly closing
+            // ... existing redirect logic ...
             if (Auth::user()->vai_tro === 'nhan_vien') {
                 return $this->redirect(route('employee.pos'));
             }
             return $this->redirect(route('admin.pos.quick-sale'));
         }
 
-        // 3. Must be checked in to close shift
-        if (!$this->shift->trang_thai_checkin) {
-            \Log::info('ShiftClosing: Not checked in, redirecting to check-in');
-            session()->flash('error', 'Vui lòng check-in trước khi chốt ca!');
-            return $this->redirect(route('admin.shift.check-in'));
-        }
+        // Load details...
+        // ... (rest of logic follows)
 
-        \Log::info('ShiftClosing: All checks passed, loading shift closing form');
+        $this->loadShiftDetails(); // Extract helper method to clean up
+    }
 
-        $this->shiftId = $this->shift->id;
-
+    private function loadShiftDetails()
+    {
         // 4. Load products using Eloquent with accessor
         $details = ChiTietCaLam::where('ca_lam_viec_id', $this->shiftId)
             ->with('sanPham')
@@ -240,7 +245,7 @@ class ShiftClosing extends Component
                     'gia_ban' => $item->sanPham->gia_ban,
                     'ton_dau_ca' => $item->so_luong_nhan_ca,
                     'so_luong_ban' => $item->so_luong_ban,
-                    'so_luong_con_lai' => $item->so_luong_con_lai, // Use accessor
+                    'so_luong_con_lai' => $item->so_luong_con_lai,
                 ];
             })
             ->toArray();
@@ -248,10 +253,9 @@ class ShiftClosing extends Component
         $this->products = $details;
 
         // 5. Auto-fill with remaining stock ONLY if not already set
-        // This prevents resetting user's manual edits
         if (empty($this->closingStock)) {
             foreach ($this->products as $p) {
-                $this->closingStock[$p['id']] = $p['so_luong_con_lai']; // Auto-fill with current remaining
+                $this->closingStock[$p['id']] = $p['so_luong_con_lai'];
             }
         }
 
