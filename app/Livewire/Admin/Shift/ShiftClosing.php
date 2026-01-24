@@ -188,7 +188,6 @@ class ShiftClosing extends Component
         $autoCreatedShift = $this->createCheckInForCurrentShift();
 
         // 1. Get all unclosed shifts (Today and Yesterday)
-        // We include yesterday to catch overnight shifts that haven't been closed
         $unclosedShifts = CaLamViec::where('nguoi_dung_id', Auth::id())
             ->where('trang_thai', 'dang_lam')
             ->where('trang_thai_checkin', true)
@@ -196,30 +195,25 @@ class ShiftClosing extends Component
             ->orderBy('thoi_gian_checkin', 'asc') // Oldest first
             ->get();
 
-        if ($unclosedShifts->isEmpty()) {
+        // If we just auto-created a shift and it's not in the list (rare but possible due to timing/cache), use it directly
+        if ($unclosedShifts->isEmpty() && $autoCreatedShift) {
+            $this->shift = $autoCreatedShift;
+            \Log::info('ShiftClosing: Using auto-created shift directly', ['shift_id' => $this->shift->id]);
+        } elseif ($unclosedShifts->isEmpty()) {
             \Log::info('ShiftClosing: No unclosed shifts found');
-
-            // If we just auto-created a shift, show friendly message
-            if ($autoCreatedShift) {
-                session()->flash('info', 'Đã tạo check-in tự động cho ca hôm nay. Vui lòng chốt ca.');
-                // Reload to show the newly created shift
-                return $this->redirect(route(Auth::user()->vai_tro === 'nhan_vien' ? 'employee.shifts.closing' : 'admin.shift.closing', ['confirm_closing' => 1]));
-            }
-
             session()->flash('error', 'Không có ca làm việc nào đang hoạt động!');
             return $this->redirect(route('admin.shift.check-in'));
+        } else {
+            // 2. If multiple shifts today → Show selector
+            if ($unclosedShifts->count() > 1) {
+                \Log::info('ShiftClosing: Multiple shifts found, showing selector');
+                $this->unclosedShifts = $unclosedShifts;
+                $this->showShiftSelector = true;
+                return;
+            }
+            // 3. Only one shift → Load it directly
+            $this->shift = $unclosedShifts->first();
         }
-
-        // 2. If multiple shifts today → Show selector
-        if ($unclosedShifts->count() > 1) {
-            \Log::info('ShiftClosing: Multiple shifts found, showing selector');
-            $this->unclosedShifts = $unclosedShifts;
-            $this->showShiftSelector = true;
-            return;
-        }
-
-        // 3. Only one shift → Load it directly
-        $this->shift = $unclosedShifts->first();
 
         \Log::info('ShiftClosing: Shift loaded', [
             'shift_id' => $this->shift->id,
