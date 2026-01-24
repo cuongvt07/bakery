@@ -104,19 +104,38 @@ class ShiftClosing extends Component
      */
     private function createCheckInForCurrentShift()
     {
-        // Find today's registered shift
-        $schedule = \App\Models\ShiftSchedule::with(['agency', 'shiftTemplate'])
+        // Strategy: Look for a schedule that SHOULD have been checked in but wasn't.
+        // 1. Look for today's schedule
+        $query = \App\Models\ShiftSchedule::with(['agency', 'shiftTemplate'])
             ->where('nguoi_dung_id', Auth::id())
-            ->whereDate('ngay_lam', Carbon::today())
-            ->whereIn('trang_thai', ['approved', 'pending'])
-            ->first();
+            ->whereIn('trang_thai', ['approved', 'pending']);
+
+        // Handle overnight/late shifts: If check-in is early morning (00:00 - 06:00), 
+        // also check yesterday's schedules that might have ended late.
+        if (now()->hour < 6) {
+            $schedule = (clone $query)->whereDate('ngay_lam', Carbon::today()->subDay())
+                ->orderBy('gio_ket_thuc', 'desc')
+                ->first();
+
+            if (!$schedule) {
+                // If no yesterday schedule, check today
+                $schedule = (clone $query)->whereDate('ngay_lam', Carbon::today())
+                    ->orderBy('gio_bat_dau', 'asc')
+                    ->first();
+            }
+        } else {
+            // Normal case: Check today
+            $schedule = $query->whereDate('ngay_lam', Carbon::today())
+                ->orderBy('gio_bat_dau', 'asc')
+                ->first();
+        }
 
         if (!$schedule) {
-            \Log::info('ShiftClosing: No registered shift for today');
+            \Log::info('ShiftClosing: No registered shift found for auto-checkin');
             return null;
         }
 
-        // Check if ca_lam_viec already exists
+        // Check if ca_lam_viec already exists for this schedule
         $existingShift = CaLamViec::where('shift_template_id', $schedule->shift_template_id)
             ->where('nguoi_dung_id', $schedule->nguoi_dung_id)
             ->where('diem_ban_id', $schedule->diem_ban_id)
@@ -124,20 +143,20 @@ class ShiftClosing extends Component
             ->first();
 
         if ($existingShift) {
-            \Log::info('ShiftClosing: Shift already exists for today', ['shift_id' => $existingShift->id]);
             return $existingShift;
         }
 
-        \Log::info('ShiftClosing: Creating check-in for current shift', [
+        \Log::info('ShiftClosing: Creating auto check-in', [
             'schedule_id' => $schedule->id,
-            'shift_template_id' => $schedule->shift_template_id
+            'date' => $schedule->ngay_lam
         ]);
 
-        // Create new shift with auto check-in
+        // Create new shift with auto check-in "Late"
+        // Set check-in time = now (Closing time) so duration is effectively 0
         $shift = CaLamViec::create([
             'diem_ban_id' => $schedule->diem_ban_id,
             'nguoi_dung_id' => Auth::id(),
-            'ngay_lam' => now(),
+            'ngay_lam' => $schedule->ngay_lam, // Use schedule date (could be yesterday)
             'gio_bat_dau' => $schedule->gio_bat_dau,
             'gio_ket_thuc' => $schedule->gio_ket_thuc,
             'trang_thai' => 'dang_lam',
@@ -168,11 +187,12 @@ class ShiftClosing extends Component
         $this->autoCloseOldShifts();
         $autoCreatedShift = $this->createCheckInForCurrentShift();
 
-        // 1. Get all unclosed shifts for TODAY only
+        // 1. Get all unclosed shifts (Today and Yesterday)
+        // We include yesterday to catch overnight shifts that haven't been closed
         $unclosedShifts = CaLamViec::where('nguoi_dung_id', Auth::id())
             ->where('trang_thai', 'dang_lam')
             ->where('trang_thai_checkin', true)
-            ->whereDate('ngay_lam', Carbon::today()) // Only today's shifts
+            ->whereDate('ngay_lam', '>=', Carbon::today()->subDay())
             ->orderBy('thoi_gian_checkin', 'asc') // Oldest first
             ->get();
 
