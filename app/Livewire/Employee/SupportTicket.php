@@ -18,6 +18,11 @@ class SupportTicket extends Component
     {
         $this->agencies = Agency::all();
         $this->selectedAgencyId = Auth::user()->diem_ban_id; // Default to user's agency
+
+        // If user has no agency, default to the first one in the list to avoid null
+        if (!$this->selectedAgencyId && $this->agencies->isNotEmpty()) {
+            $this->selectedAgencyId = $this->agencies->first()->id;
+        }
     }
 
     public function submit()
