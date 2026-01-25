@@ -140,23 +140,6 @@ class RecipeForm extends Component
             'ingredients.*.so_luong' => 'required|numeric|min:0',
             'ingredients.*.don_gia' => 'required|numeric|min:0',
         ]);
-    }
-
-    public function messages()
-    {
-        return [
-            'ma_cong_thuc.required' => 'Mã công thức là bắt buộc.',
-            'ma_cong_thuc.unique' => 'Mã công thức đã tồn tại.',
-            'ten_cong_thuc.required' => 'Vui lòng nhập tên công thức.',
-            'ten_cong_thuc.min' => 'Tên công thức phải có ít nhất 2 ký tự.',
-            'so_luong_san_xuat.required' => 'Nhập số lượng sản xuất.',
-            'so_luong_san_xuat.min' => 'Số lượng phải lớn hơn 0.',
-            'ingredients.required' => 'Cần ít nhất một nguyên liệu.',
-            'ingredients.*.nguyen_lieu_id.required' => 'Vui lòng chọn nguyên liệu.',
-            'ingredients.*.so_luong.required' => 'Nhập số lượng.',
-            'ingredients.*.so_luong.min' => 'Số lượng phải lớn hơn 0.',
-            'ingredients.*.don_gia.required' => 'Đơn giá không được để trống.',
-        ];
 
         DB::transaction(function () {
             $data = [
@@ -195,6 +178,23 @@ class RecipeForm extends Component
 
         session()->flash('message', 'Lưu công thức thành công.');
         return redirect()->route('admin.recipes.index');
+    }
+
+    public function messages()
+    {
+        return [
+            'ma_cong_thuc.required' => 'Mã công thức là bắt buộc.',
+            'ma_cong_thuc.unique' => 'Mã công thức đã tồn tại.',
+            'ten_cong_thuc.required' => 'Vui lòng nhập tên công thức.',
+            'ten_cong_thuc.min' => 'Tên công thức phải có ít nhất 2 ký tự.',
+            'so_luong_san_xuat.required' => 'Nhập số lượng sản xuất.',
+            'so_luong_san_xuat.min' => 'Số lượng phải lớn hơn 0.',
+            'ingredients.required' => 'Cần ít nhất một nguyên liệu.',
+            'ingredients.*.nguyen_lieu_id.required' => 'Vui lòng chọn nguyên liệu.',
+            'ingredients.*.so_luong.required' => 'Nhập số lượng.',
+            'ingredients.*.so_luong.min' => 'Số lượng phải lớn hơn 0.',
+            'ingredients.*.don_gia.required' => 'Đơn giá không được để trống.',
+        ];
     }
 
     public function render()
