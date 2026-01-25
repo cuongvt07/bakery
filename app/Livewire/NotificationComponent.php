@@ -47,7 +47,10 @@ class NotificationComponent extends Component
 
         $items = $query->get();
 
-        $newUnreadCount = $items->where('da_doc', false)->count();
+        // Count TOTAL unread items (not limited by pagination)
+        $newUnreadCount = TrangThaiThongBao::where('nguoi_dung_id', $userId)
+            ->where('da_doc', false)
+            ->count();
 
         // Detect new unread item to trigger Toast
         if ($newUnreadCount > $this->unreadCount && $this->unreadCount >= 0) {
