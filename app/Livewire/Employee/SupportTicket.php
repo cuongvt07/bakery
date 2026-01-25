@@ -13,7 +13,7 @@ class SupportTicket extends Component
     public $message = '';
     public $selectedAgencyId = null;
     public $agencies = [];
-    
+
     public function mount()
     {
         $this->agencies = Agency::all();
@@ -31,38 +31,39 @@ class SupportTicket extends Component
 
         $user = Auth::user();
         $agency = Agency::find($this->selectedAgencyId ?? $user->diem_ban_id);
-        
+
         // Create ticket in yeu_cau_ca_lam table
         $data = [
             'nguoi_dung_id' => $user->id,
             'loai_yeu_cau' => 'ticket',
             'ca_lam_viec_id' => null,
+            'diem_ban_id' => $this->selectedAgencyId ?? $user->diem_ban_id,
             'trang_thai' => 'cho_duyet',
         ];
-        
+
         $lyDoData = [
             'message' => $this->message,
             'agency_id' => $this->selectedAgencyId ?? $user->diem_ban_id,
             'agency_name' => $agency->ten_diem_ban ?? 'N/A',
         ];
-        
+
         $data['ly_do'] = json_encode($lyDoData);
-        
+
         $ticket = \App\Models\YeuCauCaLam::create($data);
-        
+
         // Send Lark notification
         $this->sendTicketNotification($ticket, $lyDoData);
-        
+
         session()->flash('message', '🚨 Đã gửi ticket khẩn cấp! Chúng tôi sẽ phản hồi sớm nhất.');
-        
+
         $this->reset(['message']);
     }
-    
+
     private function sendTicketNotification($ticket, $lyDoData)
     {
         try {
             $user = Auth::user();
-            
+
             $card = [
                 'msg_type' => 'interactive',
                 'card' => [
@@ -90,13 +91,13 @@ class SupportTicket extends Component
                     ],
                 ],
             ];
-            
+
             \Illuminate\Support\Facades\Http::withHeaders([
                 'Content-Type' => 'application/json',
             ])->post(
-                'https://open.larksuite.com/open-apis/bot/v2/hook/1f6c319b-bfef-4b9d-a4e4-3972fbdcc4ae',
-                $card
-            );
+                    'https://open.larksuite.com/open-apis/bot/v2/hook/1f6c319b-bfef-4b9d-a4e4-3972fbdcc4ae',
+                    $card
+                );
         } catch (\Exception $e) {
             \Log::error('Ticket notification failed: ' . $e->getMessage());
         }

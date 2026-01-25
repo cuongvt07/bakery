@@ -276,7 +276,9 @@
             </a>
 
             @php
-                $pendingRequestsCount = \App\Models\YeuCauCaLam::where('trang_thai', 'cho_duyet')->count();
+                $pendingRequestsCount = \App\Models\YeuCauCaLam::where('trang_thai', 'cho_duyet')
+                    ->where('loai_yeu_cau', '!=', 'ticket')
+                    ->count();
             @endphp
             <details class="mb-1 group" {{ request()->routeIs('admin.shift.*') ? 'open' : '' }}
                 x-show="sidebarState === 2">
