@@ -71,11 +71,11 @@ class ShiftClosing extends Component
                 $phieu->ngay_chot = $checkoutTime->toDateString();
                 $phieu->gio_chot = $checkoutTime->toTimeString();
 
-                $phieu->tien_mat = $shift->tien_mat_dau_ca ?? 0;
-                $phieu->tien_chuyen_khoan = 0;
-                $phieu->tong_tien_thuc_te = $shift->tien_mat_dau_ca ?? 0;
-                $phieu->tong_tien_ly_thuyet = 0;
-                $phieu->tien_lech = 0;
+                $phieu->tien_mat = (string) ($shift->tien_mat_dau_ca ?? 0);
+                $phieu->tien_chuyen_khoan = '0';
+                $phieu->tong_tien_thuc_te = (string) ($shift->tien_mat_dau_ca ?? 0);
+                $phieu->tong_tien_ly_thuyet = '0';
+                $phieu->tien_lech = '0';
                 $phieu->ton_dau_ca = json_encode([]);
                 $phieu->ton_cuoi_ca = json_encode([]);
                 $phieu->ghi_chu = 'Tự động chốt - Quên chốt ca (Giờ checkout = Giờ checkin, Tổng công = 0)';
@@ -542,8 +542,8 @@ class ShiftClosing extends Component
             $phieu->diem_ban_id = $this->shift->diem_ban_id;
             $phieu->nguoi_chot_id = Auth::id();
             $phieu->ca_lam_viec_id = $this->shiftId;
-            $phieu->ngay_chot = now()->toDateString(); // Use string format
-            $phieu->gio_chot = now()->toTimeString(); // Use string format
+            $phieu->ngay_chot = now();
+            $phieu->gio_chot = now();
 
             $phieu->tien_mat = $this->tienMat;
             $phieu->tien_chuyen_khoan = $this->tienChuyenKhoan;
@@ -551,14 +551,14 @@ class ShiftClosing extends Component
             // Theoretical Total = Expected Cash + Transfer Sales
             // Expected Cash = Opening Cash + Cash Sales
             $theoreticalTotal = $this->expectedCash + $this->transferSalesTotal;
-            $phieu->tong_tien_ly_thuyet = $theoreticalTotal;
+            $phieu->tong_tien_ly_thuyet = (string) $theoreticalTotal;
 
             // Actual Total = Cash Holding + Transfer (should match input)
             $actualTotal = $this->tienMat + $this->tienChuyenKhoan;
             $phieu->tong_tien_thuc_te = $actualTotal;
 
             // Discrepancy = Actual - Theoretical
-            $phieu->tien_lech = $actualTotal - $theoreticalTotal;
+            $phieu->tien_lech = (string) ($actualTotal - $theoreticalTotal);
 
             // Save OT flag
             $phieu->ot = $this->isOvertime;

@@ -92,7 +92,7 @@ class AdminShiftRequests extends Component
             // Send Notification
             try {
                 app(\App\Services\NotificationService::class)->sendToUser(
-                    $this->selectedRequest->nguoi_tao_id, // Note: DB column is nguoi_dung_id but relation is nguoiDung. Using nguoi_dung_id from model.
+                    $this->selectedRequest->nguoi_dung_id,
                     'Yêu cầu đã được duyệt',
                     "Yêu cầu '{$this->selectedRequest->loai_yeu_cau}' của bạn đã được duyệt.",
                     'he_thong'
@@ -153,6 +153,18 @@ class AdminShiftRequests extends Component
                 'ngay_duyet' => now(),
                 'ghi_chu_duyet' => 'Duyệt hàng loạt',
             ]);
+
+            // Notification for bulk approval
+            try {
+                app(\App\Services\NotificationService::class)->sendToUser(
+                    $request->nguoi_dung_id,
+                    'Yêu cầu đã được duyệt',
+                    "Yêu cầu '{$request->loai_yeu_cau}' của bạn đã được duyệt (duyệt hàng loạt).",
+                    'he_thong'
+                );
+            } catch (\Exception $e) {
+                \Log::error('Error sending notification: ' . $e->getMessage());
+            }
 
             $this->sendApprovalLarkNotification($request, 'approved');
         }

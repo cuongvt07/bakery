@@ -4,116 +4,122 @@ namespace App\Services;
 
 use App\Models\ThongBao;
 use App\Models\TrangThaiThongBao;
-use Illuminate\Support\Facades\Auth;
-use Exception;
+use App\Models\User;
 use Illuminate\Support\Facades\DB;
+use Carbon\Carbon;
 
 class NotificationService
 {
     /**
-     * Send a notification to a specific user.
-     *
-     * @param int $userId The ID of the user receiving the notification.
-     * @param string $title The title of the notification.
-     * @param string $content The content of the notification.
-     * @param string $type The type of notification (e.g., 'he_thong', 'canh_bao', 'thong_tin').
-     * @return ThongBao
+     * Send notification to a specific user
      */
-    public function sendToUser($userId, $title, $content, $type = 'thong_tin')
+    public static function sendToUser($senderId, $receiverId, $title, $content, $type = 'thong_tin', $agencyId = null)
     {
-        try {
-            return DB::transaction(function () use ($userId, $title, $content, $type) {
-                // Determine sender (current user or system/admin placeholder if needed)
-                // For now assuming Auth::id() is available, otherwise handling could be improved
-                $senderId = Auth::id() ?? 1; // Fallback to ID 1 if system action
+        return DB::transaction(function () use ($senderId, $receiverId, $title, $content, $type, $agencyId) {
+            // 1. Create Notification
+            $notification = ThongBao::create([
+                'tieu_de' => $title,
+                'noi_dung' => $content,
+                'loai_thong_bao' => $type, // 'he_thong', 'canh_bao', 'thong_tin'
+                'gui_toi_tat_ca' => false,
+                'diem_ban_id' => $agencyId,
+                'nguoi_nhan_id' => $receiverId,
+                'nguoi_gui_id' => $senderId,
+                'ngay_gui' => now(),
+            ]);
 
-                // Create the notification record
-                $notification = ThongBao::create([
-                    'tieu_de' => $title,
-                    'noi_dung' => $content,
-                    'loai_thong_bao' => $type,
-                    'gui_toi_tat_ca' => false,
-                    'nguoi_nhan_id' => $userId,
-                    'nguoi_gui_id' => $senderId,
-                    'ngay_gui' => now(),
-                ]);
+            // 2. Create Status Record for Receiver
+            TrangThaiThongBao::create([
+                'thong_bao_id' => $notification->id,
+                'nguoi_dung_id' => $receiverId,
+                'da_doc' => false,
+            ]);
 
-                // Create the read status record for the user
-                TrangThaiThongBao::create([
-                    'thong_bao_id' => $notification->id,
-                    'nguoi_dung_id' => $userId,
-                    'da_doc' => false,
-                ]);
-
-                return $notification;
-            });
-        } catch (Exception $e) {
-            // Log error or rethrow
-            \Log::error('Failed to send notification: ' . $e->getMessage());
-            throw $e;
-        }
+            return $notification;
+        });
     }
 
     /**
-     * Send a notification to all users in a specific store.
-     *
-     * @param int $storeId The ID of the store (diem_ban).
-     * @param string $title The title of the notification.
-     * @param string $content The content of the notification.
-     * @param string $type The type of notification (e.g., 'he_thong', 'canh_bao', 'thong_tin').
-     * @return ThongBao
+     * Send notification to all users
      */
-    public function sendToStore($storeId, $title, $content, $type = 'thong_tin')
+    public static function sendToAll($senderId, $title, $content, $type = 'thong_tin')
     {
-        try {
-            return DB::transaction(function () use ($storeId, $title, $content, $type) {
-                $senderId = Auth::id() ?? 1;
+        return DB::transaction(function () use ($senderId, $title, $content, $type) {
+            // 1. Create Notification
+            $notification = ThongBao::create([
+                'tieu_de' => $title,
+                'noi_dung' => $content,
+                'loai_thong_bao' => $type,
+                'gui_toi_tat_ca' => true,
+                'nguoi_gui_id' => $senderId,
+                'ngay_gui' => now(),
+            ]);
 
-                // Create the notification record
-                $notification = ThongBao::create([
-                    'tieu_de' => $title,
-                    'noi_dung' => $content,
-                    'loai_thong_bao' => $type,
-                    'gui_toi_tat_ca' => false, // false because it's limited to a store, not GLOBAL
-                    'diem_ban_id' => $storeId,
-                    'nguoi_gui_id' => $senderId,
-                    'ngay_gui' => now(),
-                ]);
+            // Note: For "Send to All", we might not create individual records immediately 
+            // to save performance, or we can create them via a Job.
+            // For now, let's create them for active users to ensure consistency.
 
-                // Find all active users in the store
-                // Assuming NguoiDung has diem_ban_id
-                $users = \App\Models\User::where('diem_ban_id', $storeId)
-                    ->where('trang_thai', 'hoat_dong') // Assuming 'active' status check if exists
-                    ->get();
+            $activeUserIds = User::where('trang_thai', 'hoat_dong')->pluck('id');
 
-                // If model is NguoiDung, use NguoiDung
-                if ($users->isEmpty()) {
-                    $users = \App\Models\NguoiDung::where('diem_ban_id', $storeId)
-                        ->where('trang_thai', 'hoat_dong')
-                        ->get();
-                }
+            $statusRecords = [];
+            foreach ($activeUserIds as $userId) {
+                $statusRecords[] = [
+                    'thong_bao_id' => $notification->id,
+                    'nguoi_dung_id' => $userId,
+                    'da_doc' => false,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ];
+            }
 
-                // Bulk insert read status
-                $statusData = [];
-                foreach ($users as $user) {
-                    $statusData[] = [
-                        'thong_bao_id' => $notification->id,
-                        'nguoi_dung_id' => $user->id,
-                        'da_doc' => false,
-                        'created_at' => now(),
-                        'updated_at' => now(),
-                    ];
-                }
+            // Bulk insert
+            TrangThaiThongBao::insert($statusRecords);
 
-                if (!empty($statusData)) {
-                    TrangThaiThongBao::insert($statusData);
-                }
+            return $notification;
+        });
+    }
 
-                return $notification;
-            });
-        } catch (Exception $e) {
-            \Log::error('Failed to send store notification: ' . $e->getMessage());
-            throw $e;
-        }
+    /**
+     * Send notification to all users in a specific store (Agency)
+     */
+    public static function sendToStore($agencyId, $title, $content, $type = 'thong_tin')
+    {
+        // System sender ID or null (if no specific sender)
+        $senderId = \Illuminate\Support\Facades\Auth::id();
+
+        return DB::transaction(function () use ($senderId, $agencyId, $title, $content, $type) {
+            // 1. Create Notification
+            $notification = ThongBao::create([
+                'tieu_de' => $title,
+                'noi_dung' => $content,
+                'loai_thong_bao' => $type,
+                'gui_toi_tat_ca' => false, // Not to ALL stores, just one
+                'diem_ban_id' => $agencyId,
+                'nguoi_gui_id' => $senderId,
+                'ngay_gui' => now(),
+            ]);
+
+            // 2. Find Users in Store
+            $userIds = User::where('diem_ban_id', $agencyId)
+                ->where('trang_thai', 'hoat_dong')
+                ->pluck('id');
+
+            $statusRecords = [];
+            foreach ($userIds as $userId) {
+                $statusRecords[] = [
+                    'thong_bao_id' => $notification->id,
+                    'nguoi_dung_id' => $userId,
+                    'da_doc' => false,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ];
+            }
+
+            if (!empty($statusRecords)) {
+                TrangThaiThongBao::insert($statusRecords);
+            }
+
+            return $notification;
+        });
     }
 }

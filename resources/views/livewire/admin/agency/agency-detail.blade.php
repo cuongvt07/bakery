@@ -339,6 +339,13 @@
                         <h4 class="font-bold text-red-800 text-sm mb-2">NỘI DUNG YÊU CẦU</h4>
                         <p class="text-gray-800 whitespace-pre-wrap">{{ $selectedTicket->reason_text }}</p>
                     </div>
+
+                    @if($selectedTicket->trang_thai === 'pending' || $selectedTicket->trang_thai === 'cho_duyet')
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1.5">Ghi chú xử lý</label>
+                            <textarea wire:model="approvalNote" rows="3" class="w-full px-3 py-2 border rounded-lg" placeholder="Nhập ghi chú xử lý (nếu có)..."></textarea>
+                        </div>
+                    @endif
                     
                     @if($selectedTicket->trang_thai === 'pending' || $selectedTicket->trang_thai === 'cho_duyet')
                         <div class="pt-4 flex justify-end gap-3">

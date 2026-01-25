@@ -15,6 +15,11 @@
         
         <!-- Main Content -->
         <main class="flex-1 p-2">
+            <!-- Header with Notification -->
+            <div class="flex justify-end mb-4 px-4 sticky top-0 z-40">
+                <livewire:notification-component />
+            </div>
+
             {{ $slot }}
         </main>
     </div>

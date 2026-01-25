@@ -30,6 +30,17 @@ class CategoryForm extends Component
             'ten_danh_muc' => 'required|min:2',
             'thu_tu' => 'required|integer|min:0',
         ]);
+    }
+
+    public function messages()
+    {
+        return [
+            'ten_danh_muc.required' => 'Tên danh mục là bắt buộc.',
+            'ten_danh_muc.min' => 'Tên danh mục phải có ít nhất 2 ký tự.',
+            'thu_tu.required' => 'Thứ tự hiển thị là bắt buộc.',
+            'thu_tu.integer' => 'Thứ tự phải là số nguyên.',
+            'thu_tu.min' => 'Thứ tự không được âm.',
+        ];
 
         $data = [
             'ten_danh_muc' => $this->ten_danh_muc,

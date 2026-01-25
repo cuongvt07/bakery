@@ -32,6 +32,7 @@ class AgencyDetail extends Component
     // Ticket modal
     public $showTicketModal = false;
     public $selectedTicket = null;
+    public $approvalNote = '';
 
     // Form fields
     public $loai = '';
@@ -86,7 +87,7 @@ class AgencyDetail extends Component
         $this->tieu_de = $note->tieu_de;
         $this->noi_dung = $note->noi_dung;
         $this->muc_do_quan_trong = $note->muc_do_quan_trong;
-        $this->ngay_nhac_nho = $note->ngay_nhac_nho?->format('Y-m-d');
+        $this->ngay_nhac_nho = $note->ngay_nhac_nho ? \Carbon\Carbon::parse($note->ngay_nhac_nho)->format('Y-m-d') : null;
         $this->vi_tri_id = $note->vi_tri_id;
         $this->mo_ta_vi_tri = $note->metadata['mo_ta_vi_tri'] ?? '';
         $this->dia_diem = $note->metadata['dia_diem'] ?? '';
@@ -169,6 +170,7 @@ class AgencyDetail extends Component
     {
         $this->selectedTicket = YeuCauCaLam::with(['nguoiDung', 'diemBan'])->find($ticketId);
         if ($this->selectedTicket && $this->selectedTicket->diem_ban_id === $this->agency->id) {
+            $this->approvalNote = '';
             $this->showTicketModal = true;
         }
     }
@@ -189,22 +191,27 @@ class AgencyDetail extends Component
     {
         $ticket = YeuCauCaLam::find($ticketId);
         if ($ticket && $ticket->diem_ban_id === $this->agency->id && $ticket->loai_yeu_cau === 'ticket') {
-            $ticket->trang_thai = 'da_duyet'; // Update to consistent 'da_duyet' (approved)
-            $ticket->nguoi_duyet_id = \Illuminate\Support\Facades\Auth::id();
-            $ticket->ngay_duyet = now();
-            $ticket->ghi_chu_duyet = 'Đã xử lý xong';
-            $ticket->save();
+            $ticket->update([
+                'trang_thai' => 'da_duyet',
+                'nguoi_duyet_id' => \Illuminate\Support\Facades\Auth::id(),
+                'ngay_duyet' => now(),
+                'ghi_chu_duyet' => $this->approvalNote ?: 'Đã xử lý xong',
+            ]);
 
-            // Notify the store (Broadcast) as requested for Tickets
-            // "mong muốn tất cả sẽ đều biết" -> Broadcast to store
+            // Notify the store (Broadcast)
             try {
                 $agencyName = $this->agency->ten_diem_ban ?? 'Cửa hàng';
                 $adminName = \Illuminate\Support\Facades\Auth::user()->ho_ten ?? 'Admin';
 
+                $message = "Ticket '{$ticket->ly_do}' tại {$agencyName} đã được xử lý bởi {$adminName}.";
+                if ($this->approvalNote) {
+                    $message .= "\nGhi chú: " . $this->approvalNote;
+                }
+
                 app(\App\Services\NotificationService::class)->sendToStore(
                     $ticket->diem_ban_id,
                     'Thông báo xử lý Ticket',
-                    "Ticket '{$ticket->ly_do}' tại {$agencyName} đã được xử lý bởi {$adminName}.",
+                    $message,
                     'he_thong'
                 );
             } catch (\Exception $e) {
