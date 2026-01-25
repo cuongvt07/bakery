@@ -43,9 +43,9 @@ class ProductionBatchForm extends Component
         if ($id) {
             $this->batch = ProductionBatch::with(['details.product'])->findOrFail($id);
             $this->ma_me = $this->batch->ma_me;
-            $this->ngay_san_xuat = $this->batch->ngay_san_xuat->format('Y-m-d');
+            $this->ngay_san_xuat = Carbon::parse($this->batch->ngay_san_xuat)->format('Y-m-d');
             $this->buoi = $this->batch->buoi;
-            $this->han_su_dung = $this->batch->han_su_dung?->format('Y-m-d');
+            $this->han_su_dung = $this->batch->han_su_dung ? Carbon::parse($this->batch->han_su_dung)->format('Y-m-d') : null;
             $this->trang_thai = $this->batch->trang_thai;
             $this->ghi_chu_qc = $this->batch->ghi_chu_qc ?? '';
             $this->existingImages = $this->batch->anh_qc ?? [];
