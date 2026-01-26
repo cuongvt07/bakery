@@ -198,7 +198,7 @@ class AgencyDetail extends Component
                 'ghi_chu_duyet' => $this->approvalNote ?: 'Đã xử lý xong',
             ]);
 
-            // Notify the store (Broadcast)
+            // Notify ALL users (Broadcast)
             try {
                 $agencyName = $this->agency->ten_diem_ban ?? 'Cửa hàng';
                 $adminName = \Illuminate\Support\Facades\Auth::user()->ho_ten ?? 'Admin';
@@ -208,11 +208,12 @@ class AgencyDetail extends Component
                     $message .= "\nGhi chú: " . $this->approvalNote;
                 }
 
-                app(\App\Services\NotificationService::class)->sendToStore(
-                    $ticket->diem_ban_id,
+                // Use sendToAll to notify everyone in the system
+                app(\App\Services\NotificationService::class)->sendToAll(
+                    \Illuminate\Support\Facades\Auth::id(),
                     'Thông báo xử lý Ticket',
                     $message,
-                    'he_thong'
+                    'canh_bao'
                 );
             } catch (\Exception $e) {
                 \Log::error('Error sending ticket broadcast: ' . $e->getMessage());

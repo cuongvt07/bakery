@@ -7,9 +7,6 @@
         </div>
         
         <div class="flex items-center gap-3">
-             {{-- Notification Bell --}}
-            <livewire:components.notification-bell />
-
             <a href="{{ route('employee.support.ticket') }}"
                 class="p-2 bg-white rounded-full shadow-sm border border-gray-100 text-indigo-600">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -167,6 +164,27 @@
                     <div>
                         <div class="font-bold text-base">Lịch chung hệ thống</div>
                         <div class="text-xs text-indigo-100">Xem lịch làm việc tất cả các điểm</div>
+                    </div>
+                </div>
+                <svg class="w-5 h-5 text-white/70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                </svg>
+            </div>
+        </a>
+        
+        <a href="{{ route('employee.support.ticket') }}"
+            class="block bg-gradient-to-r from-amber-500 to-orange-600 rounded-xl shadow-lg p-4 text-white hover:shadow-xl transition-shadow">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <div class="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z" />
+                        </svg>
+                    </div>
+                    <div>
+                        <div class="font-bold text-base">Hỗ trợ khẩn cấp</div>
+                        <div class="text-xs text-amber-100">Gửi ticket báo cáo sự cố</div>
                     </div>
                 </div>
                 <svg class="w-5 h-5 text-white/70" fill="none" stroke="currentColor" viewBox="0 0 24 24">

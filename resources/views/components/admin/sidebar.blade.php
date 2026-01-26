@@ -89,6 +89,14 @@
                 <span x-show="sidebarState === 2" x-transition class="ml-3">Dashboard</span>
             </a>
 
+            <!-- Notifications -->
+            <a href="{{ route('admin.notifications.index') }}" :title="sidebarState === 1 ? 'Thông báo' : ''"
+                class="flex items-center px-3 py-2.5 mb-1 rounded-lg transition-all {{ request()->routeIs('admin.notifications.*') ? 'bg-amber-50 text-amber-700 font-medium' : 'text-gray-700 hover:bg-gray-50' }}"
+                :class="sidebarState === 1 && 'justify-center'">
+                <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" /></svg>
+                <span x-show="sidebarState === 2" x-transition class="ml-3">Thông báo</span>
+            </a>
+
             <div x-show="sidebarState === 2" class="my-2 border-t border-gray-100"></div>
 
             <!-- Nhân sự -->
@@ -129,6 +137,11 @@
             </a>
 
             <!-- Đại lý -->
+            @php
+                $pendingTicketsCount = \App\Models\YeuCauCaLam::where('trang_thai', 'cho_duyet')
+                    ->where('loai_yeu_cau', 'ticket')
+                    ->count();
+            @endphp
             <details class="mb-1 group" {{ request()->routeIs('admin.agencies.*') ? 'open' : '' }}
                 x-show="sidebarState === 2">
                 <summary
@@ -139,6 +152,9 @@
                                 d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                         </svg>
                         <span class="ml-3">Đại lý</span>
+                        @if ($pendingTicketsCount > 0)
+                            <span class="ml-2 bg-red-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full min-w-[20px] text-center">{{ $pendingTicketsCount }}</span>
+                        @endif
                     </div>
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
@@ -146,8 +162,11 @@
                 </summary>
                 <div class="pl-8 mt-1 space-y-0.5 border-l-2 border-amber-200 ml-6">
                     <a href="{{ route('admin.agencies.dashboard') }}"
-                        class="flex items-center px-3 py-2 rounded-md text-sm transition-all {{ request()->routeIs('admin.agencies.dashboard', 'admin.agencies.detail') ? 'text-amber-700 bg-amber-50 font-medium' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">
-                        Dashboard
+                        class="flex items-center justify-between px-3 py-2 rounded-md text-sm transition-all {{ request()->routeIs('admin.agencies.dashboard', 'admin.agencies.detail') ? 'text-amber-700 bg-amber-50 font-medium' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">
+                        <span>Dashboard</span>
+                        @if ($pendingTicketsCount > 0)
+                            <span class="bg-red-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full min-w-[20px] text-center">{{ $pendingTicketsCount }}</span>
+                        @endif
                     </a>
                     <a href="{{ route('admin.agencies.index') }}"
                         class="flex items-center px-3 py-2 rounded-md text-sm transition-all {{ request()->routeIs('admin.agencies.index', 'admin.agencies.create', 'admin.agencies.edit') ? 'text-amber-700 bg-amber-50 font-medium' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">

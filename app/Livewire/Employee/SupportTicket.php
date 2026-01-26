@@ -28,10 +28,7 @@ class SupportTicket extends Component
     public function submit()
     {
         $this->validate([
-            'message' => 'required|min:10',
-        ], [
-            'message.required' => 'Vui lòng nhập nội dung yêu cầu',
-            'message.min' => 'Nội dung phải ít nhất 10 ký tự',
+            // 'message' => 'required|min:10', // User requested to remove limit and requirement
         ]);
 
         $user = Auth::user();

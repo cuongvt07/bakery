@@ -298,10 +298,10 @@ class ShiftRequests extends Component
             }
 
             // Send to Lark webhook
-            \Illuminate\Support\Facades\Http::post(
-                'https://open.larksuite.com/open-apis/bot/v2/hook/0cab81f9-e31f-4604-98e5-bf5b356251e3',
-                $card
-            );
+            // \Illuminate\Support\Facades\Http::post(
+            //     'https://open.larksuite.com/open-apis/bot/v2/hook/0cab81f9-e31f-4604-98e5-bf5b356251e3',
+            //     $card
+            // );
         } catch (\Exception $e) {
             // Log error but don't fail the request
             \Log::error('Lark notification failed: ' . $e->getMessage());

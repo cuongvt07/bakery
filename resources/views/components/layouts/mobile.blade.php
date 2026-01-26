@@ -108,8 +108,7 @@
                     <div class="text-xs text-gray-500">{{ auth()->user()->ma_nhan_vien }}</div>
                 </div>
             </div>
-                </div>
-            </div>
+            
             <div class="flex items-center gap-2">
                 <livewire:notification-component />
                 <button onclick="document.getElementById('logout-form').submit()" class="text-gray-600">

@@ -89,13 +89,24 @@ class AdminShiftRequests extends Component
                 ]);
             }
 
-            // Send Notification
+            // Send Notification (Broadcast to ALL)
             try {
-                app(\App\Services\NotificationService::class)->sendToUser(
-                    $this->selectedRequest->nguoi_dung_id,
-                    'Yêu cầu đã được duyệt',
-                    "Yêu cầu '{$this->selectedRequest->loai_yeu_cau}' của bạn đã được duyệt.",
-                    'he_thong'
+                $typeMap = [
+                    'xin_ca' => 'Xin ca',
+                    'doi_ca' => 'Đổi ca',
+                    'xin_nghi' => 'Nghỉ ca',
+                    'ticket' => 'Ticket hỗ trợ',
+                ];
+                $typeName = $typeMap[$this->selectedRequest->loai_yeu_cau] ?? $this->selectedRequest->loai_yeu_cau;
+
+                $title = "Yêu cầu '{$typeName}' đã được duyệt";
+                $content = "Yêu cầu '{$typeName}' của {$this->selectedRequest->nguoiDung->ho_ten} đã được duyệt.";
+
+                app(\App\Services\NotificationService::class)->sendToAll(
+                    Auth::id(), // Sender
+                    $title,
+                    $content,
+                    'canh_bao'
                 );
             } catch (\Exception $e) {
                 \Log::error('Error sending notification: ' . $e->getMessage());
@@ -121,12 +132,23 @@ class AdminShiftRequests extends Component
             'ghi_chu_duyet' => $this->approvalNote ?: 'Từ chối',
         ]);
 
-        // Send Notification
+        // Send Notification (Broadcast to ALL)
         try {
-            app(\App\Services\NotificationService::class)->sendToUser(
-                $this->selectedRequest->nguoi_dung_id,
-                'Yêu cầu bị từ chối',
-                "Yêu cầu '{$this->selectedRequest->loai_yeu_cau}' của bạn đã bị từ chối. Lý do: " . ($this->approvalNote ?: 'Không có lý do'),
+            $typeMap = [
+                'xin_ca' => 'Xin ca',
+                'doi_ca' => 'Đổi ca',
+                'xin_nghi' => 'Nghỉ ca',
+                'ticket' => 'Ticket hỗ trợ',
+            ];
+            $typeName = $typeMap[$this->selectedRequest->loai_yeu_cau] ?? $this->selectedRequest->loai_yeu_cau;
+
+            $title = "Yêu cầu '{$typeName}' bị từ chối";
+            $content = "Yêu cầu '{$typeName}' của {$this->selectedRequest->nguoiDung->ho_ten} đã bị từ chối.";
+
+            app(\App\Services\NotificationService::class)->sendToAll(
+                Auth::id(), // Sender
+                $title,
+                $content,
                 'canh_bao'
             );
         } catch (\Exception $e) {
@@ -154,13 +176,25 @@ class AdminShiftRequests extends Component
                 'ghi_chu_duyet' => 'Duyệt hàng loạt',
             ]);
 
-            // Notification for bulk approval
+            // Notification for bulk approval (Broadcast to ALL)
             try {
-                app(\App\Services\NotificationService::class)->sendToUser(
-                    $request->nguoi_dung_id,
-                    'Yêu cầu đã được duyệt',
-                    "Yêu cầu '{$request->loai_yeu_cau}' của bạn đã được duyệt (duyệt hàng loạt).",
-                    'he_thong'
+                // Determine title based on request type
+                $typeMap = [
+                    'xin_ca' => 'Xin ca',
+                    'doi_ca' => 'Đổi ca',
+                    'xin_nghi' => 'Nghỉ ca',
+                    'ticket' => 'Ticket hỗ trợ',
+                ];
+                $typeName = $typeMap[$request->loai_yeu_cau] ?? $request->loai_yeu_cau;
+
+                $title = "Yêu cầu '{$typeName}' đã được duyệt";
+                $content = "Yêu cầu '{$typeName}' của {$request->nguoiDung->ho_ten} đã được duyệt.";
+
+                app(\App\Services\NotificationService::class)->sendToAll(
+                    Auth::id(), // Sender
+                    $title,
+                    $content,
+                    'canh_bao'
                 );
             } catch (\Exception $e) {
                 \Log::error('Error sending notification: ' . $e->getMessage());
@@ -315,9 +349,9 @@ class AdminShiftRequests extends Component
                 ],
             ];
 
-            Http::withHeaders([
-                'Content-Type' => 'application/json',
-            ])->post(self::LARK_APPROVAL_WEBHOOK, $card);
+            // Http::withHeaders([
+            //     'Content-Type' => 'application/json',
+            // ])->post(self::LARK_APPROVAL_WEBHOOK, $card);
 
         } catch (\Exception $e) {
             \Log::error('Admin approval Lark notification failed: ' . $e->getMessage());

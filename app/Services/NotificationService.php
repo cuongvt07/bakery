@@ -99,8 +99,10 @@ class NotificationService
                 'ngay_gui' => now(),
             ]);
 
-            // 2. Find Users in Store
-            $userIds = User::where('diem_ban_id', $agencyId)
+            // 2. Find Users in Store (using Many-to-Many relationship)
+            $userIds = User::whereHas('diemBan', function ($query) use ($agencyId) {
+                $query->where('diem_ban.id', $agencyId);
+            })
                 ->where('trang_thai', 'hoat_dong')
                 ->pluck('id');
 

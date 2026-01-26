@@ -23,7 +23,7 @@
         </div>
 
         <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">Mô tả yêu cầu khẩn cấp *</label>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Mô tả yêu cầu khẩn cấp</label>
             <textarea wire:model="message" rows="8" class="w-full px-4 py-3 border border-gray-300 rounded-lg"
                 placeholder="Mô tả chi tiết vấn đề cần hỗ trợ khẩn cấp từ điểm bán..."></textarea>
             @error('message')

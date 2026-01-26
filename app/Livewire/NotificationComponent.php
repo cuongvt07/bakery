@@ -57,7 +57,11 @@ class NotificationComponent extends Component
             // Find the newest unread item
             $newest = $items->first();
             if ($newest && !$newest->da_doc) {
-                $this->showToastNotification($newest->thongBao->tieu_de, $newest->thongBao->loai_thong_bao);
+                // Only show toast if user is an employee (or explicitly not admin if that's preferred preference)
+                // User requested: "hiển thị bên nhân viên thôi"
+                if (Auth::user()->vai_tro === 'nhan_vien') {
+                    $this->showToastNotification($newest->thongBao->tieu_de, $newest->thongBao->loai_thong_bao);
+                }
             }
         }
 
@@ -71,6 +75,9 @@ class NotificationComponent extends Component
         $this->loadNotifications();
     }
 
+    public $showDetailModal = false;
+    public $selectedNotification = null;
+
     public function toggleDropdown()
     {
         $this->showDropdown = !$this->showDropdown;
@@ -78,19 +85,35 @@ class NotificationComponent extends Component
 
     public function markAsRead($statusId)
     {
-        $status = TrangThaiThongBao::where('id', $statusId)
+        $status = TrangThaiThongBao::with('thongBao.nguoiGui')->where('id', $statusId)
             ->where('nguoi_dung_id', Auth::id())
             ->first();
 
-        if ($status && !$status->da_doc) {
-            $status->update([
-                'da_doc' => true,
-                'ngay_doc' => now()
-            ]);
+        if ($status) {
+            // Mark as read if not already
+            if (!$status->da_doc) {
+                $status->update([
+                    'da_doc' => true,
+                    'ngay_doc' => now()
+                ]);
 
-            // Refresh list
-            $this->loadNotifications();
+                // Refresh list only if status changed
+                $this->loadNotifications();
+            }
+
+            // Open Detail Modal
+            $this->selectedNotification = $status;
+            $this->showDetailModal = true;
+
+            // Close dropdown
+            $this->showDropdown = false;
         }
+    }
+
+    public function closeDetailModal()
+    {
+        $this->showDetailModal = false;
+        $this->selectedNotification = null;
     }
 
     public function markAllAsRead()
