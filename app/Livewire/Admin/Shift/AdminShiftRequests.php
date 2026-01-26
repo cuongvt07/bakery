@@ -349,9 +349,9 @@ class AdminShiftRequests extends Component
                 ],
             ];
 
-            // Http::withHeaders([
-            //     'Content-Type' => 'application/json',
-            // ])->post(self::LARK_APPROVAL_WEBHOOK, $card);
+            Http::withHeaders([
+                'Content-Type' => 'application/json',
+            ])->post(self::LARK_APPROVAL_WEBHOOK, $card);
 
         } catch (\Exception $e) {
             \Log::error('Admin approval Lark notification failed: ' . $e->getMessage());

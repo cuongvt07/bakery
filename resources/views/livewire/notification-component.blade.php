@@ -8,7 +8,7 @@
                 setTimeout(() => {
                     this.toastOpen = false;
                     @this.closeToast(); // Sync back to PHP
-                }, 5000);
+                }, 10000); // 10s
             }
         })
     }
