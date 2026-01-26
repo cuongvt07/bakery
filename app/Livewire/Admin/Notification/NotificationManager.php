@@ -92,6 +92,10 @@ class NotificationManager extends Component
             }
 
             DB::commit();
+
+            // Send to Lark
+            $this->sendToLark($this->tieu_de, $this->noi_dung, $this->loai_thong_bao);
+
             $this->closeCreateModal();
             session()->flash('success', 'Đã gửi thông báo thành công');
             $this->resetPage(); // Refresh list
@@ -100,6 +104,51 @@ class NotificationManager extends Component
             DB::rollBack();
             \Log::error('Create notification failed: ' . $e->getMessage());
             session()->flash('error', 'Có lỗi xảy ra: ' . $e->getMessage());
+        }
+    }
+
+    private function sendToLark($title, $content, $type)
+    {
+        try {
+            $webhookUrl = 'https://open.larksuite.com/open-apis/bot/v2/hook/6ce00d25-5ae9-4bd9-8e74-a45b0773cf3b';
+
+            // Format content with sender info
+            $adminName = Auth::user()->ho_ten ?? Auth::user()->name ?? 'Admin';
+            $fullContent = "**📢 THÔNG BÁO TỪ ADMIN: {$adminName}**\n\n";
+            $fullContent .= $content;
+
+            // Determine header color
+            $headerColor = $type === 'canh_bao' ? 'yellow' : 'red';
+            $headerIcon = $type === 'canh_bao' ? '⚠️' : '📢';
+
+            $card = [
+                'msg_type' => 'interactive',
+                'card' => [
+                    'header' => [
+                        'title' => [
+                            'tag' => 'plain_text',
+                            'content' => "{$headerIcon} {$title}",
+                        ],
+                        'template' => $headerColor,
+                    ],
+                    'elements' => [
+                        [
+                            'tag' => 'div',
+                            'text' => [
+                                'tag' => 'lark_md',
+                                'content' => $fullContent,
+                            ],
+                        ],
+                    ],
+                ],
+            ];
+
+            \Illuminate\Support\Facades\Http::withHeaders([
+                'Content-Type' => 'application/json',
+            ])->post($webhookUrl, $card);
+
+        } catch (\Exception $e) {
+            \Log::error('Sending Lark notification failed: ' . $e->getMessage());
         }
     }
 
