@@ -26,6 +26,18 @@ class NotificationComponent extends Component
         $this->loadNotifications();
     }
 
+    public $typeCounts = [];
+
+    public $activeTab = 'all'; // all, he_thong, canh_bao
+
+    // ... existing listeners ...
+
+    public function setTab($tab)
+    {
+        $this->activeTab = $tab;
+        $this->loadNotifications();
+    }
+
     public function loadNotifications()
     {
         if (!Auth::check()) {
@@ -34,26 +46,34 @@ class NotificationComponent extends Component
 
         $userId = Auth::id();
 
+        // Count unread per type
+        $baseUnread = TrangThaiThongBao::where('nguoi_dung_id', $userId)->where('da_doc', false);
+
+        $this->typeCounts = [
+            'all' => (clone $baseUnread)->count(),
+            'he_thong' => (clone $baseUnread)->whereHas('thongBao', fn($q) => $q->where('loai_thong_bao', 'he_thong'))->count(),
+            'canh_bao' => (clone $baseUnread)->whereHas('thongBao', fn($q) => $q->where('loai_thong_bao', 'canh_bao'))->count(),
+        ];
+
         // Polling Strategy:
         // Get unread notifications + recent read ones
         // Using "TrangThaiThongBao" as the pivot is better for "da_doc" status
 
         $query = TrangThaiThongBao::where('nguoi_dung_id', $userId)
             ->with(['thongBao'])
-            ->whereHas('thongBao') // Ensure notification still exists
+            ->whereHas('thongBao', function ($q) {
+                if ($this->activeTab !== 'all') {
+                    $q->where('loai_thong_bao', $this->activeTab);
+                }
+            })
             ->orderBy('da_doc', 'asc') // Unread first
             ->orderByDesc('created_at')
             ->limit(10);
 
         $items = $query->get();
 
-        // Count TOTAL unread items (not limited by pagination)
-        $newUnreadCount = TrangThaiThongBao::where('nguoi_dung_id', $userId)
-            ->where('da_doc', false)
-            ->count();
-
         // Detect new unread item to trigger Toast
-        if ($newUnreadCount > $this->unreadCount && $this->unreadCount >= 0) {
+        if ($this->typeCounts['all'] > $this->unreadCount && $this->unreadCount >= 0) {
             // Find the newest unread item
             $newest = $items->first();
             if ($newest && !$newest->da_doc) {
@@ -65,7 +85,7 @@ class NotificationComponent extends Component
             }
         }
 
-        $this->unreadCount = $newUnreadCount;
+        $this->unreadCount = $this->typeCounts['all'];
         $this->notifications = $items;
     }
 

@@ -40,11 +40,28 @@
          class="origin-top-right absolute -right-14 mt-2 w-screen max-w-[100vw] sm:w-80 sm:right-0 sm:max-w-sm rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 focus:outline-none z-50 overflow-hidden" 
          style="display: none;">
          
-        <div class="px-4 py-3 border-b border-gray-100 flex justify-between items-center">
-            <h3 class="text-sm font-medium text-gray-900">Thông báo</h3>
-            @if($unreadCount > 0)
-                <button wire:click="markAllAsRead" class="text-xs text-indigo-600 hover:text-indigo-800">Đọc tất cả</button>
-            @endif
+        <div class="px-4 py-3 border-b border-gray-100">
+            <div class="flex justify-between items-center mb-2">
+                <h3 class="text-sm font-medium text-gray-900">Thông báo</h3>
+                @if($unreadCount > 0)
+                    <button wire:click="markAllAsRead" class="text-xs text-indigo-600 hover:text-indigo-800">Đọc tất cả</button>
+                @endif
+            </div>
+            
+            <!-- Tabs -->
+            <div class="flex space-x-1 bg-gray-100 p-1 rounded-lg">
+                @foreach(['all' => 'Tất cả', 'he_thong' => 'Hệ thống', 'canh_bao' => 'Cảnh báo'] as $key => $label)
+                    <button wire:click="setTab('{{ $key }}')"
+                            class="flex-1 px-2 py-1 text-xs font-medium rounded-md transition-all flex items-center justify-center gap-1 {{ $activeTab === $key ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700' }}">
+                        {{ $label }}
+                        @if(!empty($typeCounts[$key]) && $typeCounts[$key] > 0)
+                            <span class="inline-flex items-center justify-center px-1.5 py-0.5 text-[10px] font-bold leading-none text-white bg-red-500 rounded-full h-4 min-w-[1rem]">
+                                {{ $typeCounts[$key] > 99 ? '99+' : $typeCounts[$key] }}
+                            </span>
+                        @endif
+                    </button>
+                @endforeach
+            </div>
         </div>
 
         <div class="max-h-96 overflow-y-auto">
