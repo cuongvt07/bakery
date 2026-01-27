@@ -27,9 +27,7 @@ class SupportTicket extends Component
 
     public function submit()
     {
-        $this->validate([
-            // 'message' => 'required|min:10', // User requested to remove limit and requirement
-        ]);
+        // Validation removed per user request (no requirement on message field)
 
         $user = Auth::user();
         $agency = Agency::find($this->selectedAgencyId ?? $user->diem_ban_id);
