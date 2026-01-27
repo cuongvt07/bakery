@@ -594,8 +594,12 @@ class ShiftClosing extends Component
 
             $phieu->save();
 
-            // 2. Update Shift status
+            // Reload relationship to get the phieuChotCa we just created
+            $this->shift->load('phieuChotCa');
+
+            // 2. Update Shift status and calculate total working hours
             $this->shift->trang_thai = 'da_ket_thuc';
+            $this->shift->calculateAndSaveTotalHours(); // Calculate hours from checkin to checkout
             $this->shift->save();
 
             // 3. Update ChiTietCaLam (Closing Stock & Sold)
