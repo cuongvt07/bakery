@@ -1,6 +1,32 @@
 <div class="p-6" 
     x-data="{ syncPercent: 0, syncCurrent: 0, syncTotal: 0, syncing: false }"
     x-on:sync-progress.window="syncPercent = $event.detail.percent; syncCurrent = $event.detail.current; syncTotal = $event.detail.total; syncing = true">
+
+    <!-- Fixed Bottom-Right Progress Notification -->
+    <div wire:loading wire:target="syncAttendance" 
+        class="fixed bottom-6 right-6 z-50 bg-white rounded-xl shadow-2xl border border-gray-200 p-4 w-80 animate-pulse">
+        <div class="flex items-center gap-3 mb-3">
+            <div class="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                <svg class="w-6 h-6 text-green-600 animate-spin" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+            </div>
+            <div>
+                <p class="font-bold text-gray-800">Đang đồng bộ công...</p>
+                <p class="text-sm text-gray-500">
+                    Nhân viên <span x-text="syncCurrent" class="font-semibold text-green-600"></span> / <span x-text="syncTotal" class="font-semibold"></span>
+                </p>
+            </div>
+        </div>
+        <div class="bg-gray-200 rounded-full h-3 overflow-hidden">
+            <div class="bg-gradient-to-r from-green-400 to-green-600 h-3 rounded-full transition-all duration-300"
+                x-bind:style="'width: ' + syncPercent + '%'">
+            </div>
+        </div>
+        <p class="text-center text-sm font-bold text-green-600 mt-2" x-text="syncPercent + '%'"></p>
+    </div>
+
     <div class="flex justify-between items-center mb-6">
         <h2 class="text-2xl font-bold text-gray-800">Quản lý Chấm công</h2>
 
@@ -16,19 +42,6 @@
             <input type="month" wire:model.live="month"
                 class="border border-gray-300 rounded-lg px-3 py-2 shadow-sm focus:ring-amber-500 focus:border-amber-500">
         </div>
-    </div>
-
-    <!-- Progress Bar (shown during sync) -->
-    <div wire:loading wire:target="syncAttendance" class="mb-4">
-        <div class="bg-gray-200 rounded-full h-4 overflow-hidden">
-            <div class="bg-gradient-to-r from-green-400 to-green-600 h-4 rounded-full transition-all duration-300 flex items-center justify-center text-xs font-bold text-white"
-                x-bind:style="'width: ' + syncPercent + '%'">
-                <span x-text="syncPercent + '%'" x-show="syncPercent > 10"></span>
-            </div>
-        </div>
-        <p class="text-sm text-gray-600 mt-1 text-center">
-            Đang đồng bộ nhân viên <span x-text="syncCurrent" class="font-bold"></span> / <span x-text="syncTotal" class="font-bold"></span>
-        </p>
     </div>
 
     <!-- Summary Table -->
