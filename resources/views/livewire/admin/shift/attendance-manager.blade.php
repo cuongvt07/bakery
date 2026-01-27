@@ -1,7 +1,6 @@
 <div class="p-6" 
     x-data="{ syncPercent: 0, syncCurrent: 0, syncTotal: 0, syncing: false }"
-    x-on:sync-progress.window="syncPercent = $event.detail.percent; syncCurrent = $event.detail.current; syncTotal = $event.detail.total; syncing = true"
-    @livewire:update.window="syncing = $wire.isSyncing">
+    x-on:sync-progress.window="syncPercent = $event.detail.percent; syncCurrent = $event.detail.current; syncTotal = $event.detail.total; syncing = true">
     <div class="flex justify-between items-center mb-6">
         <h2 class="text-2xl font-bold text-gray-800">Quản lý Chấm công</h2>
 

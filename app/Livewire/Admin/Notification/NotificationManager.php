@@ -174,6 +174,7 @@ class NotificationManager extends Component
             'notifications' => $notifications,
             'agencies' => $agencies,
             'users' => $users,
+            
         ]);
     }
 }
