@@ -368,10 +368,10 @@ class AgencyDetail extends Component
 
         $tickets = $ticketsQuery->orderBy('created_at', 'desc')->get();
 
-        // Count pending tickets for the badge
+        // Count pending tickets for the badge (not yet completed = cho_duyet or dang_xu_ly)
         $pendingTicketCount = YeuCauCaLam::where('diem_ban_id', $this->agency->id)
             ->where('loai_yeu_cau', 'ticket')
-            ->where('trang_thai', 'cho_duyet')
+            ->whereIn('trang_thai', ['cho_duyet', 'dang_xu_ly'])
             ->count();
 
         $locations = AgencyLocation::where('diem_ban_id', $this->agency->id)

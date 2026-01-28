@@ -88,10 +88,10 @@ class AgencyDashboard extends Component
             $overdueCount = $agency->notes->filter(fn($note) => $note->isOverdue())->count();
             $urgentCount = $agency->notes->where('muc_do_quan_trong', 'khan_cap')->count();
 
-            // Count pending tickets for this agency
+            // Count pending tickets for this agency (not yet completed)
             $pendingTickets = YeuCauCaLam::where('diem_ban_id', $agency->id)
                 ->where('loai_yeu_cau', 'ticket')
-                ->where('trang_thai', 'cho_duyet')
+                ->whereIn('trang_thai', ['cho_duyet', 'dang_xu_ly'])
                 ->count();
 
             // Determine overall status (RED or GREEN only, no yellow)
