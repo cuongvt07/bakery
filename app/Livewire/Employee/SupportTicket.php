@@ -51,7 +51,7 @@ class SupportTicket extends Component
 
         $ticket = \App\Models\YeuCauCaLam::create($data);
 
-        // Send Lark notification
+        // Send Lark notification to alert Admin about new ticket
         $this->sendTicketNotification($ticket, $lyDoData);
 
         session()->flash('message', '🚨 Đã gửi ticket khẩn cấp! Chúng tôi sẽ phản hồi sớm nhất.');

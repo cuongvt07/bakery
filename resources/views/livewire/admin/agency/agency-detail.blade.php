@@ -133,9 +133,19 @@
                                 </div>
                             </td>
                             <td class="px-4 py-3 whitespace-nowrap">
-                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full {{ $ticket->trang_thai === 'pending' || $ticket->trang_thai === 'cho_duyet' ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800' }}">
-                                    {{ $ticket->trang_thai === 'pending' || $ticket->trang_thai === 'cho_duyet' ? 'Chưa xử lý' : 'Đã xử lý' }}
-                                </span>
+                                @if($ticket->trang_thai === 'cho_duyet')
+                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
+                                        Chờ xử lý
+                                    </span>
+                                @elseif($ticket->trang_thai === 'dang_xu_ly')
+                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">
+                                        Đang xử lý
+                                    </span>
+                                @else
+                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                                        Đã xử lý
+                                    </span>
+                                @endif
                             </td>
                             <td class="px-4 py-3 whitespace-nowrap text-right text-sm font-medium">
                                 <button wire:click="viewTicketDetail({{ $ticket->id }})" class="text-indigo-600 hover:text-indigo-900 bg-indigo-50 px-3 py-1 rounded hover:bg-indigo-100 transition-colors">
@@ -340,19 +350,34 @@
                         <p class="text-gray-800 whitespace-pre-wrap">{{ $selectedTicket->reason_text }}</p>
                     </div>
 
-                    @if($selectedTicket->trang_thai === 'pending' || $selectedTicket->trang_thai === 'cho_duyet')
+                    @if($selectedTicket->trang_thai === 'cho_duyet')
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1.5">Ghi chú xử lý</label>
-                            <textarea wire:model="approvalNote" rows="3" class="w-full px-3 py-2 border rounded-lg" placeholder="Nhập ghi chú xử lý (nếu có)..."></textarea>
+                            <label class="block text-sm font-medium text-gray-700 mb-1.5">Ghi chú xác nhận</label>
+                            <textarea wire:model="approvalNote" rows="3" class="w-full px-3 py-2 border rounded-lg" placeholder="Nhập ghi chú (nếu có)..."></textarea>
                         </div>
-                    @endif
-                    
-                    @if($selectedTicket->trang_thai === 'pending' || $selectedTicket->trang_thai === 'cho_duyet')
+                        <div class="pt-4 flex justify-end gap-3">
+                            <button wire:click="closeTicketModal" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg">Đóng</button>
+                            <button wire:click="confirmTicket({{ $selectedTicket->id }})" class="px-4 py-2 bg-yellow-500 hover:bg-yellow-600 text-white font-bold rounded-lg flex items-center gap-2">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                Xác nhận (Đang xử lý)
+                            </button>
+                        </div>
+                    @elseif($selectedTicket->trang_thai === 'dang_xu_ly')
+                        <div class="bg-yellow-50 p-3 rounded-lg border border-yellow-200 mb-4">
+                            <span class="text-yellow-700 font-medium flex items-center gap-2">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                Đang xử lý
+                            </span>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1.5">Ghi chú hoàn thành</label>
+                            <textarea wire:model="approvalNote" rows="3" class="w-full px-3 py-2 border rounded-lg" placeholder="Nhập ghi chú xử lý..."></textarea>
+                        </div>
                         <div class="pt-4 flex justify-end gap-3">
                             <button wire:click="closeTicketModal" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg">Đóng</button>
                             <button wire:click="resolveTicket({{ $selectedTicket->id }})" class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-bold rounded-lg flex items-center gap-2">
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
-                                Đánh dấu đã xử lý
+                                Hoàn thành (Duyệt)
                             </button>
                         </div>
                     @else

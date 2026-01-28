@@ -185,7 +185,25 @@ class AgencyDetail extends Component
     }
 
     /**
-     * Resolve/complete a ticket
+     * Confirm/acknowledge a ticket (first step)
+     */
+    public function confirmTicket($ticketId)
+    {
+        $ticket = YeuCauCaLam::find($ticketId);
+        if ($ticket && $ticket->diem_ban_id === $this->agency->id && $ticket->loai_yeu_cau === 'ticket') {
+            $ticket->update([
+                'trang_thai' => 'dang_xu_ly',
+                'nguoi_duyet_id' => \Illuminate\Support\Facades\Auth::id(),
+                'ghi_chu_duyet' => $this->approvalNote ?: 'Đang xử lý',
+            ]);
+
+            session()->flash('success', 'Đã xác nhận ticket, đang xử lý');
+            $this->closeTicketModal();
+        }
+    }
+
+    /**
+     * Resolve/complete a ticket (final approval - sends notifications)
      */
     public function resolveTicket($ticketId)
     {
@@ -198,29 +216,91 @@ class AgencyDetail extends Component
                 'ghi_chu_duyet' => $this->approvalNote ?: 'Đã xử lý xong',
             ]);
 
-            // Notify ALL users (Broadcast)
+            // Notify the specific employee who created the ticket
             try {
                 $agencyName = $this->agency->ten_diem_ban ?? 'Cửa hàng';
                 $adminName = \Illuminate\Support\Facades\Auth::user()->ho_ten ?? 'Admin';
 
-                $message = "Ticket '{$ticket->ly_do}' tại {$agencyName} đã được xử lý bởi {$adminName}.";
+                $lyDoData = json_decode($ticket->ly_do, true);
+                $message = $lyDoData['message'] ?? $ticket->ly_do ?? 'Ticket';
+
+                $title = "Ticket của bạn đã được xử lý";
+                $content = "Ticket \"{$message}\" tại {$agencyName} đã được xử lý bởi {$adminName}.";
                 if ($this->approvalNote) {
-                    $message .= "\nGhi chú: " . $this->approvalNote;
+                    $content .= "\nGhi chú: " . $this->approvalNote;
                 }
 
-                // Use sendToAll to notify everyone in the system
-                app(\App\Services\NotificationService::class)->sendToAll(
+                // Send to specific user instead of all
+                app(\App\Services\NotificationService::class)->sendToUser(
                     \Illuminate\Support\Facades\Auth::id(),
-                    'Thông báo xử lý Ticket',
-                    $message,
-                    'canh_bao'
+                    $ticket->nguoi_dung_id,
+                    $title,
+                    $content,
+                    'canh_bao',
+                    $ticket->diem_ban_id
                 );
             } catch (\Exception $e) {
-                \Log::error('Error sending ticket broadcast: ' . $e->getMessage());
+                \Log::error('Error sending ticket notification: ' . $e->getMessage());
             }
+
+            // Send Lark notification
+            $this->sendTicketResolutionLark($ticket);
 
             session()->flash('success', 'Đã xử lý ticket thành công');
             $this->closeTicketModal();
+        }
+    }
+
+    /**
+     * Send Lark notification when ticket is resolved
+     */
+    private function sendTicketResolutionLark($ticket)
+    {
+        try {
+            $user = $ticket->nguoiDung;
+            $approver = \Illuminate\Support\Facades\Auth::user();
+            $lyDoData = json_decode($ticket->ly_do, true);
+            $message = $lyDoData['message'] ?? $ticket->ly_do ?? 'Không có nội dung';
+            $agencyName = $lyDoData['agency_name'] ?? $this->agency->ten_diem_ban ?? 'N/A';
+
+            $card = [
+                'msg_type' => 'interactive',
+                'card' => [
+                    'header' => [
+                        'title' => [
+                            'tag' => 'plain_text',
+                            'content' => '✅ ĐÃ XỬ LÝ TICKET HỖ TRỢ',
+                        ],
+                        'template' => 'green',
+                    ],
+                    'elements' => [
+                        [
+                            'tag' => 'div',
+                            'text' => [
+                                'tag' => 'lark_md',
+                                'content' => sprintf(
+                                    "**🏪 Điểm bán:** %s\n**👤 Nhân viên:** %s (%s)\n**✍️ Xử lý bởi:** %s\n\n**📢 Nội dung yêu cầu:**\n%s\n\n**💬 Ghi chú xử lý:** %s",
+                                    $agencyName,
+                                    $user->ho_ten ?? $user->name ?? 'N/A',
+                                    $user->ma_nhan_vien ?? 'N/A',
+                                    $approver->ho_ten ?? $approver->name ?? 'Admin',
+                                    $message,
+                                    $ticket->ghi_chu_duyet ?: 'Không có'
+                                ),
+                            ],
+                        ],
+                    ],
+                ],
+            ];
+
+            \Illuminate\Support\Facades\Http::withHeaders([
+                'Content-Type' => 'application/json',
+            ])->post(
+                    'https://open.larksuite.com/open-apis/bot/v2/hook/6ce00d25-5ae9-4bd9-8e74-a45b0773cf3b',
+                    $card
+                );
+        } catch (\Exception $e) {
+            \Log::error('Ticket resolution Lark notification failed: ' . $e->getMessage());
         }
     }
 
