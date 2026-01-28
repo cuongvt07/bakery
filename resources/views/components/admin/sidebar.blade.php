@@ -138,7 +138,7 @@
 
             <!-- Đại lý -->
             @php
-                $pendingTicketsCount = \App\Models\YeuCauCaLam::where('trang_thai', 'cho_duyet')
+                $pendingTicketsCount = \App\Models\YeuCauCaLam::whereIn('trang_thai', ['cho_duyet', 'dang_xu_ly'])
                     ->where('loai_yeu_cau', 'ticket')
                     ->count();
             @endphp
