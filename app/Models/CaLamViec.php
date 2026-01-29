@@ -161,6 +161,9 @@ class CaLamViec extends Model
      */
     public function calculateAndSaveTotalHours()
     {
+        // Force refresh the relation to ensure we have the latest saved data
+        $this->load('phieuChotCa');
+
         // If not checked in yet, set to 0
         if (!$this->thoi_gian_checkin) {
             $this->tong_gio_lam_viec = 0;
@@ -179,14 +182,23 @@ class CaLamViec extends Model
         $gioChotStr = $checkoutTime instanceof \Carbon\Carbon ? $checkoutTime->format('H:i:s') : $checkoutTime;
 
         try {
-            $checkoutDateTime = \Carbon\Carbon::parse($ngayChot->format('Y-m-d') . ' ' . $gioChotStr);
+            // Use Carbon::parse which is more robust than createFromFormat
+            $dateStr = $ngayChot instanceof \Carbon\Carbon ? $ngayChot->format('Y-m-d') : $ngayChot;
+            // Extract strictly time H:i:s
+            $timeStr = $gioChotStr;
+            if (strlen($timeStr) > 8) {
+                // If it contains date or other junk, try to parse
+                $timeStr = \Carbon\Carbon::parse($gioChotStr)->format('H:i:s');
+            }
+
+            $checkoutDateTime = \Carbon\Carbon::parse($dateStr . ' ' . $timeStr);
         } catch (\Exception $e) {
             $this->tong_gio_lam_viec = 0;
             return $this;
         }
 
-        // Calculate minutes difference and convert to hours
-        $minutes = $this->thoi_gian_checkin->diffInMinutes($checkoutDateTime);
+        // Calculate absolute minutes difference (always positive)
+        $minutes = abs($this->thoi_gian_checkin->diffInMinutes($checkoutDateTime));
         $diffHours = $minutes / 60;
 
         // Apply Max Hours Cap logic if not OT

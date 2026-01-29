@@ -36,7 +36,8 @@ class PhieuChotCa extends Model
 
     protected $casts = [
         'ngay_chot' => 'date',
-        'gio_chot' => 'datetime:H:i:s',
+        'ngay_chot' => 'date',
+        // 'gio_chot' => 'datetime:H:i:s', // Removed to avoid casting issues with TIME column
         'ngay_duyet' => 'datetime',
         'tien_mat' => 'decimal:2',
         'tien_chuyen_khoan' => 'decimal:2',
@@ -62,14 +63,14 @@ class PhieuChotCa extends Model
         static::saving(function ($model) {
             // Auto calculate tong_tien_thuc_te
             $model->tong_tien_thuc_te = $model->tien_mat + $model->tien_chuyen_khoan;
-            
+
             // Auto calculate tien_lech
             $model->tien_lech = $model->tong_tien_thuc_te - $model->tong_tien_ly_thuyet;
-            
+
             // Auto calculate hang_lech
             $tonDau = $model->ton_dau_ca;
             $tonCuoi = $model->ton_cuoi_ca;
-            
+
             // Ensure they are arrays (cast might not work in saving event)
             if (is_string($tonDau)) {
                 $tonDau = json_decode($tonDau, true) ?? [];
@@ -77,7 +78,7 @@ class PhieuChotCa extends Model
             if (is_string($tonCuoi)) {
                 $tonCuoi = json_decode($tonCuoi, true) ?? [];
             }
-            
+
             $model->hang_lech = static::calculateStockDiscrepancy(
                 $tonDau ?? [],
                 $tonCuoi ?? []
@@ -92,13 +93,13 @@ class PhieuChotCa extends Model
     {
         $lech = [];
         $allProducts = array_unique(array_merge(array_keys($tonDau), array_keys($tonCuoi)));
-        
+
         foreach ($allProducts as $productId) {
             $dauCa = $tonDau[$productId] ?? 0;
             $cuoiCa = $tonCuoi[$productId] ?? 0;
             $lech[$productId] = $cuoiCa - $dauCa;
         }
-        
+
         return $lech;
     }
 
@@ -155,7 +156,7 @@ class PhieuChotCa extends Model
     {
         $diemBan = $this->diemBan->ten_diem_ban ?? 'N/A';
         $ngay = $this->ngay_chot->format('d/m/Y');
-        
+
         $report = "📊 BÁO CÁO CHỐT CA\n";
         $report .= "Điểm: {$diemBan}\n";
         $report .= "Ngày: {$ngay}\n";
@@ -167,7 +168,7 @@ class PhieuChotCa extends Model
         $report .= "Lý thuyết: " . number_format($this->tong_tien_ly_thuyet) . " đ\n";
         $report .= "Lệch: " . number_format($this->tien_lech) . " đ ";
         $report .= $this->tien_lech > 0 ? "✅ (Thừa)" : ($this->tien_lech < 0 ? "⚠️ (Thiếu)" : "👌");
-        
+
         return $report;
     }
 }

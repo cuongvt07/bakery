@@ -460,6 +460,8 @@ class AttendanceManager extends Component
             }
 
             // Recalculate and save total hours immediately
+            // Refresh to ensure we have the latest phieuChotCa relations and data
+            $work->refresh();
             $work->calculateAndSaveTotalHours()->save();
         }
 
