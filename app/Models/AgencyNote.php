@@ -62,8 +62,22 @@ class AgencyNote extends Model
             return false;
         }
 
-        return now()->diffInDays($this->ngay_nhac_nho, false) <= 7 
-               && !$this->isOverdue();
+        return now()->diffInDays($this->ngay_nhac_nho, false) <= 7
+            && !$this->isOverdue();
+    }
+
+    /**
+     * Check if reminder date is within 10 days (past or future)
+     * Used for red highlighting in Agency Detail
+     */
+    public function isNearReminder(): bool
+    {
+        if (!$this->ngay_nhac_nho || $this->da_xu_ly) {
+            return false;
+        }
+
+        $daysUntilReminder = now()->startOfDay()->diffInDays($this->ngay_nhac_nho->startOfDay(), false);
+        return $daysUntilReminder <= 10;
     }
 
     public function getPriorityColorAttribute(): string
@@ -72,7 +86,7 @@ class AgencyNote extends Model
             return 'red';
         }
 
-        return match($this->muc_do_quan_trong) {
+        return match ($this->muc_do_quan_trong) {
             'khan_cap' => 'red',
             'cao' => 'orange',
             'trung_binh' => 'yellow',
@@ -83,7 +97,7 @@ class AgencyNote extends Model
 
     public function getPriorityLabelAttribute(): string
     {
-        return match($this->muc_do_quan_trong) {
+        return match ($this->muc_do_quan_trong) {
             'khan_cap' => 'Khẩn cấp',
             'cao' => 'Cao',
             'trung_binh' => 'Trung bình',
@@ -98,13 +112,13 @@ class AgencyNote extends Model
         $noteType = NoteType::where('diem_ban_id', $this->diem_ban_id)
             ->where('ma_loai', $this->loai)
             ->first();
-        
+
         if ($noteType) {
             return $noteType->display_label;
         }
-        
+
         // Fallback to hardcoded (for backward compatibility)
-        return match($this->loai) {
+        return match ($this->loai) {
             'hop_dong' => '📄 Hợp đồng',
             'chi_phi' => '💰 Chi phí',
             'cong_an' => '👮 Công an',
@@ -114,7 +128,7 @@ class AgencyNote extends Model
             default => '📝 ' . $this->loai,
         };
     }
-    
+
     /**
      * Check if this note is for "vat_dung" type
      */

@@ -163,6 +163,25 @@ class AgencyDetail extends Component
         }
     }
 
+    public function extendReminder($noteId)
+    {
+        $note = AgencyNote::find($noteId);
+        if ($note && $note->diem_ban_id === $this->agency->id) {
+            if ($note->ngay_nhac_nho) {
+                $note->ngay_nhac_nho = \Carbon\Carbon::parse($note->ngay_nhac_nho)->addMonth();
+                $note->da_xu_ly = false; // Ensure it's active again if it was processed? User said "Processed -> +1 month", maybe they mean "Mark as processed AND NEXT reminder is +1 month"? 
+                // "mở tab ✏️ Sửa ghi chú thì có nút đã xử lý --> thì lúc này thời gian nhắc nhở sau + 1 tháng sau"
+                // It seems they want a quick action to say "I handled this recurrent task, remind me again next month".
+                // So let's just update date and keep it 'da_xu_ly = false' (active) so it reminds again later? 
+                // Or maybe the user implies "Processing this specific instance".
+                // If I just change the date, it remains "pending" but for a future date, effectively "processed for now".
+                $note->save();
+                session()->flash('success', 'Đã gia hạn nhắc nhở thêm 1 tháng');
+                $this->showNoteModal = false; // Close modal after quick action
+            }
+        }
+    }
+
     /**
      * Show ticket detail modal
      */
@@ -378,12 +397,31 @@ class AgencyDetail extends Component
             ->orderBy('ma_vi_tri')
             ->get();
 
+        // Count urgent notes (near reminder < 10 days) per type
+        $urgentNoteCounts = [];
+        foreach ($noteTypes as $type) {
+            // We need to count notes of this type that are active (da_xu_ly = false) AND isNearReminder
+            // Since isNearReminder is a model method using computed date diff, we can't easily query it directly in SQL efficienty without raw DB.
+            // But we can approximate in SQL: where ngay_nhac_nho <= now + 10 days
+            $count = AgencyNote::where('diem_ban_id', $this->agency->id)
+                ->where('loai', $type->ma_loai)
+                ->where('da_xu_ly', false)
+                ->whereNotNull('ngay_nhac_nho')
+                ->whereDate('ngay_nhac_nho', '<=', now()->addDays(10))
+                ->count();
+
+            if ($count > 0) {
+                $urgentNoteCounts[$type->ma_loai] = $count;
+            }
+        }
+
         return view('livewire.admin.agency.agency-detail', [
             'notes' => $notes,
             'tickets' => $tickets,
             'noteTypes' => $noteTypes,
             'locations' => $locations,
             'pendingTicketCount' => $pendingTicketCount,
+            'urgentNoteCounts' => $urgentNoteCounts,
         ]);
     }
 }

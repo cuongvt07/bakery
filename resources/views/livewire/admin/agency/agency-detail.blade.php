@@ -45,9 +45,13 @@
                     <button wire:click="$set('activeTab', '{{ $type->ma_loai }}')"
                             class="px-6 py-3 border-b-2 font-medium text-sm whitespace-nowrap flex items-center gap-1 {{ $activeTab === $type->ma_loai ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300' }}">
                         {{ $type->display_label }}
-                        @if($type->ma_loai === 'canh_bao' && isset($pendingTicketCount) && $pendingTicketCount > 0)
                             <span class="ml-1 bg-red-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full min-w-[20px] text-center">
                                 {{ $pendingTicketCount }}
+                            </span>
+                        @endif
+                        @if(isset($urgentNoteCounts[$type->ma_loai]))
+                             <span class="ml-1 bg-red-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full min-w-[20px] text-center">
+                                {{ $urgentNoteCounts[$type->ma_loai] }}
                             </span>
                         @endif
                     </button>
@@ -173,7 +177,7 @@
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-200">
                     @foreach($notes as $note)
-                        <tr class="hover:bg-gray-50 {{ $note->da_xu_ly ? 'opacity-60 bg-gray-50' : '' }}">
+                        <tr class="hover:bg-gray-50 {{ $note->da_xu_ly ? 'opacity-60 bg-gray-50' : ($note->isNearReminder() ? 'bg-red-50' : '') }}">
                             <td class="px-4 py-3 whitespace-nowrap text-xs">
                                 {{ $note->type_label }}
                             </td>
@@ -287,6 +291,11 @@
                         <button type="submit" class="flex-1 px-4 py-2.5 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg">
                             {{ $editingNoteId ? 'Cập nhật' : 'Thêm ghi chú' }}
                         </button>
+                        @if($editingNoteId && $ngay_nhac_nho)
+                             <button type="button" wire:click="extendReminder({{ $editingNoteId }})" class="px-4 py-2.5 bg-yellow-500 hover:bg-yellow-600 text-white font-medium rounded-lg whitespace-nowrap">
+                                ✅ Đã xử lý (+1 tháng)
+                            </button>
+                        @endif
                     </div>
                 </form>
             </div>
