@@ -211,20 +211,9 @@ class CaLamViec extends Model
         $isOt = (bool) ($this->phieuChotCa->ot ?? false);
 
         if (!$isOt) {
-            // Calculate max hours from schedule
+            // Standard cap is 8 hours regardless of shift schedule duration
+            // This matches user expectation: "k tích OT thì phải 8h"
             $maxHours = 8;
-            if ($this->gio_bat_dau && $this->gio_ket_thuc) {
-                // Determine duration from start/end
-                $start = is_string($this->gio_bat_dau) ? \Carbon\Carbon::parse($this->gio_bat_dau) : $this->gio_bat_dau;
-                $end = is_string($this->gio_ket_thuc) ? \Carbon\Carbon::parse($this->gio_ket_thuc) : $this->gio_ket_thuc;
-
-                // If they are just times (H:i:s), diffInHours handles it assuming same day
-                // But generally shifts are within 24h
-                $maxHours = $start->diffInHours($end);
-                if ($maxHours == 0)
-                    $maxHours = 8;
-            }
-
             $totalHours = min($diffHours, $maxHours);
         } else {
             $totalHours = $diffHours;
