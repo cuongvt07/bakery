@@ -372,6 +372,7 @@ class AttendanceManager extends Component
         if ($this->editingCheckIn) {
             $checkInDateTime = Carbon::parse($work->ngay_lam->format('Y-m-d') . ' ' . $this->editingCheckIn);
             $work->thoi_gian_checkin = $checkInDateTime;
+            $work->trang_thai_checkin = 1; // Sync status flag with time
         }
         $work->ghi_chu = $this->editingNote;
         $work->save();
