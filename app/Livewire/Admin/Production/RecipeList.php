@@ -16,7 +16,7 @@ class RecipeList extends Component
 
     public $search = '';
     public $categoryId = '';
-    public $trangThai = '';
+    public $trangThai = 'hoat_dong'; // Default to active
     public $perPage = 15;
 
     public function updatingSearch()
@@ -27,8 +27,15 @@ class RecipeList extends Component
     public function delete($id)
     {
         $recipe = Recipe::find($id);
-        
+
         if (!$recipe) {
+            return;
+        }
+
+        // If active, soft delete (hide)
+        if ($recipe->trang_thai === 'hoat_dong') {
+            $recipe->update(['trang_thai' => 'ngung_su_dung']);
+            session()->flash('message', 'Đã ẩn công thức khỏi danh sách (chuyển sang Ngừng sử dụng).');
             return;
         }
 
@@ -39,7 +46,19 @@ class RecipeList extends Component
         }
 
         $recipe->delete();
-        session()->flash('message', 'Đã xóa công thức thành công.');
+        session()->flash('message', 'Đã xóa hoàn toàn công thức.');
+    }
+
+    public function toggleStatus($id)
+    {
+        $recipe = Recipe::find($id);
+        if ($recipe) {
+            $newStatus = $recipe->trang_thai === 'hoat_dong' ? 'ngung_su_dung' : 'hoat_dong';
+            $recipe->update(['trang_thai' => $newStatus]);
+
+            $msg = $newStatus === 'hoat_dong' ? 'Đã hiện công thức trở lại.' : 'Đã ẩn công thức.';
+            session()->flash('message', $msg);
+        }
     }
 
     public function resetFilters()
@@ -57,7 +76,7 @@ class RecipeList extends Component
         if ($this->search) {
             $query->where(function ($q) {
                 $q->where('ma_cong_thuc', 'like', '%' . $this->search . '%')
-                  ->orWhere('ten_cong_thuc', 'like', '%' . $this->search . '%');
+                    ->orWhere('ten_cong_thuc', 'like', '%' . $this->search . '%');
             });
         }
 

@@ -85,7 +85,19 @@
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                 <a href="{{ route('admin.recipes.edit', $recipe->id) }}" class="text-yellow-600 hover:text-yellow-900 mr-3">Sửa</a>
-                                <button wire:click="delete({{ $recipe->id }})" wire:confirm="Bạn có chắc muốn xóa?" class="text-red-600 hover:text-red-900">Xóa</button>
+                                
+                                @if($recipe->trang_thai === 'hoat_dong')
+                                    <button wire:click="toggleStatus({{ $recipe->id }})" class="text-gray-500 hover:text-gray-700 mr-2" title="Ẩn khỏi danh sách">
+                                        Ẩn
+                                    </button>
+                                @else
+                                    <button wire:click="toggleStatus({{ $recipe->id }})" class="text-green-600 hover:text-green-900 mr-2" title="Hiện lại">
+                                        Hiện
+                                    </button>
+                                    <button wire:click="delete({{ $recipe->id }})" wire:confirm="Xóa hoàn toàn công thức này? Hành động không thể hoàn tác." class="text-red-600 hover:text-red-900">
+                                        Xóa
+                                    </button>
+                                @endif
                             </td>
                         </tr>
                     @empty

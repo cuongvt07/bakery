@@ -362,7 +362,7 @@ class AdminShiftRequests extends Component
     {
         // IMPORTANT: Filter OUT tickets - they are now shown in Agency Dashboard
         $query = YeuCauCaLam::with(['nguoiDung', 'caLamViec'])
-            ->whereIn('loai_yeu_cau', ['doi_ca', 'xin_nghi']); // Exclude 'ticket'
+            ->whereIn('loai_yeu_cau', ['doi_ca', 'xin_nghi', 'ticket']);
 
         if ($this->filterStatus) {
             $query->where('trang_thai', $this->filterStatus);
@@ -384,18 +384,18 @@ class AdminShiftRequests extends Component
         // Statistics (exclude tickets)
         $stats = [
             'pending' => YeuCauCaLam::where('trang_thai', 'cho_duyet')
-                ->whereIn('loai_yeu_cau', ['doi_ca', 'xin_nghi'])
+                ->whereIn('loai_yeu_cau', ['doi_ca', 'xin_nghi', 'ticket'])
                 ->count(),
             'approved' => YeuCauCaLam::where('trang_thai', 'da_duyet')
-                ->whereIn('loai_yeu_cau', ['doi_ca', 'xin_nghi'])
+                ->whereIn('loai_yeu_cau', ['doi_ca', 'xin_nghi', 'ticket'])
                 ->whereDate('ngay_duyet', Carbon::today())
                 ->count(),
             'rejected' => YeuCauCaLam::where('trang_thai', 'tu_choi')
-                ->whereIn('loai_yeu_cau', ['doi_ca', 'xin_nghi'])
+                ->whereIn('loai_yeu_cau', ['doi_ca', 'xin_nghi', 'ticket'])
                 ->whereDate('ngay_duyet', Carbon::today())
                 ->count(),
             'total_today' => YeuCauCaLam::whereDate('created_at', Carbon::today())
-                ->whereIn('loai_yeu_cau', ['doi_ca', 'xin_nghi'])
+                ->whereIn('loai_yeu_cau', ['doi_ca', 'xin_nghi', 'ticket'])
                 ->count(),
         ];
 

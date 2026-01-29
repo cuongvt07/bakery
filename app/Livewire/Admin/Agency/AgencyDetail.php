@@ -353,9 +353,9 @@ class AgencyDetail extends Component
 
         // Filter tickets by status if needed
         if ($this->statusFilter === 'processed') {
-            $ticketsQuery->where('trang_thai', 'approved');
+            $ticketsQuery->where('trang_thai', 'da_duyet');
         } elseif ($this->statusFilter === 'pending') {
-            $ticketsQuery->where('trang_thai', 'pending');
+            $ticketsQuery->where('trang_thai', 'cho_duyet');
         }
 
         // Filter by search
