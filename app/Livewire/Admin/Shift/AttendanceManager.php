@@ -458,6 +458,9 @@ class AttendanceManager extends Component
                 $work->phieuChotCa->ot = $this->editingIsOt;
                 $work->phieuChotCa->save();
             }
+
+            // Recalculate and save total hours immediately
+            $work->calculateAndSaveTotalHours()->save();
         }
 
         $this->showEditModal = false;

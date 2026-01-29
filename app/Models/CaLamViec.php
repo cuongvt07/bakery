@@ -153,6 +153,12 @@ class CaLamViec extends Model
      * Only calculates for CLOSED shifts (with phieuChotCa)
      * Unclosed shifts will have total hours = 0
      */
+    /**
+     * Calculate and save total hours worked
+     * Called when sync button is clicked, or when shift is edited
+     * Only calculates for CLOSED shifts (with phieuChotCa)
+     * Resembles calculateWorkHours from AttendanceManager
+     */
     public function calculateAndSaveTotalHours()
     {
         // If not checked in yet, set to 0
@@ -162,7 +168,6 @@ class CaLamViec extends Model
         }
 
         // IMPORTANT: Only calculate for CLOSED shifts (with phieuChotCa)
-        // Unclosed shifts should have total hours = 0
         if (!$this->phieuChotCa || !$this->phieuChotCa->gio_chot) {
             $this->tong_gio_lam_viec = 0;
             return $this;
@@ -170,17 +175,44 @@ class CaLamViec extends Model
 
         // Get actual checkout time from phieuChotCa
         $checkoutTime = $this->phieuChotCa->gio_chot;
-
-        // Parse checkout datetime properly
         $ngayChot = $this->phieuChotCa->ngay_chot ?? $this->ngay_lam;
         $gioChotStr = $checkoutTime instanceof \Carbon\Carbon ? $checkoutTime->format('H:i:s') : $checkoutTime;
-        $checkoutDateTime = \Carbon\Carbon::parse($ngayChot->format('Y-m-d') . ' ' . $gioChotStr);
+
+        try {
+            $checkoutDateTime = \Carbon\Carbon::parse($ngayChot->format('Y-m-d') . ' ' . $gioChotStr);
+        } catch (\Exception $e) {
+            $this->tong_gio_lam_viec = 0;
+            return $this;
+        }
 
         // Calculate minutes difference and convert to hours
         $minutes = $this->thoi_gian_checkin->diffInMinutes($checkoutDateTime);
-        $totalHours = round($minutes / 60, 2); // Store with 2 decimal places
+        $diffHours = $minutes / 60;
 
-        $this->tong_gio_lam_viec = $totalHours;
+        // Apply Max Hours Cap logic if not OT
+        $isOt = (bool) ($this->phieuChotCa->ot ?? false);
+
+        if (!$isOt) {
+            // Calculate max hours from schedule
+            $maxHours = 8;
+            if ($this->gio_bat_dau && $this->gio_ket_thuc) {
+                // Determine duration from start/end
+                $start = is_string($this->gio_bat_dau) ? \Carbon\Carbon::parse($this->gio_bat_dau) : $this->gio_bat_dau;
+                $end = is_string($this->gio_ket_thuc) ? \Carbon\Carbon::parse($this->gio_ket_thuc) : $this->gio_ket_thuc;
+
+                // If they are just times (H:i:s), diffInHours handles it assuming same day
+                // But generally shifts are within 24h
+                $maxHours = $start->diffInHours($end);
+                if ($maxHours == 0)
+                    $maxHours = 8;
+            }
+
+            $totalHours = min($diffHours, $maxHours);
+        } else {
+            $totalHours = $diffHours;
+        }
+
+        $this->tong_gio_lam_viec = round($totalHours, 2);
         return $this;
     }
 
