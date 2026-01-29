@@ -430,14 +430,18 @@ class AttendanceManager extends Component
                 $phieu->ot = $this->editingIsOt;
                 $phieu->save();
             } else {
-                // Logic for date rollover if user changed time?
-                // Maybe keep existing date unless time implies rollover?
-                // For now just update Time and OT.
+                // Logic for date rollover if user changed time
                 $ci = Carbon::parse($this->editingCheckIn);
                 $co = Carbon::parse($this->editingCheckOut);
 
                 // Calculate actual hours worked
-                $actualHours = $ci->diffInMinutes($co) / 60;
+                // If co < ci, assume it's next day for calculation purposes
+                if ($co->lt($ci)) {
+                    $calcCo = $co->copy()->addDay();
+                    $actualHours = $ci->diffInMinutes($calcCo) / 60;
+                } else {
+                    $actualHours = $ci->diffInMinutes($co) / 60;
+                }
 
                 // Get max hours from shift template
                 $maxHours = 8;
@@ -451,11 +455,13 @@ class AttendanceManager extends Component
 
                 // CAP hours if NOT OT: Only allow up to max shift hours
                 if (!$this->editingIsOt && $actualHours > $maxHours) {
-                    $co = $ci->copy()->addHours($maxHours);
-                    $this->dispatch('alert', ['type' => 'warning', 'message' => "Giờ làm vượt quá lịch ca ({$maxHours}h). Tự động cap tối đa {$maxHours}h (chưa tick OT)"]);
+                    // Removed auto-cap to respect user input
                 }
 
-                $work->phieuChotCa->gio_chot = $co->toTimeString();
+                // SIMPLIFIED: Always set checkout date as shift date (No overnight logic)
+                $work->phieuChotCa->ngay_chot = $work->ngay_lam;
+
+                $work->phieuChotCa->gio_chot = $co->format('H:i:s');
                 $work->phieuChotCa->ot = $this->editingIsOt;
                 $work->phieuChotCa->save();
             }

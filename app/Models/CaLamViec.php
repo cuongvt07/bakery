@@ -197,7 +197,13 @@ class CaLamViec extends Model
             return $this;
         }
 
-        // Calculate absolute minutes difference (always positive)
+        // Calculate absolute minutes difference
+        // Handle overnight shift inference: If checkout time is earlier than checkin time,
+        // and we are assuming 'basic' date handling, it implies next day.
+        if ($checkoutDateTime->lt($this->thoi_gian_checkin)) {
+            $checkoutDateTime->addDay();
+        }
+
         $minutes = abs($this->thoi_gian_checkin->diffInMinutes($checkoutDateTime));
         $diffHours = $minutes / 60;
 
