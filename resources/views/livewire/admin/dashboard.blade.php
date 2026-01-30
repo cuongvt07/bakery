@@ -110,7 +110,9 @@
                 </span>
             </div>
             <div class="relative h-80 w-full">
-                <canvas id="salesChart"></canvas>
+                <canvas id="salesChart" 
+                    data-chart='@json($this->salesChartData)' 
+                    data-max="{{ $this->maxRevenue }}"></canvas>
             </div>
         </div>
 
@@ -118,7 +120,7 @@
         <div class="bg-white rounded-lg shadow p-6">
             <h3 class="text-lg font-semibold text-gray-800 mb-4">Top 10 Sản Xuất (Sản Phẩm)</h3>
             <div class="relative h-80 w-full">
-                <canvas id="productionChart"></canvas>
+                <canvas id="productionChart" data-chart='@json($this->productionChartData)'></canvas>
             </div>
         </div>
         
@@ -126,10 +128,23 @@
         <div class="bg-white rounded-lg shadow p-6">
             <h3 class="text-lg font-semibold text-gray-800 mb-4">Phân Bổ Theo Đại Lý</h3>
             <div class="relative h-80 w-full">
-                <canvas id="distributionChart"></canvas>
+                <canvas id="distributionChart" data-chart='@json($this->distributionChartData)'></canvas>
             </div>
         </div>
     </div>
+
+    <!-- Recent Tables Section -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- ... (keep recent tables as is, just skipping for brevity from replace tool context if possible, but I need to match start/end) ... -->
+        <!-- Since I can't skip deeply nested content easily without large context, I will focus the replacement on the Charts Section primarily or use multiple chunks if needed. 
+             But here I am using replace_file_content for the JS script part too. 
+             I'll split this into two calls or use multi_replace. Multi is better. 
+        -->
+        
+    <!-- Wait, I am restricted to one tool call per turn? No. 
+         But sticking to replace_file_content. 
+         I will use multi_replace_file_content to handle both the HTML attributes and the JS update.
+    -->
 
     <!-- Recent Tables Section -->
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -242,11 +257,12 @@
 
         function initCharts() {
             // Sales Chart
-            const salesData = @json($this->salesChartData);
-            const maxRevenue = {{ $this->maxRevenue }};
             const salesCtx = document.getElementById('salesChart');
 
             if (salesCtx) {
+                const salesData = JSON.parse(salesCtx.getAttribute('data-chart') || '[]');
+                const maxRevenue = parseFloat(salesCtx.getAttribute('data-max') || 0);
+
                 if (salesChartInstance) salesChartInstance.destroy();
 
                 if (salesData.length > 0) {
@@ -300,10 +316,11 @@
             }
 
             // Production Chart
-            const productionData = @json($this->productionChartData);
             const productionCtx = document.getElementById('productionChart');
             
             if (productionCtx) {
+                const productionData = JSON.parse(productionCtx.getAttribute('data-chart') || '[]');
+
                 if (productionChartInstance) productionChartInstance.destroy();
 
                 if (productionData.length > 0) {
@@ -332,10 +349,11 @@
             }
 
             // Distribution Chart
-            const distributionData = @json($this->distributionChartData);
             const distributionCtx = document.getElementById('distributionChart');
             
             if (distributionCtx) {
+                const distributionData = JSON.parse(distributionCtx.getAttribute('data-chart') || '[]');
+
                 if (distributionChartInstance) distributionChartInstance.destroy();
 
                 if (distributionData.length > 0) {
