@@ -103,7 +103,12 @@
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
         <!-- Sales Chart -->
         <div class="bg-white rounded-lg shadow p-6 md:col-span-2">
-            <h3 class="text-lg font-semibold text-gray-800 mb-4">Doanh Số Theo Ngày</h3>
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-semibold text-gray-800">{{ $salesChartLabel }}</h3>
+                <span class="text-xl font-bold text-blue-600">
+                    {{ number_format($stats['total_revenue'] ?? 0) }} VNĐ
+                </span>
+            </div>
             <div class="relative h-80 w-full">
                 <canvas id="salesChart"></canvas>
             </div>
@@ -146,7 +151,10 @@
                         @forelse($recentShifts as $shift)
                             <tr>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                    {{ $shift->nguoiDung->full_name ?? 'N/A' }}
+                                    {{ $shift->nguoiDung->ho_ten ?? 'N/A' }} 
+                                    @if($shift->nguoiDung)
+                                        <span class="text-gray-500 font-normal">({{ $shift->nguoiDung->ma_nhan_vien ?? '' }})</span>
+                                    @endif
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                     {{ $shift->diemBan->ten_diem_ban ?? 'N/A' }}
@@ -278,7 +286,7 @@
                             scales: {
                                 y: {
                                     beginAtZero: true,
-                                    suggestedMax: maxRevenue + 50000000,
+                                    suggestedMax: maxRevenue + 5000000,
                                     ticks: {
                                         callback: function(value) {
                                             return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', maximumSignificantDigits: 3 }).format(value);

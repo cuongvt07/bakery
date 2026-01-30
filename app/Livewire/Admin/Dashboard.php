@@ -138,39 +138,96 @@ class Dashboard extends Component
     // Calculate max revenue for chart scaling
     public $maxRevenue = 0;
 
-    // Chart data for Sales (Aggregated by Date)
+    public $salesChartLabel = 'Doanh Số Theo Ngày';
+
+    // Chart data for Sales (Aggregated by Date/Hour/Month)
     public function getSalesChartDataProperty()
     {
         $start = Carbon::parse($this->startDate)->startOfDay();
         $end = Carbon::parse($this->endDate)->endOfDay();
+        $diffInDays = $start->diffInDays($end);
 
-        $sales = BatchBanHang::whereBetween('ngay_chot', [$start, $end])
-            ->selectRaw('DATE(ngay_chot) as date, SUM(tong_tien) as total')
-            ->groupBy('date')
-            ->orderBy('date')
-            ->get();
+        // Determine grouping
+        $groupBy = 'day';
+        if ($this->filterType === 'today' || $diffInDays < 1) {
+            $groupBy = 'hour';
+            $this->salesChartLabel = 'Doanh Số Theo Giờ';
+        } elseif ($this->filterType === 'this_year' || $diffInDays > 31) {
+            $groupBy = 'month';
+            $this->salesChartLabel = 'Doanh Số Theo Tháng';
+        } else {
+            $groupBy = 'day';
+            $this->salesChartLabel = 'Doanh Số Theo Ngày';
+        }
 
-        // Fill in missing dates with 0
+        $query = BatchBanHang::whereBetween('ngay_chot', [$start, $end]);
         $data = [];
-        $current = $start->copy();
-
         $maxVal = 0;
 
-        while ($current <= $end) {
-            $dateStr = $current->format('Y-m-d');
-            $sale = $sales->firstWhere('date', $dateStr);
-            $total = $sale ? (float) $sale->total : 0;
+        if ($groupBy === 'hour') {
+            $sales = $query->selectRaw('HOUR(gio_chot) as hour, SUM(tong_tien) as total')
+                ->groupBy('hour')
+                ->orderBy('hour')
+                ->get();
 
-            if ($total > $maxVal) {
-                $maxVal = $total;
+            // Fill 0-23 hours
+            for ($i = 0; $i < 24; $i++) {
+                $sale = $sales->firstWhere('hour', $i);
+                $total = $sale ? (float) $sale->total : 0;
+                if ($total > $maxVal)
+                    $maxVal = $total;
+
+                $data[] = [
+                    'date' => sprintf('%02d:00', $i),
+                    'total' => $total,
+                ];
             }
+        } elseif ($groupBy === 'month') {
+            $sales = $query->selectRaw('MONTH(ngay_chot) as month, YEAR(ngay_chot) as year, SUM(tong_tien) as total')
+                ->groupBy('year', 'month')
+                ->orderBy('year')
+                ->orderBy('month')
+                ->get();
 
-            $data[] = [
-                'date' => $current->format('d/m/Y'),
-                'total' => $total,
-            ];
+            // Fill months in range
+            $current = $start->copy()->startOfMonth();
+            $endMonth = $end->copy()->startOfMonth();
 
-            $current->addDay();
+            while ($current <= $endMonth) {
+                $sale = $sales->filter(function ($item) use ($current) {
+                    return $item->month == $current->month && $item->year == $current->year;
+                })->first();
+
+                $total = $sale ? (float) $sale->total : 0;
+                if ($total > $maxVal)
+                    $maxVal = $total;
+
+                $data[] = [
+                    'date' => 'Tháng ' . $current->month,
+                    'total' => $total,
+                ];
+                $current->addMonth();
+            }
+        } else { // Day
+            $sales = $query->selectRaw('DATE(ngay_chot) as date, SUM(tong_tien) as total')
+                ->groupBy('date')
+                ->orderBy('date')
+                ->get();
+
+            $current = $start->copy();
+            while ($current <= $end) {
+                $dateStr = $current->format('Y-m-d');
+                $sale = $sales->firstWhere('date', $dateStr);
+                $total = $sale ? (float) $sale->total : 0;
+                if ($total > $maxVal)
+                    $maxVal = $total;
+
+                $data[] = [
+                    'date' => $current->format('d/m/Y'),
+                    'total' => $total,
+                ];
+                $current->addDay();
+            }
         }
 
         $this->maxRevenue = $maxVal;
