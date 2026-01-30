@@ -140,21 +140,34 @@ class Dashboard extends Component
 
     public $salesChartLabel = 'Doanh Số Theo Ngày';
 
-    // Chart data for Sales (Aggregated by Date/Hour/Month)
+    // Chart data for Sales (Aggregated by Date/Month)
     public function getSalesChartDataProperty()
     {
         $start = Carbon::parse($this->startDate)->startOfDay();
         $end = Carbon::parse($this->endDate)->endOfDay();
         $diffInDays = $start->diffInDays($end);
 
-        // Determine grouping
+        // Determine grouping and label
+        // User requested: Today, Week, Month primarily.
+        // Today -> Day (Single point)
+        // Week -> Day
+        // Month -> Day
+        // Year -> Month
+
         $groupBy = 'day';
-        if ($this->filterType === 'today' || $diffInDays < 1) {
-            $groupBy = 'hour';
-            $this->salesChartLabel = 'Doanh Số Theo Giờ';
+
+        if ($this->filterType === 'today') {
+            $groupBy = 'day';
+            $this->salesChartLabel = 'Doanh Số Hôm Nay (' . $start->format('d/m/Y') . ')';
+        } elseif ($this->filterType === 'this_week') {
+            $groupBy = 'day';
+            $this->salesChartLabel = 'Doanh Số Tuần Này';
+        } elseif ($this->filterType === 'this_month') {
+            $groupBy = 'day';
+            $this->salesChartLabel = 'Doanh Số Tháng Này';
         } elseif ($this->filterType === 'this_year' || $diffInDays > 31) {
             $groupBy = 'month';
-            $this->salesChartLabel = 'Doanh Số Theo Tháng';
+            $this->salesChartLabel = 'Doanh Số Năm Này';
         } else {
             $groupBy = 'day';
             $this->salesChartLabel = 'Doanh Số Theo Ngày';
@@ -164,25 +177,7 @@ class Dashboard extends Component
         $data = [];
         $maxVal = 0;
 
-        if ($groupBy === 'hour') {
-            $sales = $query->selectRaw('HOUR(gio_chot) as hour, SUM(tong_tien) as total')
-                ->groupBy('hour')
-                ->orderBy('hour')
-                ->get();
-
-            // Fill 0-23 hours
-            for ($i = 0; $i < 24; $i++) {
-                $sale = $sales->firstWhere('hour', $i);
-                $total = $sale ? (float) $sale->total : 0;
-                if ($total > $maxVal)
-                    $maxVal = $total;
-
-                $data[] = [
-                    'date' => sprintf('%02d:00', $i),
-                    'total' => $total,
-                ];
-            }
-        } elseif ($groupBy === 'month') {
+        if ($groupBy === 'month') {
             $sales = $query->selectRaw('MONTH(ngay_chot) as month, YEAR(ngay_chot) as year, SUM(tong_tien) as total')
                 ->groupBy('year', 'month')
                 ->orderBy('year')
@@ -208,13 +203,14 @@ class Dashboard extends Component
                 ];
                 $current->addMonth();
             }
-        } else { // Day
+        } else { // Day (Default)
             $sales = $query->selectRaw('DATE(ngay_chot) as date, SUM(tong_tien) as total')
                 ->groupBy('date')
                 ->orderBy('date')
                 ->get();
 
             $current = $start->copy();
+            // If start equals end (Today), loop runs once
             while ($current <= $end) {
                 $dateStr = $current->format('Y-m-d');
                 $sale = $sales->firstWhere('date', $dateStr);
@@ -223,7 +219,7 @@ class Dashboard extends Component
                     $maxVal = $total;
 
                 $data[] = [
-                    'date' => $current->format('d/m/Y'),
+                    'date' => $current->format('d/m'), // Short format for better fit
                     'total' => $total,
                 ];
                 $current->addDay();
