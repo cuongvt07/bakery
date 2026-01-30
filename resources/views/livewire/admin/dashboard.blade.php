@@ -135,19 +135,6 @@
 
     <!-- Recent Tables Section -->
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <!-- ... (keep recent tables as is, just skipping for brevity from replace tool context if possible, but I need to match start/end) ... -->
-        <!-- Since I can't skip deeply nested content easily without large context, I will focus the replacement on the Charts Section primarily or use multiple chunks if needed. 
-             But here I am using replace_file_content for the JS script part too. 
-             I'll split this into two calls or use multi_replace. Multi is better. 
-        -->
-        
-    <!-- Wait, I am restricted to one tool call per turn? No. 
-         But sticking to replace_file_content. 
-         I will use multi_replace_file_content to handle both the HTML attributes and the JS update.
-    -->
-
-    <!-- Recent Tables Section -->
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
         <!-- Recent Shifts -->
         <div class="bg-white rounded-lg shadow overflow-hidden">
             <div class="px-6 py-4 border-b border-gray-200">
