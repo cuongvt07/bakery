@@ -8,10 +8,15 @@ use App\Models\TrangThaiThongBao;
 use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
 
+use App\Traits\HandlesStockTransfers;
+
 class NotificationComponent extends Component
 {
+    use HandlesStockTransfers;
+
     public $notifications = [];
     public $unreadCount = 0;
+    public $todayAttendance;
 
     // UI State
     public $showDropdown = false;
@@ -24,6 +29,7 @@ class NotificationComponent extends Component
     public function mount()
     {
         $this->loadNotifications();
+        $this->checkGlobalTransfers();
     }
 
     public $typeCounts = [];
@@ -93,6 +99,23 @@ class NotificationComponent extends Component
     public function poll()
     {
         $this->loadNotifications();
+        $this->checkGlobalTransfers();
+    }
+
+    private function checkGlobalTransfers()
+    {
+        if (!Auth::check() || Auth::user()->vai_tro !== 'nhan_vien') {
+            return;
+        }
+
+        $this->todayAttendance = \App\Models\CaLamViec::where('nguoi_dung_id', Auth::id())
+            ->where('trang_thai', 'dang_lam')
+            ->whereDate('ngay_lam', Carbon::today())
+            ->first();
+
+        if ($this->todayAttendance) {
+            $this->checkPendingTransfers($this->todayAttendance->diem_ban_id);
+        }
     }
 
     public $showDetailModal = false;

@@ -294,5 +294,58 @@
             </div>
         </div>
     @endif
+
+    {{-- Global Blocking Receive Modal --}}
+    @if($showReceiveModal && count($activeTransfers) > 0)
+    <div class="fixed inset-0 z-[200] flex items-center justify-center p-4 overflow-y-auto">
+        {{-- Backdrop --}}
+        <div class="fixed inset-0 bg-gray-900/60 backdrop-blur-sm"></div>
+        
+        {{-- Modal Content --}}
+        <div class="relative bg-white rounded-2xl w-full max-w-sm overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-300">
+            <div class="bg-indigo-600 p-6 text-white text-center">
+                <div class="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4 backdrop-blur-md">
+                    <i class="las la-shipping-fast text-4xl"></i>
+                </div>
+                <h2 class="text-xl font-bold">Hàng đang chờ nhận!</h2>
+                <p class="text-indigo-100 text-sm opacity-90">Vui lòng xác nhận để tiếp tục làm việc</p>
+            </div>
+            
+            <div class="p-5 max-h-[60vh] overflow-y-auto">
+                <div class="space-y-4">
+                    @foreach($activeTransfers as $transfer)
+                    <div class="bg-gray-50 rounded-xl p-4 border border-gray-100 text-left">
+                        <div class="flex justify-between items-start mb-2">
+                            <span class="text-[10px] font-bold uppercase tracking-wider text-gray-400">Mã phiếu: {{ $transfer->ma_phieu }}</span>
+                            <span class="px-2 py-0.5 bg-blue-100 text-blue-700 rounded text-[10px] font-bold">LUÂN CHUYỂN</span>
+                        </div>
+                        <div class="text-sm font-bold text-gray-800 mb-2">Từ: {{ $transfer->diemBanNguon->ten_diem_ban }}</div>
+                        
+                        <div class="space-y-1">
+                            @foreach($transfer->chiTiet as $detail)
+                            <div class="flex justify-between text-xs text-gray-600">
+                                <span>{{ $detail->sanPham->ten_san_pham }}</span>
+                                <span class="font-bold text-gray-900">x{{ number_format($detail->so_luong, 0) }}</span>
+                            </div>
+                            @endforeach
+                        </div>
+                    </div>
+                    @endforeach
+                </div>
+            </div>
+            
+            <div class="p-4 bg-gray-50 border-t border-gray-100">
+                <button wire:click="confirmReceiveStock" 
+                    wire:loading.attr="disabled"
+                    class="w-full py-4 bg-indigo-600 text-white rounded-xl font-bold shadow-lg shadow-indigo-200 hover:bg-indigo-700 active:scale-[0.98] transition-all flex items-center justify-center gap-2">
+                    <span wire:loading.remove wire:target="confirmReceiveStock">Xác nhận nhận hàng</span>
+                    <span wire:loading wire:target="confirmReceiveStock">Đang xử lý...</span>
+                    <i class="las la-check-circle text-xl" wire:loading.remove wire:target="confirmReceiveStock"></i>
+                </button>
+                <p class="text-[10px] text-center text-gray-400 mt-3 italic">Hệ thống sẽ cập nhật kho ngay sau khi xác nhận</p>
+            </div>
+        </div>
+    </div>
+    @endif
 </div>
 

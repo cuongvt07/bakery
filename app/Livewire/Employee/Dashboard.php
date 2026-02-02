@@ -10,6 +10,7 @@ use App\Models\ChamCong;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 
+
 #[Layout('components.layouts.mobile')]
 class Dashboard extends Component
 {
@@ -18,8 +19,8 @@ class Dashboard extends Component
     public $todayAttendance;
     public $monthlyStats = [];
     public $unclosedShifts = []; // All unclosed shifts (today only)
-    public $pendingDistributions = [];
-    public $showReceiveModal = false;
+    // pendingDistributions and showReceiveModal are now in HandlesStockTransfers trait
+
 
     public function mount()
     {
@@ -55,66 +56,15 @@ class Dashboard extends Component
                 ->where('diem_ban_id', $this->todayShift->diem_ban_id)
                 ->whereDate('ngay_lam', Carbon::today())
                 ->first();
-
-            $this->checkPendingDistributions();
         }
+
 
         // Calculate monthly stats
         $this->calculateMonthlyStats();
     }
 
-    public function checkPendingDistributions()
-    {
-        if (!$this->todayAttendance)
-            return;
+    // checkPendingDistributions, openReceiveModal, confirmReceiveStock are now in HandlesStockTransfers trait
 
-        $this->pendingDistributions = \App\Models\PhanBoHangDiemBan::with(['product'])
-            ->where('diem_ban_id', $this->todayAttendance->diem_ban_id)
-            ->where('trang_thai', 'chua_nhan')
-            ->get();
-    }
-
-    public function openReceiveModal()
-    {
-        $this->checkPendingDistributions();
-        if ($this->pendingDistributions->isNotEmpty()) {
-            $this->showReceiveModal = true;
-        } else {
-            session()->flash('message', 'Không có hàng chờ nhận.');
-        }
-    }
-
-    public function confirmReceiveStock()
-    {
-        if (!$this->todayAttendance)
-            return;
-
-        \Illuminate\Support\Facades\DB::transaction(function () {
-            foreach ($this->pendingDistributions as $dist) {
-                // Update distribution status
-                $dist->update([
-                    'trang_thai' => 'da_nhan',
-                    'nguoi_nhan_id' => Auth::id(),
-                    'ngay_nhan' => now(),
-                ]);
-
-                // Add to Shift Details
-                $detail = \App\Models\ChiTietCaLam::firstOrNew([
-                    'ca_lam_viec_id' => $this->todayAttendance->id,
-                    'san_pham_id' => $dist->san_pham_id,
-                ]);
-
-                // Add to 'so_luong_nhan_ca' (or we could split into 'nhan_them')
-                // User requested: "tự thêm sl mới được luân chuyển vào ca vừa check in"
-                $detail->so_luong_nhan_ca = ($detail->so_luong_nhan_ca ?? 0) + $dist->so_luong;
-                $detail->save();
-            }
-        });
-
-        $this->showReceiveModal = false;
-        $this->pendingDistributions = [];
-        session()->flash('success', 'Đã nhận hàng thành công!');
-    }
 
     /**
      * Find the active shift to display

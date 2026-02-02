@@ -10,17 +10,20 @@ use App\Models\PendingSale;
 use App\Models\Product;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use App\Traits\HandlesStockTransfers;
 
 #[Layout('components.layouts.app')]
 class QuickSale extends Component
 {
+    use HandlesStockTransfers;
+
     public $shift;
     public $shiftDetails = [];
     public $cart = [];
     public $total = 0;
     public $pendingCount = 0;
     public $paymentMethod = 'tien_mat'; // tien_mat or chuyen_khoan
-    
+
     // Listen for inventory updates
     protected $listeners = ['inventory-updated' => 'refreshInventory'];
 
@@ -32,8 +35,8 @@ class QuickSale extends Component
             ->first();
 
         // Determine check-in route based on role
-        $checkInRoute = (Auth::user()->vai_tro === 'nhan_vien') 
-            ? 'employee.shifts.check-in' 
+        $checkInRoute = (Auth::user()->vai_tro === 'nhan_vien')
+            ? 'employee.shifts.check-in'
             : 'admin.shift.check-in';
 
         if (!$this->shift) {
@@ -48,7 +51,11 @@ class QuickSale extends Component
 
         $this->loadShiftProducts();
         $this->updatePendingCount();
+
+        // Check for pending transfers to block POS if necessary
+        $this->checkPendingTransfers($this->shift->diem_ban_id);
     }
+
 
     public function loadShiftProducts()
     {
@@ -72,7 +79,7 @@ class QuickSale extends Component
             $this->cart[$detail['id']] = 0;
         }
     }
-    
+
     public function refreshInventory()
     {
         // Reload products when inventory is updated (after batch confirm)
@@ -82,13 +89,13 @@ class QuickSale extends Component
     public function increment($productId)
     {
         $detail = collect($this->shiftDetails)->firstWhere('id', $productId);
-        
+
         if (!$detail) {
             return;
         }
 
         $available = $detail['con_lai'];
-        
+
         if ($this->cart[$productId] < $available) {
             $this->cart[$productId]++;
             $this->calculateTotal();
@@ -157,13 +164,13 @@ class QuickSale extends Component
                                 'gia' => $product->gia_ban,
                                 'thanh_tien' => $product->gia_ban * $qty,
                             ];
-                            
+
                             // NOTE: Do NOT increment so_luong_ban here!
                             // It will be counted when batch is confirmed in BatchBanHang::updateInventory()
                         }
                     }
                 }
-                
+
                 // Validate we have items to save
                 if (empty($chiTiet)) {
                     throw new \Exception('Không thể tạo đơn hàng - không có sản phẩm hợp lệ!');
@@ -187,7 +194,7 @@ class QuickSale extends Component
 
             // Reset cart
             $this->clearCart();
-            
+
             // Reload shift data to update available quantities
             $this->loadShiftProducts();
             $this->updatePendingCount();
@@ -214,10 +221,10 @@ class QuickSale extends Component
 
     public function render()
     {
-        $layout = (Auth::user() && Auth::user()->vai_tro === 'nhan_vien') 
-            ? 'components.layouts.mobile' 
+        $layout = (Auth::user() && Auth::user()->vai_tro === 'nhan_vien')
+            ? 'components.layouts.mobile'
             : 'components.layouts.app';
-            
+
         return view('livewire.admin.shift.quick-sale')->layout($layout);
     }
 }
