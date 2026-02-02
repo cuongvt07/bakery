@@ -25,13 +25,16 @@ class BatchMonitoring extends Component
     // Modal State
     public $showModal = false;
     public $selectedBatch = null;
-    
+
     // Adjustment Form
     public $adjustProductId = '';
     public $adjustQty = '';
     public $adjustNote = '';
 
-    public function updatedSearch() { $this->resetPage(); }
+    public function updatedSearch()
+    {
+        $this->resetPage();
+    }
 
     public function render()
     {
@@ -42,11 +45,11 @@ class BatchMonitoring extends Component
 
         // Search filter
         if ($this->search) {
-            $query->where(function($q) {
+            $query->where(function ($q) {
                 $q->where('ma_me', 'like', '%' . $this->search . '%')
-                  ->orWhereHas('details.product', function($pq) {
-                      $pq->where('ten_san_pham', 'like', '%' . $this->search . '%');
-                  });
+                    ->orWhereHas('details.product', function ($pq) {
+                        $pq->where('ten_san_pham', 'like', '%' . $this->search . '%');
+                    });
             });
         }
 
@@ -57,25 +60,25 @@ class BatchMonitoring extends Component
             $batch->total_expected = $batch->details->sum('so_luong_du_kien');
             $batch->total_failed = $batch->details->sum('so_luong_that_bai');
             $batch->total_actual = $batch->details->sum('so_luong_thuc_te');
-            
+
             // Calculate total distributed
             $batch->total_distributed = PhanBoHangDiemBan::where('me_san_xuat_id', $batch->id)->sum('so_luong');
-            
+
             // Calculate total sold (from history - negative values mean sold)
             $batch->total_sold = abs(LichSuCapNhatMe::where('me_san_xuat_id', $batch->id)
                 ->where('loai', 'ban')
                 ->sum('so_luong_doi'));
-            
+
             // Calculate remaining = actual - sold
             $batch->total_remaining = $batch->total_actual - $batch->total_sold;
-            
+
             // Get product names for display
             $batch->product_names = $batch->details->pluck('product.ten_san_pham')->unique()->implode(', ');
-            
+
             // Get nearest expiry date
             $batch->nearest_expiry = $batch->details->min('han_su_dung');
         }
-        
+
         return view('livewire.admin.batch.batch-monitoring', [
             'batches' => $batches,
         ]);
@@ -84,9 +87,10 @@ class BatchMonitoring extends Component
     public function openBatchDetail($batchId)
     {
         $this->reset(['adjustProductId', 'adjustQty', 'adjustNote']);
-        
+
         $batch = ProductionBatch::with(['details.product', 'creator', 'qcPersonnel'])->find($batchId);
-        if (!$batch) return;
+        if (!$batch)
+            return;
 
         // Get distributions grouped by product
         $distributions = PhanBoHangDiemBan::with(['diemBan', 'product'])
@@ -96,16 +100,16 @@ class BatchMonitoring extends Component
             ->groupBy('san_pham_id');
 
         // Get adjustment history
-        $history = LichSuCapNhatMe::with(['nguoiCapNhat', 'product'])
+        $history = LichSuCapNhatMe::with(['nguoiCapNhat', 'product', 'diemBan'])
             ->where('me_san_xuat_id', $batchId)
             ->orderBy('created_at', 'desc')
             ->get();
 
         // Build products with distribution details
-        $products = $batch->details->map(function($d) use ($distributions) {
+        $products = $batch->details->map(function ($d) use ($distributions) {
             $productDists = $distributions->get($d->san_pham_id, collect());
             $totalDistributed = $productDists->sum('so_luong');
-            
+
             return [
                 'id' => $d->san_pham_id,
                 'detail_id' => $d->id,
@@ -116,11 +120,12 @@ class BatchMonitoring extends Component
                 'distributed' => $totalDistributed,
                 'remaining' => $d->so_luong_thuc_te - $totalDistributed, // Còn ở xưởng
                 'expiry' => $d->han_su_dung ? Carbon::parse($d->han_su_dung)->format('d/m/Y') : '-',
-                'distributions' => $productDists->map(function($dist) {
+                'distributions' => $productDists->map(function ($dist) {
                     return [
                         'shop' => $dist->diemBan->ten_diem_ban ?? 'Unknown',
                         'qty' => $dist->so_luong,
                         'date' => $dist->created_at->format('d/m H:i'),
+                        'note' => $dist->ghi_chu,
                     ];
                 })->values()->toArray(),
             ];
@@ -141,7 +146,7 @@ class BatchMonitoring extends Component
             'total_actual' => $products->sum('actual'),
             'total_distributed' => $products->sum('distributed'),
         ];
-        
+
         $this->showModal = true;
     }
 
@@ -159,28 +164,31 @@ class BatchMonitoring extends Component
             'adjustNote' => 'nullable|string|max:255',
         ]);
 
-        if (!$this->selectedBatch) return;
+        if (!$this->selectedBatch)
+            return;
 
         $batchId = $this->selectedBatch['id'];
-        
+
         // Find the detail
         $product = collect($this->selectedBatch['products'])->firstWhere('id', $this->adjustProductId);
-        if (!$product) return;
-        
+        if (!$product)
+            return;
+
         $detailId = $product['detail_id'];
 
-        DB::transaction(function() use ($batchId, $detailId) {
+        DB::transaction(function () use ($batchId, $detailId) {
             $detail = ProductionBatchDetail::find($detailId);
-            if (!$detail) return;
-            
+            if (!$detail)
+                return;
+
             $oldFailed = $detail->so_luong_that_bai;
             $newFailed = $oldFailed + $this->adjustQty;
-            
+
             // Update Global Detail
             $detail->so_luong_that_bai = $newFailed;
             $detail->so_luong_thuc_te = $detail->so_luong_du_kien - $newFailed;
             $detail->save();
-            
+
             // Create Log (diem_ban_id = null for batch-level adjustment)
             LichSuCapNhatMe::create([
                 'me_san_xuat_id' => $batchId,
@@ -196,7 +204,7 @@ class BatchMonitoring extends Component
         });
 
         session()->flash('message', 'Đã cập nhật số lượng hỏng thành công!');
-        
+
         // Refresh Modal Data
         $this->openBatchDetail($batchId);
     }

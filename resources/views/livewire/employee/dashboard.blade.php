@@ -1,5 +1,41 @@
 <div class="p-4 space-y-4 pb-20">
+    {{-- Incoming Stock Notification --}}
+    @if(count($pendingDistributions) > 0)
+    <div class="bg-blue-50 border-l-4 border-blue-400 p-4 mb-4 rounded-r-lg shadow-sm animate-pulse">
+        <div class="flex justify-between items-center">
+            <div class="flex items-center">
+                <i class="las la-shipping-fast text-2xl text-blue-500 mr-3"></i>
+                <div>
+                    <h3 class="text-blue-800 font-bold">Hàng đang chờ nhận!</h3>
+                    <p class="text-blue-600 text-sm">Có {{ count($pendingDistributions) }} phiếu chuyển đến cửa hàng.</p>
+                </div>
+            </div>
+            <button wire:click="openReceiveModal" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-bold shadow hover:bg-blue-700">
+                Nhận ngay
+            </button>
+        </div>
+    </div>
+    @endif
+    
     {{-- Header / Welcome --}}
+    {{-- Incoming Stock Notification --}}
+    @if(count($pendingDistributions) > 0)
+    <div class="bg-blue-50 border-l-4 border-blue-400 p-4 mb-4 rounded-r-lg shadow-sm animate-pulse">
+        <div class="flex justify-between items-center">
+            <div class="flex items-center">
+                <i class="las la-shipping-fast text-2xl text-blue-500 mr-3"></i>
+                <div>
+                    <h3 class="text-blue-800 font-bold">Hàng đang chờ nhận!</h3>
+                    <p class="text-blue-600 text-sm">Có {{ count($pendingDistributions) }} phiếu chuyển đến cửa hàng.</p>
+                </div>
+            </div>
+            <button wire:click="openReceiveModal" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-bold shadow hover:bg-blue-700">
+                Nhận ngay
+            </button>
+        </div>
+    </div>
+    @endif
+    
     <div class="flex items-center justify-between mb-2">
         <div>
             <h1 class="text-xl font-bold text-gray-900">Xin chào, {{ auth()->user()->ho_ten }} 👋</h1>

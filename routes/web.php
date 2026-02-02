@@ -99,6 +99,7 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
 
     Route::get('/distribution', \App\Livewire\Admin\Distribution\DistributionList::class)->name('distribution.index');
     Route::get('/distribution/daily', DailyDistribution::class)->name('distribution.daily');
+    Route::get('/distribution/transfers', \App\Livewire\Admin\Distribution\TransferManager::class)->name('distribution.transfers');
 
     // Shift Management & Operations
     Route::get('/shift/management', \App\Livewire\Admin\Shift\ShiftManagement::class)->name('shift.management'); // Admin view

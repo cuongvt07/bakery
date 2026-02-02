@@ -338,6 +338,10 @@
                         class="flex items-center px-3 py-2 rounded-md text-sm transition-all {{ request()->routeIs('admin.batches.monitoring') ? 'text-amber-700 bg-amber-50 font-medium' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">
                         Quản lý Mẻ (Điểm bán)
                     </a>
+                    <a href="{{ route('admin.distribution.transfers') }}"
+                        class="flex items-center px-3 py-2 rounded-md text-sm transition-all {{ request()->routeIs('admin.distribution.transfers') ? 'text-amber-700 bg-amber-50 font-medium' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">
+                        Luân chuyển hàng
+                    </a>
                 </div>
             </details>
 

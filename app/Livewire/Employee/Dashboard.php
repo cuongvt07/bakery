@@ -18,15 +18,17 @@ class Dashboard extends Component
     public $todayAttendance;
     public $monthlyStats = [];
     public $unclosedShifts = []; // All unclosed shifts (today only)
+    public $pendingDistributions = [];
+    public $showReceiveModal = false;
 
     public function mount()
     {
         $user = Auth::user();
-        
+
         // Get employee's assigned agency (first agency for now)
         // In future, this should be from employee assignment table
         $this->agency = Agency::first(); // TODO: Get actual assigned agency
-        
+
         // Get all unclosed shifts for TODAY only
         $this->unclosedShifts = \App\Models\CaLamViec::where('nguoi_dung_id', $user->id)
             ->where('trang_thai', 'dang_lam')
@@ -34,7 +36,7 @@ class Dashboard extends Component
             ->whereDate('ngay_lam', Carbon::today())
             ->orderBy('thoi_gian_checkin', 'asc')
             ->get();
-        
+
         // Get all registered shifts for today from shift_schedules
         $registeredShifts = ShiftSchedule::where('nguoi_dung_id', $user->id)
             ->whereDate('ngay_lam', Carbon::today())
@@ -42,10 +44,10 @@ class Dashboard extends Component
             ->with('agency')
             ->orderBy('gio_bat_dau')
             ->get();
-        
+
         // Find the active shift (prioritize: not checked in > checked in but not out > next upcoming)
         $this->todayShift = $this->findActiveShift($registeredShifts);
-        
+
         // Get today's attendance (check-in/out) for the active shift
         if ($this->todayShift) {
             $this->todayAttendance = \App\Models\CaLamViec::where('nguoi_dung_id', $user->id)
@@ -53,12 +55,67 @@ class Dashboard extends Component
                 ->where('diem_ban_id', $this->todayShift->diem_ban_id)
                 ->whereDate('ngay_lam', Carbon::today())
                 ->first();
+
+            $this->checkPendingDistributions();
         }
-        
+
         // Calculate monthly stats
         $this->calculateMonthlyStats();
     }
-    
+
+    public function checkPendingDistributions()
+    {
+        if (!$this->todayAttendance)
+            return;
+
+        $this->pendingDistributions = \App\Models\PhanBoHangDiemBan::with(['product'])
+            ->where('diem_ban_id', $this->todayAttendance->diem_ban_id)
+            ->where('trang_thai', 'chua_nhan')
+            ->get();
+    }
+
+    public function openReceiveModal()
+    {
+        $this->checkPendingDistributions();
+        if ($this->pendingDistributions->isNotEmpty()) {
+            $this->showReceiveModal = true;
+        } else {
+            session()->flash('message', 'Không có hàng chờ nhận.');
+        }
+    }
+
+    public function confirmReceiveStock()
+    {
+        if (!$this->todayAttendance)
+            return;
+
+        \Illuminate\Support\Facades\DB::transaction(function () {
+            foreach ($this->pendingDistributions as $dist) {
+                // Update distribution status
+                $dist->update([
+                    'trang_thai' => 'da_nhan',
+                    'nguoi_nhan_id' => Auth::id(),
+                    'ngay_nhan' => now(),
+                ]);
+
+                // Add to Shift Details
+                $detail = \App\Models\ChiTietCaLam::firstOrNew([
+                    'ca_lam_viec_id' => $this->todayAttendance->id,
+                    'san_pham_id' => $dist->san_pham_id,
+                ]);
+
+                // Add to 'so_luong_nhan_ca' (or we could split into 'nhan_them')
+                // User requested: "tự thêm sl mới được luân chuyển vào ca vừa check in"
+                $detail->so_luong_nhan_ca = ($detail->so_luong_nhan_ca ?? 0) + $dist->so_luong;
+                $detail->save();
+            }
+        });
+
+        $this->showReceiveModal = false;
+        $this->pendingDistributions = [];
+        session()->flash('success', 'Đã nhận hàng thành công!');
+    }
+
     /**
      * Find the active shift to display
      */
@@ -67,7 +124,7 @@ class Dashboard extends Component
         if ($shifts->isEmpty()) {
             return null;
         }
-        
+
         // Priority 1: Find shift that is checked in but not checked out
         foreach ($shifts as $shift) {
             $caLamViec = \App\Models\CaLamViec::where('nguoi_dung_id', Auth::id())
@@ -76,12 +133,12 @@ class Dashboard extends Component
                 ->whereDate('ngay_lam', $shift->ngay_lam)
                 ->orderBy('thoi_gian_checkin', 'desc') // Get most recent check-in
                 ->first();
-            
+
             if ($caLamViec && $caLamViec->trang_thai !== 'da_ket_thuc' && !$caLamViec->phieuChotCa) {
                 return $shift; // This shift is in progress
             }
         }
-        
+
         // Priority 2: Find shift that hasn't been checked in yet
         foreach ($shifts as $shift) {
             $caLamViec = \App\Models\CaLamViec::where('nguoi_dung_id', Auth::id())
@@ -89,12 +146,12 @@ class Dashboard extends Component
                 ->where('diem_ban_id', $shift->diem_ban_id)
                 ->whereDate('ngay_lam', $shift->ngay_lam)
                 ->first();
-            
+
             if (!$caLamViec) {
                 return $shift; // This shift hasn't started yet
             }
         }
-        
+
         // Priority 3: All shifts are completed, return null
         return null;
     }
@@ -104,11 +161,11 @@ class Dashboard extends Component
         $user = Auth::user();
         $startOfMonth = Carbon::now()->startOfMonth();
         $endOfMonth = Carbon::now()->endOfMonth();
-        
+
         $shifts = ShiftSchedule::where('nguoi_dung_id', $user->id)
             ->whereBetween('ngay_lam', [$startOfMonth, $endOfMonth])
             ->get();
-        
+
         $this->monthlyStats = [
             'total_shifts' => $shifts->count(),
             'completed' => $shifts->where('trang_thai', 'da_ket_thuc')->count(),

@@ -230,6 +230,9 @@
                                                     <th scope="col"
                                                         class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                                         Thời gian</th>
+                                                    <th scope="col"
+                                                        class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                        Ghi chú</th>
                                                 </tr>
                                             </thead>
                                             <tbody class="bg-white divide-y divide-gray-200">
@@ -239,14 +242,16 @@
                                                             class="px-4 py-2 whitespace-nowrap text-sm font-medium text-gray-900">
                                                             {{ $dist['shop'] }}</td>
                                                         <td
-                                                            class="px-4 py-2 whitespace-nowrap text-sm text-blue-600 font-bold">
+                                                            class="px-4 py-2 whitespace-nowrap text-sm {{ $dist['qty'] < 0 ? 'text-red-600' : 'text-blue-600' }} font-bold">
                                                             {{ number_format($dist['qty']) }}</td>
                                                         <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-500">
                                                             {{ $dist['date'] }}</td>
+                                                        <td class="px-4 py-2 text-sm text-gray-500 italic max-w-xs truncate" title="{{ $dist['note'] }}">
+                                                            {{ $dist['note'] ?? '-' }}</td>
                                                     </tr>
                                                 @empty
                                                     <tr>
-                                                        <td colspan="3"
+                                                        <td colspan="4"
                                                             class="px-4 py-4 text-center text-sm text-gray-500 italic">
                                                             Chưa
                                                             có phân bổ nào</td>
@@ -261,7 +266,7 @@
                                                         class="px-4 py-2 whitespace-nowrap text-sm font-bold text-blue-600">
                                                         {{ number_format($product['distributed']) }}</td>
                                                     <td
-                                                        class="px-4 py-2 whitespace-nowrap text-sm text-orange-600 font-bold">
+                                                        class="px-4 py-2 whitespace-nowrap text-sm text-orange-600 font-bold" colspan="2">
                                                         Còn ở xưởng: {{ number_format($product['remaining']) }}</td>
                                                 </tr>
                                             </tbody>
@@ -344,6 +349,9 @@
                                                 Người thực hiện</th>
                                             <th scope="col"
                                                 class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                Cửa hàng</th>
+                                            <th scope="col"
+                                                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                                 Loại</th>
                                             <th scope="col"
                                                 class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -365,6 +373,9 @@
                                                 <td
                                                     class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                                                     {{ $log->nguoiCapNhat->ho_ten ?? 'Hệ thống' }}
+                                                </td>
+                                                <td class="px-6 py-4 whitespace-nowrap text-sm text-indigo-600 font-medium">
+                                                    {{ $log->diemBan->ten_diem_ban ?? 'Toàn hệ thống' }}
                                                 </td>
                                                 <td class="px-6 py-4 whitespace-nowrap text-sm">
                                                     @switch($log->loai)
