@@ -133,6 +133,95 @@
         </div>
     </div>
 
+    <!-- Live Stock Monitoring & Transfers Section -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+        <!-- Agency Stocks -->
+        <div class="lg:col-span-2 bg-white rounded-lg shadow overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-200 bg-gray-50 flex justify-between items-center">
+                <h3 class="text-lg font-semibold text-gray-800 flex items-center gap-2">
+                    <i class="las la-store text-blue-600 text-xl"></i>
+                    Tồn Kho Tại Các Điểm Bán (Thực Tế)
+                </h3>
+                <span class="text-xs text-gray-500 italic">Dựa trên ca làm mới nhất</span>
+            </div>
+            <div class="p-4 bg-gray-50/50">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    @forelse($agencyStocks as $agency)
+                    <div class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+                        <div class="px-4 py-2 bg-indigo-50 border-b border-indigo-100 flex justify-between items-center">
+                            <span class="font-bold text-indigo-900 text-sm whitespace-nowrap">{{ $agency['agency_name'] }}</span>
+                            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold 
+                                {{ $agency['shift_status'] === 'dang_lam' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600' }}">
+                                {{ $agency['shift_status'] === 'dang_lam' ? 'ĐANG MỞ' : 'DA ĐÓNG' }}
+                            </span>
+                        </div>
+                        <div class="p-3">
+                            <div class="space-y-2 max-h-48 overflow-y-auto">
+                                @foreach($agency['stocks'] as $stock)
+                                <div class="flex justify-between items-center text-xs">
+                                    <span class="text-gray-700">{{ $stock['san_pham'] }}</span>
+                                    <span class="font-bold bg-blue-50 text-blue-700 px-2 py-0.5 rounded">{{ $stock['so_luong'] }}</span>
+                                </div>
+                                @endforeach
+                            </div>
+                            <div class="mt-3 pt-2 border-t border-gray-50 text-[10px] text-gray-400 text-right italic">
+                                Cập nhật: {{ $agency['shift_date'] }}
+                            </div>
+                        </div>
+                    </div>
+                    @empty
+                    <div class="col-span-2 py-8 text-center text-gray-500 text-sm">Chưa có dữ liệu tồn kho</div>
+                    @endforelse
+                </div>
+            </div>
+        </div>
+
+        <!-- Active Transfers -->
+        <div class="bg-white rounded-lg shadow overflow-hidden flex flex-col">
+            <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
+                <h3 class="text-lg font-semibold text-gray-800 flex items-center gap-2">
+                    <i class="las la-shipping-fast text-orange-500 text-xl"></i>
+                    Vận Chuyển Đang Thực Hiện
+                </h3>
+            </div>
+            <div class="p-4 flex-1 overflow-y-auto max-h-[600px]">
+                <div class="space-y-4">
+                    @forelse($activeTransfers as $transfer)
+                    <div class="relative pl-4 border-l-4 border-orange-400 bg-orange-50/50 rounded-r-xl p-3">
+                        <div class="flex justify-between items-start mb-2">
+                            <span class="text-[10px] font-bold text-orange-800">{{ $transfer->ma_phieu }}</span>
+                            <span class="text-[10px] text-gray-400">{{ $transfer->created_at->diffForHumans() }}</span>
+                        </div>
+                        <div class="flex items-center gap-2 mb-3">
+                            <div class="flex-1 text-center">
+                                <div class="text-[10px] text-gray-500 uppercase">Điểm Đi</div>
+                                <div class="text-xs font-bold truncate">{{ $transfer->diemBanNguon->ten_diem_ban }}</div>
+                            </div>
+                            <div class="text-orange-400">
+                                <i class="las la-long-arrow-alt-right text-xl"></i>
+                            </div>
+                            <div class="flex-1 text-center">
+                                <div class="text-[10px] text-gray-500 uppercase">Điểm Đến</div>
+                                <div class="text-xs font-bold truncate">{{ $transfer->diemBanDich->ten_diem_ban }}</div>
+                            </div>
+                        </div>
+                        <div class="bg-white/60 rounded-lg p-2 space-y-1">
+                            @foreach($transfer->chiTiet as $detail)
+                            <div class="flex justify-between text-[11px]">
+                                <span class="text-gray-600">{{ $detail->sanPham->ten_san_pham }}</span>
+                                <span class="font-bold">x{{ $detail->so_luong }}</span>
+                            </div>
+                            @endforeach
+                        </div>
+                    </div>
+                    @empty
+                    <div class="py-8 text-center text-gray-500 text-sm italic">Không có vận chuyển nào đang thực hiện</div>
+                    @endforelse
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Recent Tables Section -->
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
         <!-- Recent Shifts -->

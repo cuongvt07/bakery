@@ -23,6 +23,8 @@ class Dashboard extends Component
     public $recentShifts = [];
     public $recentBatches = [];
     public $distributionData = [];
+    public $agencyStocks = [];
+    public $activeTransfers = [];
 
     public function mount()
     {
@@ -133,6 +135,54 @@ class Dashboard extends Component
             ->latest()
             ->limit(5)
             ->get();
+
+        // New Real-time Agency Stock Data
+        $this->loadAgencyStocks();
+
+        // New Active Transfers Data
+        $this->activeTransfers = \App\Models\LuanChuyenHang::with(['diemBanNguon', 'diemBanDich', 'chiTiet.sanPham'])
+            ->where('trang_thai', 'dang_chuyen')
+            ->latest()
+            ->get();
+    }
+
+    private function loadAgencyStocks()
+    {
+        $agencies = \App\Models\Agency::where('trang_thai', 'hoat_dong')->get();
+        $this->agencyStocks = [];
+
+        foreach ($agencies as $agency) {
+            // Find the latest shift for each agency (active preferred)
+            $latestShift = CaLamViec::where('diem_ban_id', $agency->id)
+                ->whereIn('trang_thai', ['dang_lam', 'da_ket_thuc'])
+                ->latest('ngay_lam')
+                ->first();
+
+            if ($latestShift) {
+                $stocks = \App\Models\ChiTietCaLam::with('sanPham')
+                    ->where('ca_lam_viec_id', $latestShift->id)
+                    ->get()
+                    ->filter(function ($detail) {
+                        return $detail->so_luong_con_lai > 0;
+                    })
+                    ->map(function ($detail) {
+                        return [
+                            'san_pham' => $detail->sanPham->ten_san_pham ?? 'N/A',
+                            'so_luong' => $detail->so_luong_con_lai
+                        ];
+                    })
+                    ->values();
+
+                if ($stocks->isNotEmpty()) {
+                    $this->agencyStocks[] = [
+                        'agency_name' => $agency->ten_diem_ban,
+                        'stocks' => $stocks,
+                        'shift_status' => $latestShift->trang_thai,
+                        'shift_date' => $latestShift->ngay_lam->format('d/m/Y')
+                    ];
+                }
+            }
+        }
     }
 
     // Calculate max revenue for chart scaling
