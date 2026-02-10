@@ -22,7 +22,7 @@ class CheckIn extends Component
     public $hasActiveShift = false;
     public $isCheckedIn = false;
     public $shift;
-    
+
     // Inputs
     public $openingCash = 0;
     public $receivedStock = []; // [product_id => quantity]
@@ -30,52 +30,51 @@ class CheckIn extends Component
     public $products = [];
     public $checkinImages = []; // Array of images
     public $ghi_chu = ''; // Check-in notes
-    
+
     // Multi-shift selection
     public $todayShifts = [];
     public $showShiftSelection = false;
-    
+
     // Unclosed shift handling
     public $hasUnclosedShift = false;
     public $unclosedShift = null;
     public $isLateCheckout = false;
     public $showCheckoutPrompt = false;
-    
+
     // Checkout handling for non-sales
     public $showCheckoutConfirm = false;
     public $checkoutWarningType = null; // 'early', 'late', 'normal'
     public $checkoutWarningMessage = '';
     public $isOvertime = false; // OT checkbox
-    
+
     // Shift availability
     public $hasRegisteredShifts = false;
-    
+
     // Check-in type (sales, production, office)
     public $checkinType = 'office';
-    
+
     public function mount()
     {
         $this->checkinType = Auth::user()->getCheckinType();
         $this->checkShiftStatus();
     }
-    
+
     public function checkShiftStatus()
     {
         $user = Auth::user();
-        
+
         // 1. Check for active shift
-        $this->shift = CaLamViec::with('shiftTemplate')
-            ->where('nguoi_dung_id', $user->id)
+        $this->shift = CaLamViec::where('nguoi_dung_id', $user->id)
             ->where('trang_thai', 'dang_lam')
             ->first();
-            
+
         if ($this->shift) {
             $this->hasActiveShift = true;
             $this->isCheckedIn = $this->shift->trang_thai_checkin;
-            
+
             // Check user's check-in type
             $checkinType = $user->getCheckinType();
-            
+
             // Load stock only for sales staff
             if (!$this->isCheckedIn && $checkinType === 'sales') {
                 $this->loadDistributedStock();
@@ -85,29 +84,29 @@ class CheckIn extends Component
         }
     }
 
-    public function checkTodayShifts() 
+    public function checkTodayShifts()
     {
         // First check for unclosed shifts from previous days or earlier today
         $unclosed = CaLamViec::where('nguoi_dung_id', Auth::id())
             ->where('trang_thai_checkin', true)
             ->where('trang_thai', 'dang_lam')
-            ->whereDate('ngay_lam', '<=', Carbon::today())
+            ->whereDate('ngay_lam', '<', Carbon::today())
             ->orderBy('thoi_gian_checkin', 'asc') // Get oldest unclosed shift first
             ->first();
-        
+
         if ($unclosed) {
             $this->unclosedShift = $unclosed;
             $this->hasUnclosedShift = true;
-            
+
             // Check if checkout is late (>15 minutes after expected checkout)
             $expectedCheckoutTime = $unclosed->expected_checkout_time;
             $gracePeriodEnd = $expectedCheckoutTime->copy()->addMinutes(15);
             $this->isLateCheckout = now()->gt($gracePeriodEnd);
-            
+
             $this->showCheckoutPrompt = true;
             return;
         }
-        
+
         // Get registered shifts from shift_schedules table
         $registeredShifts = \App\Models\ShiftSchedule::with(['agency', 'shiftTemplate'])
             ->where('nguoi_dung_id', Auth::id())
@@ -115,21 +114,21 @@ class CheckIn extends Component
             ->whereIn('trang_thai', ['approved', 'pending'])
             ->orderBy('gio_bat_dau')
             ->get();
-        
+
         // Filter out shifts that have been checked in and completed
-        $shifts = $registeredShifts->filter(function($shift) {
+        $shifts = $registeredShifts->filter(function ($shift) {
             // Check if this shift has a corresponding ca_lam_viec record
             $caLamViec = \App\Models\CaLamViec::where('shift_template_id', $shift->shift_template_id)
                 ->where('nguoi_dung_id', $shift->nguoi_dung_id)
                 ->where('diem_ban_id', $shift->diem_ban_id)
                 ->whereDate('ngay_lam', $shift->ngay_lam)
                 ->first();
-            
+
             // If no ca_lam_viec exists, shift is available for check-in
             if (!$caLamViec) {
                 return true;
             }
-            
+
             // If ca_lam_viec exists, only show if not completed
             return $caLamViec->trang_thai !== 'da_ket_thuc' && !$caLamViec->phieuChotCa;
         });
@@ -138,35 +137,35 @@ class CheckIn extends Component
             $this->todayShifts = $shifts;
             $this->showShiftSelection = true;
         }
-        
+
         // Set hasRegisteredShifts based on filtered shifts (shifts not yet completed)
         $this->hasRegisteredShifts = $shifts->count() > 0;
     }
-    
+
     public function startShift()
     {
         // Check for unclosed shifts first
         $unclosed = CaLamViec::where('nguoi_dung_id', Auth::id())
             ->where('trang_thai_checkin', true)
             ->where('trang_thai', 'dang_lam')
-            ->whereDate('ngay_lam', '<=', Carbon::today())
+            ->whereDate('ngay_lam', '<', Carbon::today())
             ->orderBy('thoi_gian_checkin', 'asc') // Get oldest first
             ->first();
-        
+
         if ($unclosed) {
             $this->unclosedShift = $unclosed;
             $this->hasUnclosedShift = true;
-            
+
             // Check if checkout is late
             $expectedCheckoutTime = $unclosed->expected_checkout_time;
             $gracePeriodEnd = $expectedCheckoutTime->copy()->addMinutes(15);
             $this->isLateCheckout = now()->gt($gracePeriodEnd);
-            
+
             $this->showCheckoutPrompt = true;
             session()->flash('warning', 'Bạn cần chốt ca trước đó trước khi bắt đầu ca mới!');
             return;
         }
-        
+
         // 1. Get registered shifts from shift_schedules table
         $registeredShifts = \App\Models\ShiftSchedule::with(['agency', 'shiftTemplate'])
             ->where('nguoi_dung_id', Auth::id())
@@ -174,28 +173,28 @@ class CheckIn extends Component
             ->whereIn('trang_thai', ['approved', 'pending'])
             ->orderBy('gio_bat_dau')
             ->get();
-        
+
         // Filter out shifts that have been checked in and completed
-        $shifts = $registeredShifts->filter(function($shift) {
+        $shifts = $registeredShifts->filter(function ($shift) {
             $caLamViec = \App\Models\CaLamViec::where('shift_template_id', $shift->shift_template_id)
                 ->where('nguoi_dung_id', $shift->nguoi_dung_id)
                 ->where('diem_ban_id', $shift->diem_ban_id)
                 ->whereDate('ngay_lam', $shift->ngay_lam)
                 ->first();
-            
+
             if (!$caLamViec) {
                 return true;
             }
-            
+
             return $caLamViec->trang_thai !== 'da_ket_thuc' && !$caLamViec->phieuChotCa;
         });
-            
+
         if ($shifts->isEmpty()) {
             $this->hasRegisteredShifts = false;
             session()->flash('error', 'Bạn chưa đăng ký ca làm việc cho ngày hôm nay!');
             return;
         }
-        
+
         // 2. Always show shift selection modal
         $this->hasRegisteredShifts = true;
         $this->todayShifts = $shifts;
@@ -209,30 +208,34 @@ class CheckIn extends Component
             $this->createSession($selectedShift);
         }
     }
-    
-    
+
+
     private function createSession($schedule)
     {
         // Get checkinType directly from user to ensure it's always correct
         $checkinType = Auth::user()->getCheckinType();
-        
+
         // For sales staff: show full check-in form (cash, images, stock)
         if ($checkinType === 'sales') {
-            $this->shift = CaLamViec::create([
-                'diem_ban_id' => $schedule->diem_ban_id,
-                'nguoi_dung_id' => Auth::id(),
-                'ngay_lam' => now(),
-                'gio_bat_dau' => $schedule->gio_bat_dau, // Use schedule time
-                'gio_ket_thuc' => $schedule->gio_ket_thuc, // Use schedule time
-                'trang_thai' => 'dang_lam',
-                'trang_thai_checkin' => false,
-                'shift_template_id' => $schedule->shift_template_id,
-                'ghi_chu' => $this->ghi_chu,
-            ]);
-            
+            $this->shift = CaLamViec::firstOrCreate(
+                [
+                    'diem_ban_id' => $schedule->diem_ban_id,
+                    'nguoi_dung_id' => Auth::id(),
+                    'ngay_lam' => now()->toDateString(), // Ensure date match
+                    'shift_template_id' => $schedule->shift_template_id,
+                    'trang_thai' => 'dang_lam',
+                ],
+                [
+                    'gio_bat_dau' => $schedule->gio_bat_dau,
+                    'gio_ket_thuc' => $schedule->gio_ket_thuc,
+                    'trang_thai_checkin' => false,
+                    'ghi_chu' => $this->ghi_chu,
+                ]
+            );
+
             // Load distributed stock for confirmation
             $this->loadDistributedStock();
-            
+
             // Hide modal and show check-in form
             $this->showShiftSelection = false;
             $this->todayShifts = [];
@@ -240,21 +243,25 @@ class CheckIn extends Component
             $this->isCheckedIn = false;
             return;
         }
-        
+
         // For production staff: show simple check-in form (images + notes only)
         if ($checkinType === 'production') {
-            $this->shift = CaLamViec::create([
-                'diem_ban_id' => $schedule->diem_ban_id,
-                'nguoi_dung_id' => Auth::id(),
-                'ngay_lam' => now(),
-                'gio_bat_dau' => $schedule->gio_bat_dau, // Use schedule time
-                'gio_ket_thuc' => $schedule->gio_ket_thuc, // Use schedule time
-                'trang_thai' => 'dang_lam',
-                'trang_thai_checkin' => false,
-                'shift_template_id' => $schedule->shift_template_id,
-                'ghi_chu' => $this->ghi_chu,
-            ]);
-            
+            $this->shift = CaLamViec::firstOrCreate(
+                [
+                    'diem_ban_id' => $schedule->diem_ban_id,
+                    'nguoi_dung_id' => Auth::id(),
+                    'ngay_lam' => now()->toDateString(),
+                    'shift_template_id' => $schedule->shift_template_id,
+                    'trang_thai' => 'dang_lam',
+                ],
+                [
+                    'gio_bat_dau' => $schedule->gio_bat_dau,
+                    'gio_ket_thuc' => $schedule->gio_ket_thuc,
+                    'trang_thai_checkin' => false,
+                    'ghi_chu' => $this->ghi_chu,
+                ]
+            );
+
             // Hide modal and show check-in form
             $this->showShiftSelection = false;
             $this->todayShifts = [];
@@ -262,62 +269,75 @@ class CheckIn extends Component
             $this->isCheckedIn = false;
             return;
         }
-        
+
         // For office staff: auto check-in and redirect to dashboard
-        $shift = CaLamViec::create([
-            'diem_ban_id' => $schedule->diem_ban_id,
-            'nguoi_dung_id' => Auth::id(),
-            'ngay_lam' => now(),
-            'gio_bat_dau' => $schedule->gio_bat_dau, // Use schedule time
-            'gio_ket_thuc' => $schedule->gio_ket_thuc, // Use schedule time
-            'trang_thai' => 'dang_lam',
-            'trang_thai_checkin' => true, // Auto check-in for office
-            'thoi_gian_checkin' => now(),
-            'shift_template_id' => $schedule->shift_template_id,
-            'ghi_chu' => $this->ghi_chu,
-        ]);
-        
+        // For office staff: auto check-in and redirect to dashboard
+        $shift = CaLamViec::firstOrCreate(
+            [
+                'diem_ban_id' => $schedule->diem_ban_id,
+                'nguoi_dung_id' => Auth::id(),
+                'ngay_lam' => now()->toDateString(),
+                'shift_template_id' => $schedule->shift_template_id,
+                'trang_thai' => 'dang_lam',
+            ],
+            [
+                'gio_bat_dau' => $schedule->gio_bat_dau,
+                'gio_ket_thuc' => $schedule->gio_ket_thuc,
+                'trang_thai_checkin' => true, // Auto check-in for office
+                'thoi_gian_checkin' => now(),
+                'ghi_chu' => $this->ghi_chu,
+            ]
+        );
+
+        // Ensure check-in if retrieved existing session
+        if (!$shift->trang_thai_checkin) {
+            $shift->update([
+                'trang_thai_checkin' => true,
+                'thoi_gian_checkin' => now(),
+            ]);
+        }
+
         $this->showShiftSelection = false;
         $this->todayShifts = [];
         $this->checkShiftStatus();
     }
-    
+
     public function loadDistributedStock()
     {
         $agencyId = $this->shift->diem_ban_id;
-        
+
         // Find all distributions for this agency, with status 'chua_nhan'
         // NO DATE FILTER - show all pending distributions even from previous days
         $distributions = PhanBoHangDiemBan::with(['product'])
             ->where('diem_ban_id', $agencyId)
             ->where('trang_thai', 'chua_nhan')
             ->get();
-            
+
         $this->products = [];
         $this->receivedStock = [];
         $this->maxStock = [];
-        
+
         $uniqueProducts = [];
-        
+
         foreach ($distributions as $dist) {
             if ($dist->product) {
                 $product = $dist->product;
-                
+
                 // Add to products list if not already there
                 if (!isset($this->receivedStock[$product->id])) {
                     $uniqueProducts[$product->id] = $product;
                     $this->receivedStock[$product->id] = null; // Default to null for placeholder behavior
                     $this->maxStock[$product->id] = 0;
                 }
-                
+
                 // Add quantity from this distribution
                 $this->maxStock[$product->id] += $dist->so_luong;
             }
         }
-        
+
         $this->products = array_values($uniqueProducts);
     }
-    
+
     public function fillMaxStock($productId)
     {
         if (isset($this->maxStock[$productId])) {
@@ -331,7 +351,7 @@ class CheckIn extends Component
             array_splice($this->checkinImages, $index, 1);
         }
     }
-    
+
     public function confirmCheckIn()
     {
         $user = Auth::user();
@@ -347,20 +367,20 @@ class CheckIn extends Component
             $rules['openingCash'] = 'required|numeric|min:0';
             $rules['receivedStock.*'] = 'nullable|numeric|min:0';
         }
-        
+
         // Production: no additional requirements (just photos)
         // Office: no additional requirements
 
         $this->validate($rules, [
             'openingCash.required' => 'Vui lòng nhập tiền mặt đầu ca.',
         ]);
-        
+
         DB::transaction(function () use ($checkinType) {
             // Handle Image Uploads with Resizing (reduces from ~5MB to ~200KB)
             $imagePaths = [];
             if ($this->checkinImages) {
                 $manager = new \Intervention\Image\ImageManager(new \Intervention\Image\Drivers\Gd\Driver());
-                
+
                 foreach ($this->checkinImages as $photo) {
                     $imagePaths[] = $this->resizeAndStoreCheckInImage($photo, $manager);
                 }
@@ -379,43 +399,41 @@ class CheckIn extends Component
             }
 
             $this->shift->update($updateData);
-            
+
             if ($checkinType === 'sales') {
-            // 2. Create/Update Shift Details (ChiTietCaLam)
-            foreach ($this->products as $p) {
-                // Treat null as 0
-                $qty = $this->receivedStock[$p->id] ? $this->receivedStock[$p->id] : 0;
-                
-                if ($qty > 0) {
-                    $detail = ChiTietCaLam::firstOrNew([
-                        'ca_lam_viec_id' => $this->shift->id,
-                        'san_pham_id' => $p->id,
-                    ]);
-                    
-                    // Add to existing quantity if any
-                    $detail->so_luong_nhan_ca = ($detail->so_luong_nhan_ca ?? 0) + $qty;
-                    $detail->save();
+                // 2. Create/Update Shift Details (ChiTietCaLam)
+                foreach ($this->products as $p) {
+                    // Treat null as 0
+                    $qty = $this->receivedStock[$p->id] ? $this->receivedStock[$p->id] : 0;
+
+                    if ($qty > 0) {
+                        $detail = ChiTietCaLam::firstOrNew([
+                            'ca_lam_viec_id' => $this->shift->id,
+                            'san_pham_id' => $p->id,
+                        ]);
+
+                        // Add to existing quantity if any
+                        $detail->so_luong_nhan_ca = ($detail->so_luong_nhan_ca ?? 0) + $qty;
+                        $detail->save();
+                    }
                 }
-            }
-            
-            // 3. Mark distributions as received (ALL pending for this session)
-            $agencyId = $this->shift->diem_ban_id;
-            $startTime = Carbon::parse($this->shift->gio_bat_dau);
-            $session = $startTime->lt(Carbon::parse('12:00:00')) ? 'sang' : 'chieu';
-            
-            PhanBoHangDiemBan::where('diem_ban_id', $agencyId)
-                // NO DATE FILTER - receive all pending
-                ->where('buoi', $session)
-                ->where('trang_thai', 'chua_nhan')
-                ->update([
-                    'trang_thai' => 'da_nhan',
-                    'nguoi_nhan_id' => Auth::id(),
-                ]);
+
+                // 3. Mark distributions as received (ALL pending for this session/agency)
+                $agencyId = $this->shift->diem_ban_id;
+
+                PhanBoHangDiemBan::where('diem_ban_id', $agencyId)
+                    // NO DATE OR SESSION FILTER - receive all pending that were showed in the form
+                    ->where('trang_thai', 'chua_nhan')
+                    ->update([
+                        'trang_thai' => 'da_nhan',
+                        'nguoi_nhan_id' => Auth::id(),
+                        'ngay_nhan' => now(),
+                    ]);
             }
         });
-        
+
         session()->flash('success', 'Check-in thành công!');
-        
+
         // Redirect logic based on check-in type
         if ($checkinType === 'sales') {
             return $this->redirect(route('employee.pos'), navigate: true);
@@ -423,7 +441,7 @@ class CheckIn extends Component
             return $this->redirect(route('employee.dashboard'), navigate: true);
         }
     }
-    
+
     /**
      * Resize and compress check-in images to reduce storage
      * Target: < 300KB per image (from ~3-8MB on mobile)
@@ -433,7 +451,7 @@ class CheckIn extends Component
         $filename = md5($photo->getClientOriginalName() . time() . rand()) . '.jpg';
         $path = 'checkin-photos/' . $filename;
         $fullPath = storage_path('app/public/' . $path);
-        
+
         // Ensure directory exists
         if (!file_exists(dirname($fullPath))) {
             mkdir(dirname($fullPath), 0755, true);
@@ -458,7 +476,7 @@ class CheckIn extends Component
             return $photo->store('checkin-photos', 'public');
         }
     }
-    
+
     /**
      * Force checkout the unclosed shift
      */
@@ -467,15 +485,15 @@ class CheckIn extends Component
         if (!$this->unclosedShift) {
             return;
         }
-        
+
         DB::transaction(function () {
-            $ghi_chu = $this->isLateCheckout 
+            $ghi_chu = $this->isLateCheckout
                 ? 'Chốt ca muộn - Quên chốt ca'
                 : 'Chốt ca trước khi bắt đầu ca mới';
-            
+
             // Create phieu chot ca
             $maPhieu = 'PC-' . $this->unclosedShift->ngay_lam->format('Ymd') . '-' . str_pad($this->unclosedShift->id, 4, '0', STR_PAD_LEFT);
-            
+
             \App\Models\PhieuChotCa::create([
                 'ma_phieu' => $maPhieu,
                 'diem_ban_id' => $this->unclosedShift->diem_ban_id,
@@ -492,18 +510,18 @@ class CheckIn extends Component
                 'trang_thai' => 'cho_duyet',
                 'ot' => $this->isOvertime,
             ]);
-            
+
             // Update shift status
             $this->unclosedShift->update([
                 'trang_thai' => 'da_ket_thuc',
             ]);
         });
-        
+
         session()->flash('success', 'Đã chốt ca thành công!');
         $this->reset(['unclosedShift', 'hasUnclosedShift', 'isLateCheckout', 'showCheckoutPrompt']);
         $this->checkShiftStatus();
     }
-    
+
     /**
      * Initiate checkout for non-sales staff
      */
@@ -512,12 +530,12 @@ class CheckIn extends Component
         if (!$this->shift) {
             return;
         }
-        
+
         // Calculate expected checkout time based on actual check-in
         $expectedCheckoutTime = $this->shift->expected_checkout_time;
         $now = now();
         $gracePeriodEnd = $expectedCheckoutTime->copy()->addMinutes(15); // 15 minutes grace period
-        
+
         // Determine checkout type
         if ($now->lt($expectedCheckoutTime)) {
             // Too early (before expected checkout)
@@ -536,10 +554,10 @@ class CheckIn extends Component
             $this->checkoutWarningType = 'normal';
             $this->checkoutWarningMessage = 'Xác nhận chốt ca?';
         }
-        
+
         $this->showCheckoutConfirm = true;
     }
-    
+
     /**
      * Format minutes to readable time
      */
@@ -548,17 +566,17 @@ class CheckIn extends Component
         if ($minutes < 60) {
             return "{$minutes} phút";
         }
-        
+
         $hours = floor($minutes / 60);
         $remainingMinutes = $minutes % 60;
-        
+
         if ($remainingMinutes === 0) {
             return "{$hours} giờ";
         }
-        
+
         return "{$hours} giờ {$remainingMinutes} phút";
     }
-    
+
     /**
      * Confirm checkout
      */
@@ -567,17 +585,17 @@ class CheckIn extends Component
         if (!$this->shift) {
             return;
         }
-        
+
         DB::transaction(function () {
-            $ghi_chu = match($this->checkoutWarningType) {
+            $ghi_chu = match ($this->checkoutWarningType) {
                 'early' => 'Chốt ca sớm',
                 'late' => 'Chốt ca muộn - Quên chốt ca',
                 default => 'Chốt ca bình thường',
             };
-            
+
             // Create phieu chot ca
             $maPhieu = 'PC-' . $this->shift->ngay_lam->format('Ymd') . '-' . str_pad($this->shift->id, 4, '0', STR_PAD_LEFT);
-            
+
             \App\Models\PhieuChotCa::create([
                 'ma_phieu' => $maPhieu,
                 'diem_ban_id' => $this->shift->diem_ban_id,
@@ -594,20 +612,20 @@ class CheckIn extends Component
                 'trang_thai' => 'cho_duyet',
                 'ot' => $this->isOvertime,
             ]);
-            
+
             // Update ca_lam_viec status only (not shift_schedules)
             $this->shift->update([
                 'trang_thai' => 'da_ket_thuc',
             ]);
         });
-        
+
         // Reset state
         $this->reset(['shift', 'hasActiveShift', 'isCheckedIn', 'showCheckoutConfirm', 'checkoutWarningType', 'checkoutWarningMessage']);
-        
+
         session()->flash('success', 'Đã chốt ca thành công!');
         return $this->redirect(route('employee.dashboard'), navigate: true);
     }
-    
+
     public function render()
     {
         return view('livewire.employee.shift.check-in');

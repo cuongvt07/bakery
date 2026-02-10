@@ -2,13 +2,18 @@
     <!-- Header -->
     <div class="bg-indigo-600 px-4 py-4 shadow-md sticky top-0 z-10">
         <div class="flex items-center justify-between text-white">
-            <h1 class="text-lg font-bold flex items-center">
-                <svg class="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
-                </svg>
-                Check-in Đầu Ca
-            </h1>
+            <div>
+                <h1 class="text-lg font-bold flex items-center">
+                    <svg class="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
+                    </svg>
+                    Check-in Đầu Ca
+                </h1>
+                @if($shift && $shift->diemBan)
+                    <p class="text-indigo-100 text-xs mt-0.5 ml-8">{{ $shift->diemBan->ten_diem_ban }}</p>
+                @endif
+            </div>
             <span class="text-xs bg-indigo-500 px-2 py-1 rounded-full">{{ now()->format('d/m') }}</span>
         </div>
     </div>

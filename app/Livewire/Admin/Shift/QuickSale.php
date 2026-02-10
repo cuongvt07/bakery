@@ -212,6 +212,30 @@ class QuickSale extends Component
         $this->total = 0;
     }
 
+    public function copyStockList()
+    {
+        $text = "📦 TỒN KHO HIỆN TẠI\n";
+        $text .= "🕒 " . now()->format('d/m/Y H:i') . "\n";
+        $text .= "👤 " . (Auth::user()->ho_ten ?? 'N/A') . "\n";
+        $text .= "-------------------\n";
+
+        foreach ($this->shiftDetails as $detail) {
+            $remaining = $detail['con_lai'];
+            if ($remaining > 0) {
+                // Since shiftDetails is cast to array, product is an array
+                $prodName = $detail['product']['ten_san_pham'] ?? 'Sản phẩm ' . $detail['id'];
+                $text .= "- {$prodName}: {$remaining}\n";
+            }
+        }
+
+        $this->dispatch('copy-to-clipboard', text: $text);
+        $this->dispatch(
+            'show-alert',
+            type: 'success',
+            message: 'Đã copy danh sách tồn kho!'
+        );
+    }
+
     public function updatePendingCount()
     {
         $this->pendingCount = PendingSale::where('ca_lam_viec_id', $this->shift->id)

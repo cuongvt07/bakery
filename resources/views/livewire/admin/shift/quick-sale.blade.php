@@ -8,7 +8,30 @@
             console.log('Wake lock error:', err);
         });
     }
-})()">
+})()"
+x-on:copy-to-clipboard.window="
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText($event.detail.text).catch(err => {
+            console.error('Failed to copy: ', err);
+            alert('Lỗi copy clipboard: ' + err);
+        });
+    } else {
+        const textArea = document.createElement('textarea');
+        textArea.value = $event.detail.text;
+        textArea.style.position = 'fixed';
+        textArea.style.left = '-9999px';
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        try {
+            document.execCommand('copy');
+        } catch (err) {
+            console.error('Fallback copy failed', err);
+            alert('Lỗi copy clipboard (fallback)');
+        }
+        document.body.removeChild(textArea);
+    }
+">
     {{-- Sticky Header --}}
     <div class="sticky top-0 z-10 bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg">
         <div class="px-4 py-4">
@@ -25,9 +48,21 @@
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
                         </svg>
                     @endif
-                    <div>
-                        <h1 class="text-xl font-bold">POS</h1>
-                        <p class="text-xs text-blue-100">{{ $shift->diemBan->ten_diem_ban ?? 'Điểm bán' }}</p>
+                    <div class="flex items-center">
+                        <div>
+                            <h1 class="text-xl font-bold">POS</h1>
+                            <p class="text-xs text-blue-100">{{ $shift->diemBan->ten_diem_ban ?? 'Điểm bán' }}</p>
+                        </div>
+                        <button 
+                            wire:click="copyStockList"
+                            class="ml-2 px-2 py-1 rounded bg-white/20 hover:bg-white/30 text-white transition-colors flex items-center space-x-1"
+                            title="Copy tồn kho"
+                        >
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
+                            </svg>
+                            <span class="text-xs font-bold">COPY TỒN</span>
+                        </button>
                     </div>
                 </div>
                 

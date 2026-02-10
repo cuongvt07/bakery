@@ -48,17 +48,6 @@ class TransferManager extends Component
         $this->reset(['stockData', 'transferItems']);
 
         if ($this->sourceAgencyId) {
-            // Check for active shift
-            $activeShift = CaLamViec::where('diem_ban_id', $this->sourceAgencyId)
-                ->where('trang_thai', 'dang_lam')
-                ->exists();
-
-            if ($activeShift) {
-                $this->addError('sourceAgencyId', 'Điểm bán này đang có ca làm việc (đang mở). Chỉ có thể chuyển hàng từ điểm ĐÃ chốt ca.');
-                // Do not load stock, effectively blocking next steps
-                return;
-            }
-
             $this->loadSourceStock();
         }
     }
@@ -70,52 +59,34 @@ class TransferManager extends Component
 
         $this->stockData = [];
 
-        // Logic to calculate available stock at Source Agency
-        // Tồn kho = Tổng nhập (duyệt) - Tổng bán - Tổng hỏng/huỷ
-
-        // 1. Get all received distributions (positive and negative)
-        // Group by product
-
-        // Note: For simplicity and speed, we can query PhanBoHangDiemBan
-        // Ideally we should sum up per batch, but here we show Total Product Quantity
-        // The implementation of "Auto-Pick Batch" happens on Save.
-
-        // User Request: Only take products distributed TODAY
+        // Get current stock from active shift details at this agency
+        // Stock = so_luong_nhan_ca - so_luong_ban (= so_luong_con_lai)
+        // Find the latest shift (active or closed today) for this agency
         $today = Carbon::today();
 
-        $productIds = PhanBoHangDiemBan::where('diem_ban_id', $this->sourceAgencyId)
-            ->whereIn('trang_thai', ['da_nhan', 'chua_nhan', 'da_duyet'])
-            ->whereDate('created_at', $today) // Filter Today
-            ->distinct()
-            ->pluck('san_pham_id');
+        $latestShift = CaLamViec::where('diem_ban_id', $this->sourceAgencyId)
+            ->whereIn('trang_thai', ['dang_lam', 'da_ket_thuc'])
+            ->whereDate('ngay_lam', $today)
+            ->latest()
+            ->first();
 
-        // Load product details
-        $relevantProducts = Product::whereIn('id', $productIds)->get();
+        if (!$latestShift) {
+            return; // No shift today, no stock to show
+        }
 
-        foreach ($relevantProducts as $product) {
-            // Count IN: Only Today
-            $totalReceived = PhanBoHangDiemBan::where('diem_ban_id', $this->sourceAgencyId)
-                ->where('san_pham_id', $product->id)
-                ->whereIn('trang_thai', ['da_nhan', 'chua_nhan'])
-                ->whereDate('created_at', $today)
-                ->sum('so_luong');
+        $shiftDetails = \App\Models\ChiTietCaLam::with('sanPham')
+            ->where('ca_lam_viec_id', $latestShift->id)
+            ->get();
 
-            // Count OUT: Only Today's Shifts
-            $totalSold = \App\Models\ChiTietCaLam::whereHas('caLamViec', function ($q) use ($today) {
-                $q->where('diem_ban_id', $this->sourceAgencyId)
-                    ->where('trang_thai', 'da_ket_thuc')
-                    ->whereDate('ngay_lam', $today);
-            })
-                ->where('san_pham_id', $product->id)
-                ->sum('so_luong_ban');
+        foreach ($shiftDetails as $detail) {
+            $remaining = $detail->so_luong_con_lai; // so_luong_nhan_ca - so_luong_ban
 
-            $calculatedStock = $totalReceived - $totalSold;
+            if ($remaining > 0) {
+                $this->stockData[$detail->san_pham_id] = $remaining;
 
-            if ($calculatedStock > 0) {
-                $this->stockData[$product->id] = $calculatedStock;
-                // Ensure this product is in our $this->products list for display if needed
-                if (!$this->products->contains('id', $product->id)) {
-                    $this->products->push($product);
+                // Ensure product is in list for display
+                if (!$this->products->contains('id', $detail->san_pham_id) && $detail->sanPham) {
+                    $this->products->push($detail->sanPham);
                 }
             }
         }
@@ -167,6 +138,11 @@ class TransferManager extends Component
                 'ly_do' => $this->note,
             ]);
 
+            // Get source shift for stock deduction
+            $sourceShift = CaLamViec::where('diem_ban_id', $this->sourceAgencyId)
+                ->where('trang_thai', 'dang_lam')
+                ->first();
+
             foreach ($this->transferItems as $productId => $qty) {
                 if ($qty <= 0)
                     continue;
@@ -185,8 +161,7 @@ class TransferManager extends Component
                 $batches = ProductionBatch::whereHas('distributions', function ($q) use ($productId) {
                     $q->where('diem_ban_id', $this->sourceAgencyId)
                         ->where('san_pham_id', $productId)
-                        ->whereIn('trang_thai', ['da_nhan', 'chua_nhan'])
-                        ->whereDate('created_at', Carbon::today()); // Today only per user request
+                        ->whereIn('trang_thai', ['da_nhan', 'chua_nhan']);
                 })
                     ->whereHas('details', function ($q) use ($productId) {
                         $q->where('san_pham_id', $productId);
@@ -206,7 +181,6 @@ class TransferManager extends Component
                         ->where('diem_ban_id', $this->sourceAgencyId)
                         ->where('san_pham_id', $productId)
                         ->whereIn('trang_thai', ['da_nhan', 'chua_nhan'])
-                        ->whereDate('created_at', Carbon::today()) // Today only
                         ->sum('so_luong');
 
                     $sold = LichSuCapNhatMe::where('me_san_xuat_id', $batch->id)
@@ -287,6 +261,16 @@ class TransferManager extends Component
                             'du_lieu_moi' => 0,
                             'ghi_chu' => "Nhận luân chuyển từ " . $transfer->diemBanNguon->ten_diem_ban . " (" . $transfer->ma_phieu . ")"
                         ]);
+
+                        // 5. Update Active Shift Stock (Immediate Deduction)
+                        if ($sourceShift) {
+                            $detail = \App\Models\ChiTietCaLam::firstOrNew([
+                                'ca_lam_viec_id' => $sourceShift->id,
+                                'san_pham_id' => $productId,
+                            ]);
+                            $detail->so_luong_nhan_ca = ($detail->so_luong_nhan_ca ?? 0) - $take;
+                            $detail->save();
+                        }
 
                         $remainingToTransfer -= $take;
                     }

@@ -110,6 +110,7 @@ class NotificationComponent extends Component
 
         $this->todayAttendance = \App\Models\CaLamViec::where('nguoi_dung_id', Auth::id())
             ->where('trang_thai', 'dang_lam')
+            ->where('trang_thai_checkin', true) // Only show popup if fully checked in
             ->whereDate('ngay_lam', Carbon::today())
             ->first();
 

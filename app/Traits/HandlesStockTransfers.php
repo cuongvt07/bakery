@@ -11,8 +11,10 @@ use Illuminate\Support\Facades\DB;
 trait HandlesStockTransfers
 {
     public $showReceiveModal = false;
+    public $showSourceRefreshModal = false;
     public $pendingDistributions = [];
     public $activeTransfers = [];
+    public $activeSourceTransfers = [];
 
     public function checkPendingTransfers($agencyId)
     {
@@ -22,7 +24,7 @@ trait HandlesStockTransfers
             ->where('trang_thai', 'chua_nhan')
             ->get();
 
-        // 2. Get high-level transfers (LuanChuyenHang) - used for blocking UI
+        // 2. Get high-level transfers (LuanChuyenHang) - used for blocking UI (Receiver side)
         $this->activeTransfers = LuanChuyenHang::with(['diemBanNguon', 'chiTiet.sanPham'])
             ->where('diem_ban_dich_id', $agencyId)
             ->where('trang_thai', 'dang_chuyen')
@@ -30,6 +32,20 @@ trait HandlesStockTransfers
 
         if ($this->activeTransfers->isNotEmpty()) {
             $this->showReceiveModal = true;
+        }
+
+        // 3. Check for recently initiated transfers where this agency is the SOURCE (Sender side)
+        // We use session to keep track of seen/dismissed transfers to avoid DB schema changes
+        $dismissed = session()->get('dismissed_source_transfers', []);
+
+        $this->activeSourceTransfers = LuanChuyenHang::where('diem_ban_nguon_id', $agencyId)
+            ->where('trang_thai', 'dang_chuyen')
+            ->whereNotIn('id', $dismissed)
+            ->where('created_at', '>=', now()->subHours(1)) // Only check last hour to keep it relevant
+            ->get();
+
+        if ($this->activeSourceTransfers->isNotEmpty()) {
+            $this->showSourceRefreshModal = true;
         }
     }
 
@@ -43,7 +59,15 @@ trait HandlesStockTransfers
         DB::transaction(function () {
             // Update individual items
             foreach ($this->pendingDistributions as $dist) {
-                $dist->update([
+                // Re-fetch with lock to prevent race conditions
+                $item = PhanBoHangDiemBan::where('id', $dist->id)->lockForUpdate()->find($dist->id);
+
+                // Skip if initialized or already processed by another request
+                if (!$item || $item->trang_thai !== 'chua_nhan') {
+                    continue;
+                }
+
+                $item->update([
                     'trang_thai' => 'da_nhan',
                     'nguoi_nhan_id' => Auth::id(),
                     'ngay_nhan' => now(),
@@ -52,10 +76,10 @@ trait HandlesStockTransfers
                 // Update Shift Details
                 $detail = ChiTietCaLam::firstOrNew([
                     'ca_lam_viec_id' => $this->todayAttendance->id,
-                    'san_pham_id' => $dist->san_pham_id,
+                    'san_pham_id' => $item->san_pham_id,
                 ]);
 
-                $detail->so_luong_nhan_ca = ($detail->so_luong_nhan_ca ?? 0) + $dist->so_luong;
+                $detail->so_luong_nhan_ca = ($detail->so_luong_nhan_ca ?? 0) + $item->so_luong;
                 $detail->save();
             }
 
@@ -82,5 +106,22 @@ trait HandlesStockTransfers
         if (method_exists($this, 'loadShiftProducts')) {
             $this->loadShiftProducts();
         }
+    }
+
+    public function confirmSourceRefresh()
+    {
+        $dismissed = session()->get('dismissed_source_transfers', []);
+
+        foreach ($this->activeSourceTransfers as $transfer) {
+            if (!in_array($transfer->id, $dismissed)) {
+                $dismissed[] = $transfer->id;
+            }
+        }
+
+        session()->put('dismissed_source_transfers', $dismissed);
+        $this->showSourceRefreshModal = false;
+
+        // Full page reload to ensure all stock data (POS, counters) are refreshed
+        return redirect(request()->header('Referer') ?: route('employee.pos'));
     }
 }

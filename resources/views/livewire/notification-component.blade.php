@@ -347,5 +347,39 @@
         </div>
     </div>
     @endif
+
+    {{-- Global Refresh Modal for Source Agency (Điểm đi) --}}
+    @if($showSourceRefreshModal && count($activeSourceTransfers) > 0)
+    <div class="fixed inset-0 z-[200] flex items-center justify-center p-4 overflow-y-auto">
+        {{-- Backdrop --}}
+        <div class="fixed inset-0 bg-yellow-900/40 backdrop-blur-sm"></div>
+        
+        {{-- Modal Content --}}
+        <div class="relative bg-white rounded-2xl w-full max-w-sm overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-300">
+            <div class="bg-yellow-500 p-6 text-white text-center">
+                <div class="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4 backdrop-blur-md">
+                    <i class="las la-sync-alt text-4xl"></i>
+                </div>
+                <h2 class="text-xl font-bold">Cập nhật tồn kho!</h2>
+                <p class="text-yellow-500 text-sm opacity-90">Sản phẩm vừa được luân chuyển đi</p>
+            </div>
+            
+            <div class="p-6 text-center">
+                <p class="text-gray-600 text-sm mb-6">
+                    Hệ thống ghi nhận có hàng được luân chuyển đi từ điểm này. 
+                    Vui lòng bấm <b>Xác nhận</b> để tải lại dữ liệu mới nhất.
+                </p>
+                
+                <button wire:click="confirmSourceRefresh" 
+                    wire:loading.attr="disabled"
+                    class="w-full py-4 bg-yellow-500 text-white rounded-xl font-bold shadow-lg shadow-yellow-100 hover:bg-yellow-600 active:scale-[0.98] transition-all flex items-center justify-center gap-2">
+                    <span wire:loading.remove wire:target="confirmSourceRefresh">Xác nhận và Tải lại</span>
+                    <span wire:loading wire:target="confirmSourceRefresh">Đang tải lại...</span>
+                    <i class="las la-check-circle text-xl" wire:loading.remove wire:target="confirmSourceRefresh"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+    @endif
 </div>
 
