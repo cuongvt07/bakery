@@ -99,40 +99,6 @@
         </div>
     </div>
 
-    <!-- Charts Section -->
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-        <!-- Sales Chart -->
-        <div class="bg-white rounded-lg shadow p-6 md:col-span-2">
-            <div class="flex justify-between items-center mb-4">
-                <h3 class="text-lg font-semibold text-gray-800">{{ $salesChartLabel }}</h3>
-                <span class="text-xl font-bold text-blue-600">
-                    {{ number_format($stats['total_revenue'] ?? 0) }} VNĐ
-                </span>
-            </div>
-            <div class="relative h-80 w-full">
-                <canvas id="salesChart" 
-                    data-chart='@json($this->salesChartData)' 
-                    data-max="{{ $this->maxRevenue }}"></canvas>
-            </div>
-        </div>
-
-        <!-- Production Chart -->
-        <div class="bg-white rounded-lg shadow p-6">
-            <h3 class="text-lg font-semibold text-gray-800 mb-4">Top 10 Sản Xuất (Sản Phẩm)</h3>
-            <div class="relative h-80 w-full">
-                <canvas id="productionChart" data-chart='@json($this->productionChartData)'></canvas>
-            </div>
-        </div>
-        
-        <!-- Distribution Chart -->
-        <div class="bg-white rounded-lg shadow p-6">
-            <h3 class="text-lg font-semibold text-gray-800 mb-4">Phân Bổ Theo Đại Lý</h3>
-            <div class="relative h-80 w-full">
-                <canvas id="distributionChart" data-chart='@json($this->distributionChartData)'></canvas>
-            </div>
-        </div>
-    </div>
-
     <!-- Live Stock Monitoring & Transfers Section -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
         <!-- Agency Stocks -->
@@ -218,6 +184,40 @@
                     <div class="py-8 text-center text-gray-500 text-sm italic">Không có vận chuyển nào đang thực hiện</div>
                     @endforelse
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Section -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+        <!-- Sales Chart -->
+        <div class="bg-white rounded-lg shadow p-6 md:col-span-2">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-semibold text-gray-800">{{ $salesChartLabel }}</h3>
+                <span class="text-xl font-bold text-blue-600">
+                    {{ number_format($stats['total_revenue'] ?? 0) }} VNĐ
+                </span>
+            </div>
+            <div class="relative h-80 w-full">
+                <canvas id="salesChart" 
+                    data-chart='@json($this->salesChartData)' 
+                    data-max="{{ $this->maxRevenue }}"></canvas>
+            </div>
+        </div>
+
+        <!-- Production Chart -->
+        <div class="bg-white rounded-lg shadow p-6">
+            <h3 class="text-lg font-semibold text-gray-800 mb-4">Top 10 Sản Xuất (Sản Phẩm)</h3>
+            <div class="relative h-80 w-full">
+                <canvas id="productionChart" data-chart='@json($this->productionChartData)'></canvas>
+            </div>
+        </div>
+        
+        <!-- Distribution Chart -->
+        <div class="bg-white rounded-lg shadow p-6">
+            <h3 class="text-lg font-semibold text-gray-800 mb-4">Phân Bổ Theo Đại Lý</h3>
+            <div class="relative h-80 w-full">
+                <canvas id="distributionChart" data-chart='@json($this->distributionChartData)'></canvas>
             </div>
         </div>
     </div>
