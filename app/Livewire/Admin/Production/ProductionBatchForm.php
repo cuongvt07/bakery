@@ -109,7 +109,7 @@ class ProductionBatchForm extends Component
             'ngay_san_xuat' => 'required|date',
             'products' => 'required|array|min:1',
             'products.*.cong_thuc_id' => 'required|exists:cong_thuc_san_xuat,id',
-            'products.*.san_pham_id' => 'required|exists:san_pham,id',
+            'products.*.san_pham_id' => 'required|exists:san_pham,id|distinct',
             'products.*.so_luong_du_kien' => 'required|integer|min:1',
         ]);
 
@@ -179,6 +179,7 @@ class ProductionBatchForm extends Component
             'products.required' => 'Cần ít nhất một sản phẩm.',
             'products.*.cong_thuc_id.required' => 'Vui lòng chọn công thức.',
             'products.*.san_pham_id.required' => 'Vui lòng chọn sản phẩm.',
+            'products.*.san_pham_id.distinct' => 'Sản phẩm không được trùng lặp trong cùng một mẻ.',
             'products.*.so_luong_du_kien.required' => 'Nhập số lượng dự kiến.',
             'products.*.so_luong_du_kien.min' => 'Số lượng phải lớn hơn 0.',
         ];
