@@ -487,7 +487,7 @@ class AttendanceManager extends Component
     // --- ADMIN EDIT SHIFT DATA (STOCK/CASH) ---
     public function editShiftData($shiftId)
     {
-        $work = CaLamViec::with(['chiTietCaLam.sanPham', 'phieuChotCa'])->find($shiftId);
+        $work = CaLamViec::with(['chiTietCaLam.sanPham', 'phieuChotCa', 'diemBan'])->find($shiftId);
 
         if (!$work || !$work->phieuChotCa) {
             $this->dispatch('alert', ['type' => 'error', 'message' => 'Chỉ có thể sửa số liệu ca đã chốt!']);
@@ -498,6 +498,26 @@ class AttendanceManager extends Component
         $this->editingCash = $work->tien_mat_dau_ca ?? 0;
         $this->editingProducts = [];
 
+        // 1. Get ALL products distributed to this agency on this day
+        // This ensures products are listed even if the employee didn't input them during checkin
+        $distributions = \App\Models\PhanBoHangDiemBan::with(['chiTietPhanBo.sanPham'])
+            ->where('diem_ban_id', $work->diem_ban_id)
+            ->whereDate('ngay_phan_bo', $work->ngay_lam)
+            ->get();
+
+        foreach ($distributions as $distribution) {
+            foreach ($distribution->chiTietPhanBo as $ph_detail) {
+                if ($ph_detail->sanPham) {
+                    $this->editingProducts[$ph_detail->san_pham_id] = [
+                        'name' => $ph_detail->sanPham->ten_san_pham,
+                        'nhan' => 0, // Default 0
+                        'ban' => 0,  // Default 0
+                    ];
+                }
+            }
+        }
+
+        // 2. Override with actual shift details if they exist
         foreach ($work->chiTietCaLam as $detail) {
             if ($detail->sanPham) {
                 $this->editingProducts[$detail->san_pham_id] = [
@@ -536,14 +556,24 @@ class AttendanceManager extends Component
                     ->where('san_pham_id', $productId)
                     ->first();
 
-                if ($detail) {
-                    $detail->so_luong_nhan_ca = $data['nhan'];
-                    $detail->so_luong_ban = $data['ban'];
-                    $detail->save(); // save() will trigger boot() to update so_luong_con_lai
+                // Nếu chưa có chi tiết cho sản phẩm này, tạo mới
+                if (!$detail) {
+                    $detail = new \App\Models\ChiTietCaLam();
+                    $detail->ca_lam_viec_id = $work->id;
+                    $detail->san_pham_id = $productId;
+                }
 
-                    if ($detail->sanPham) {
-                        $tongLyThuyet += $data['ban'] * $detail->sanPham->gia_ban;
-                    }
+                $detail->so_luong_nhan_ca = $data['nhan'];
+                $detail->so_luong_ban = $data['ban'];
+                $detail->save(); // save() will trigger boot() to update so_luong_con_lai
+
+                // Refresh the relationship to get sanPham info if newly created
+                if (!$detail->relationLoaded('sanPham')) {
+                    $detail->load('sanPham');
+                }
+
+                if ($detail->sanPham) {
+                    $tongLyThuyet += $data['ban'] * $detail->sanPham->gia_ban;
                 }
             }
 
