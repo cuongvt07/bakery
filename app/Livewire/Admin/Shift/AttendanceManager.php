@@ -500,20 +500,18 @@ class AttendanceManager extends Component
 
         // 1. Get ALL products distributed to this agency on this day
         // This ensures products are listed even if the employee didn't input them during checkin
-        $distributions = \App\Models\PhanBoHangDiemBan::with(['chiTietPhanBo.sanPham'])
+        $distributions = \App\Models\PhanBoHangDiemBan::with(['product'])
             ->where('diem_ban_id', $work->diem_ban_id)
-            ->whereDate('ngay_phan_bo', $work->ngay_lam)
+            ->whereDate('created_at', $work->ngay_lam)
             ->get();
 
         foreach ($distributions as $distribution) {
-            foreach ($distribution->chiTietPhanBo as $ph_detail) {
-                if ($ph_detail->sanPham) {
-                    $this->editingProducts[$ph_detail->san_pham_id] = [
-                        'name' => $ph_detail->sanPham->ten_san_pham,
-                        'nhan' => 0, // Default 0
-                        'ban' => 0,  // Default 0
-                    ];
-                }
+            if ($distribution->product) {
+                $this->editingProducts[$distribution->san_pham_id] = [
+                    'name' => $distribution->product->ten_san_pham,
+                    'nhan' => 0, // Default 0
+                    'ban' => 0,  // Default 0
+                ];
             }
         }
 
