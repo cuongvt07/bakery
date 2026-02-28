@@ -313,12 +313,40 @@ class CheckIn extends Component
             ->where('trang_thai', 'chua_nhan')
             ->get();
 
+        // TÌM CÁC CA LÀM VIỆC CHƯA CHỐT CỦA CÙNG ĐIỂM BÁN (INHERIT STOCK)
+        // Lấy tất cả các ca đang làm (trừ ca hiện tại) trong ngày hôm nay tại điểm bán này
+        $previousActiveShifts = CaLamViec::where('diem_ban_id', $agencyId)
+            ->where('trang_thai', 'dang_lam')
+            ->where('id', '!=', $this->shift->id)
+            ->whereDate('ngay_lam', Carbon::today())
+            ->get();
+
         $this->products = [];
         $this->receivedStock = [];
         $this->maxStock = [];
 
         $uniqueProducts = [];
 
+        // 1. Kế thừa số lượng tồn còn lại từ các ca trước chưa chốt
+        foreach ($previousActiveShifts as $prevShift) {
+            $chiTiet = ChiTietCaLam::with('sanPham')->where('ca_lam_viec_id', $prevShift->id)->get();
+            foreach ($chiTiet as $detail) {
+                if ($detail->sanPham && $detail->so_luong_con_lai > 0) {
+                    $product = $detail->sanPham;
+
+                    if (!isset($this->receivedStock[$product->id])) {
+                        $uniqueProducts[$product->id] = $product;
+                        $this->receivedStock[$product->id] = 0;
+                        $this->maxStock[$product->id] = 0;
+                    }
+
+                    $this->maxStock[$product->id] += $detail->so_luong_con_lai;
+                    $this->receivedStock[$product->id] = $this->maxStock[$product->id];
+                }
+            }
+        }
+
+        // 2. Cộng thêm hàng phân bổ mới từ xưởng chưa nhận
         foreach ($distributions as $dist) {
             if ($dist->product) {
                 $product = $dist->product;
@@ -495,7 +523,8 @@ class CheckIn extends Component
                 : 'Chốt ca trước khi bắt đầu ca mới';
 
             // Create phieu chot ca
-            $maPhieu = 'PC-' . $this->unclosedShift->ngay_lam->format('Ymd') . '-' . str_pad($this->unclosedShift->id, 4, '0', STR_PAD_LEFT);
+            $dateFormatted = \Carbon\Carbon::parse($this->unclosedShift->ngay_lam)->format('Ymd');
+            $maPhieu = 'PC-' . $dateFormatted . '-' . str_pad($this->unclosedShift->id, 4, '0', STR_PAD_LEFT);
 
             \App\Models\PhieuChotCa::create([
                 'ma_phieu' => $maPhieu,
@@ -597,7 +626,8 @@ class CheckIn extends Component
             };
 
             // Create phieu chot ca
-            $maPhieu = 'PC-' . $this->shift->ngay_lam->format('Ymd') . '-' . str_pad($this->shift->id, 4, '0', STR_PAD_LEFT);
+            $dateFormatted = \Carbon\Carbon::parse($this->shift->ngay_lam)->format('Ymd');
+            $maPhieu = 'PC-' . $dateFormatted . '-' . str_pad($this->shift->id, 4, '0', STR_PAD_LEFT);
 
             \App\Models\PhieuChotCa::create([
                 'ma_phieu' => $maPhieu,
