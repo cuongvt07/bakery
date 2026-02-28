@@ -321,12 +321,19 @@
                                                                                 class="text-green-600 font-bold">OK</span>
                                                                         @endif
                                                                     </td>
-                                                                    <td class="px-4 py-2 text-center">
+                                                                    <td class="px-4 py-2 text-center flex justify-center gap-2">
                                                                         <button
                                                                             wire:click="editShift({{ $shift['id'] ?? 'null' }}, {{ $shift['schedule_id'] ?? 'null' }}, '{{ $day['date']->format('Y-m-d') }}')"
-                                                                            class="text-blue-500 hover:text-blue-700">
+                                                                            class="text-blue-500 hover:text-blue-700" title="Sửa Lịch Ca">
                                                                             ✏️
                                                                         </button>
+                                                                        @if(isset($shift['has_phieu']) && $shift['has_phieu'])
+                                                                        <button
+                                                                            wire:click="editShiftData({{ $shift['id'] }})"
+                                                                            class="text-amber-500 hover:text-amber-700" title="Sửa Số Liệu (Tiền/Hàng)">
+                                                                            📦
+                                                                        </button>
+                                                                        @endif
                                                                     </td>
                                                                 </tr>
                                                             @endforeach
@@ -476,4 +483,95 @@
         </div>
     </div>
 @endif
+
+<!-- Edit Shift Data (Stock/Cash) Modal -->
+@if ($showEditDataModal)
+    <div class="fixed inset-0 z-[70] overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+        <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true"></div>
+            <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+            <div class="inline-block align-bottom bg-white rounded-xl text-left overflow-hidden shadow-2xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full">
+                
+                <div class="bg-amber-600 px-4 py-3 sm:px-6 flex justify-between items-center">
+                    <h3 class="text-lg leading-6 font-bold text-white" id="modal-title">
+                        📦 Sửa Số Liệu Ca Làm Việc
+                    </h3>
+                    <button wire:click="$set('showEditDataModal', false)" class="text-white hover:text-gray-200">
+                        <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+
+                <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4 max-h-[70vh] overflow-y-auto">
+                    <!-- Cash Input -->
+                    <div class="mb-6 bg-gray-50 p-4 rounded-lg border border-gray-200">
+                        <label class="block text-sm font-bold text-gray-700 mb-2">💵 Tiền mặt đầu ca (VNĐ)</label>
+                        <input type="number" wire:model="editingCash"
+                            class="block w-full border border-gray-300 rounded-md shadow-sm p-3 focus:ring-amber-500 focus:border-amber-500 font-bold text-lg text-amber-700">
+                        @error('editingCash') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
+                    </div>
+
+                    <!-- Products Table -->
+                    <div>
+                        <h4 class="font-bold text-gray-800 mb-3 border-b pb-2">🥖 Danh sách bánh (Nhận / Bán)</h4>
+                        
+                        <div class="overflow-hidden border border-gray-200 rounded-lg">
+                            <table class="min-w-full text-sm">
+                                <thead class="bg-gray-100">
+                                    <tr>
+                                        <th class="px-4 py-2 text-left font-semibold text-gray-700">Tên Sản Phẩm</th>
+                                        <th class="px-4 py-2 text-center font-semibold text-gray-700 w-32 border-l border-gray-200">SL Nhận</th>
+                                        <th class="px-4 py-2 text-center font-semibold text-gray-700 w-32 border-l border-gray-200">SL Bán</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-gray-200">
+                                    @foreach($editingProducts as $productId => $data)
+                                        <tr class="hover:bg-gray-50">
+                                            <td class="px-4 py-3 font-medium text-gray-900">
+                                                {{ $data['name'] }}
+                                            </td>
+                                            <td class="px-2 py-2 border-l border-gray-200">
+                                                <input type="number" wire:model="editingProducts.{{ $productId }}.nhan"
+                                                    class="w-full border-gray-300 rounded shadow-sm focus:ring-amber-500 focus:border-amber-500 text-center font-bold">
+                                                @error('editingProducts.'.$productId.'.nhan') <span class="text-red-500 text-[10px] block mt-1">{{ $message }}</span> @enderror
+                                            </td>
+                                            <td class="px-2 py-2 border-l border-gray-200 bg-amber-50/30">
+                                                <input type="number" wire:model="editingProducts.{{ $productId }}.ban"
+                                                    class="w-full border-gray-300 rounded shadow-sm focus:ring-amber-500 focus:border-amber-500 text-center font-bold text-amber-700">
+                                                @error('editingProducts.'.$productId.'.ban') <span class="text-red-500 text-[10px] block mt-1">{{ $message }}</span> @enderror
+                                            </td>
+                                        </tr>
+                                    @endforeach
+                                    @if(empty($editingProducts))
+                                        <tr>
+                                            <td colspan="3" class="px-4 py-6 text-center text-gray-500 italic">
+                                                Ca này chưa có dữ liệu hàng hóa.
+                                            </td>
+                                        </tr>
+                                    @endif
+                                </tbody>
+                            </table>
+                        </div>
+                        <p class="text-xs text-gray-500 mt-3 italic">
+                            * Lưu ý: Khi lưu, hệ thống sẽ tự động tính lại số lượng Tồn (Nhận - Bán), và bù trừ lại Doanh thu Lý thuyết cho phiếu chốt ca.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="bg-gray-50 px-4 py-3 sm:px-6 flex justify-end gap-3 border-t border-gray-200">
+                    <button type="button" wire:click="$set('showEditDataModal', false)"
+                        class="inline-flex justify-center rounded-lg border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none sm:text-sm transition">
+                        Bỏ qua
+                    </button>
+                    <button type="button" wire:click="saveShiftData"
+                        class="inline-flex justify-center rounded-lg border border-transparent shadow-sm px-6 py-2 bg-amber-600 text-base font-bold text-white hover:bg-amber-700 focus:outline-none sm:text-sm transition">
+                        💾 Lưu Số Liệu
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+@endif
+
 </div>

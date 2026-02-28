@@ -32,6 +32,12 @@ class AttendanceManager extends Component
     public $editingDate;
     public $editingNote;
 
+    // Edit Shift Data (Stock/Cash) Modal
+    public $showEditDataModal = false;
+    public $editingShiftDataId = null;
+    public $editingCash = 0;
+    public $editingProducts = []; // [product_id => ['name' => ..., 'nhan' => ..., 'ban' => ...]]
+
     // Bulk Sync Progress
     public $syncProgress = 0;
     public $syncTotal = 0;
@@ -211,7 +217,8 @@ class AttendanceManager extends Component
                     'hours' => max(0, round($hours, 2)),
                     'status' => $status,
                     'is_ot' => $work->phieuChotCa->ot ?? false,
-                    'debug_hours' => $hours
+                    'debug_hours' => $hours,
+                    'has_phieu' => isset($work->phieuChotCa)
                 ];
 
                 $dailyTotalHours += max(0, $hours);
@@ -271,7 +278,8 @@ class AttendanceManager extends Component
                     'debug_max' => $maxHours ?? 'N/A',
                     'debug_start' => isset($start) && $start ? $start->format('H:i') : 'N/A',
                     'debug_end' => isset($end) && $end ? $end->format('H:i') : 'N/A',
-                    'debug_hours' => $hours
+                    'debug_hours' => $hours,
+                    'has_phieu' => isset($work->phieuChotCa)
                 ];
 
                 $dailyTotalHours += max(0, $hours);
@@ -474,6 +482,92 @@ class AttendanceManager extends Component
 
         $this->showEditModal = false;
         $this->showDetail($this->selectedUserId); // Refresh
+    }
+
+    // --- ADMIN EDIT SHIFT DATA (STOCK/CASH) ---
+    public function editShiftData($shiftId)
+    {
+        $work = CaLamViec::with(['chiTietCaLam.sanPham', 'phieuChotCa'])->find($shiftId);
+
+        if (!$work || !$work->phieuChotCa) {
+            $this->dispatch('alert', ['type' => 'error', 'message' => 'Chỉ có thể sửa số liệu ca đã chốt!']);
+            return;
+        }
+
+        $this->editingShiftDataId = $shiftId;
+        $this->editingCash = $work->tien_mat_dau_ca ?? 0;
+        $this->editingProducts = [];
+
+        foreach ($work->chiTietCaLam as $detail) {
+            if ($detail->sanPham) {
+                $this->editingProducts[$detail->san_pham_id] = [
+                    'name' => $detail->sanPham->ten_san_pham,
+                    'nhan' => $detail->so_luong_nhan_ca ?? 0,
+                    'ban' => $detail->so_luong_ban ?? 0,
+                ];
+            }
+        }
+
+        $this->showEditDataModal = true;
+    }
+
+    public function saveShiftData()
+    {
+        $this->validate([
+            'editingCash' => 'required|numeric|min:0',
+            'editingProducts.*.nhan' => 'required|numeric|min:0',
+            'editingProducts.*.ban' => 'required|numeric|min:0',
+        ]);
+
+        $work = CaLamViec::find($this->editingShiftDataId);
+        if (!$work)
+            return;
+
+        \Illuminate\Support\Facades\DB::transaction(function () use ($work) {
+            // 1. Cập nhật tiền mặt đầu ca
+            $work->tien_mat_dau_ca = $this->editingCash;
+            $work->save();
+
+            // 2. Cập nhật ChiTietCaLam
+            $tongLyThuyet = 0;
+
+            foreach ($this->editingProducts as $productId => $data) {
+                $detail = \App\Models\ChiTietCaLam::where('ca_lam_viec_id', $work->id)
+                    ->where('san_pham_id', $productId)
+                    ->first();
+
+                if ($detail) {
+                    $detail->so_luong_nhan_ca = $data['nhan'];
+                    $detail->so_luong_ban = $data['ban'];
+                    $detail->save(); // save() will trigger boot() to update so_luong_con_lai
+
+                    if ($detail->sanPham) {
+                        $tongLyThuyet += $data['ban'] * $detail->sanPham->gia_ban;
+                    }
+                }
+            }
+
+            // 3. Cập nhật lại PhieuChotCa (nếu có)
+            if ($work->phieuChotCa) {
+                $phieu = $work->phieuChotCa;
+                $phieu->tong_tien_ly_thuyet = $tongLyThuyet;
+                // tien_lech is auto-calculated by model boot event: tong_thuc_te - tong_ly_thuyet
+                // Cập nhật lại tồn cuối ca cho phiếu:
+                $tonCuoiCa = [];
+                $chiTiets = \App\Models\ChiTietCaLam::where('ca_lam_viec_id', $work->id)->get();
+                foreach ($chiTiets as $ct) {
+                    $tonCuoiCa[$ct->san_pham_id] = $ct->so_luong_con_lai;
+                }
+                $phieu->ton_cuoi_ca = $tonCuoiCa;
+
+                // Trigger save to re-calculate hang_lech
+                $phieu->save();
+            }
+        });
+
+        $this->showEditDataModal = false;
+        $this->dispatch('alert', ['type' => 'success', 'message' => 'Cập nhật số liệu thành công!']);
+        $this->showDetail($this->selectedUserId); // Refresh detail view
     }
 
     public function syncAttendance()
