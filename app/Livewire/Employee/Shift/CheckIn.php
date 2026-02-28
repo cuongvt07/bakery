@@ -326,12 +326,15 @@ class CheckIn extends Component
                 // Add to products list if not already there
                 if (!isset($this->receivedStock[$product->id])) {
                     $uniqueProducts[$product->id] = $product;
-                    $this->receivedStock[$product->id] = null; // Default to null for placeholder behavior
+                    $this->receivedStock[$product->id] = 0; // Initialize to 0 so we can add
                     $this->maxStock[$product->id] = 0;
                 }
 
                 // Add quantity from this distribution
                 $this->maxStock[$product->id] += $dist->so_luong;
+
+                // Pre-fill receivedStock with maxStock
+                $this->receivedStock[$product->id] = $this->maxStock[$product->id];
             }
         }
 

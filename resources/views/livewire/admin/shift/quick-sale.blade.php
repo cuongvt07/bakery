@@ -51,39 +51,38 @@ x-on:copy-to-clipboard.window="
                     <div class="flex items-center">
                         <div>
                             <h1 class="text-xl font-bold">POS</h1>
-                            <p class="text-xs text-blue-100">{{ $shift->diemBan->ten_diem_ban ?? 'Điểm bán' }}</p>
+                            <p class="text-[10px] text-blue-100">{{ Str::limit($shift->diemBan->ten_diem_ban ?? 'Điểm bán', 15) }}</p>
                         </div>
-                        <button 
-                            wire:click="copyStockList"
-                            class="ml-2 px-2 py-1 rounded bg-white/20 hover:bg-white/30 text-white transition-colors flex items-center space-x-1"
-                            title="Copy tồn kho"
-                        >
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
-                            </svg>
-                            <span class="text-xs font-bold">COPY TỒN</span>
-                        </button>
                     </div>
                 </div>
                 
-                <div class="flex items-center gap-2">
-                    @if($pendingCount > 0)
-                    <a href="{{ auth()->user()->vai_tro === 'nhan_vien' ? route('employee.pos.pending') : route('admin.pos.pending') }}" class="relative">
-                        <div class="bg-yellow-400 text-yellow-900 px-3 py-2 rounded-lg font-semibold text-sm flex items-center space-x-1 shadow-md hover:bg-yellow-300 transition-colors">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div class="flex items-center gap-1.5 justify-end">
+                    <button 
+                        wire:click="openUpdateStockModal"
+                        class="px-2 py-1.5 rounded bg-indigo-500 hover:bg-indigo-600 text-white font-semibold flex items-center shadow-md transition-colors"
+                    >
+                        <svg class="w-4 h-4 sm:mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                        </svg>
+                        <span class="text-[10px] hidden sm:inline">Nhập SL</span>
+                    </button>
+
+                    <button 
+                        wire:click="copyStockList"
+                        class="px-2 py-1.5 rounded bg-white/20 hover:bg-white/30 text-white font-semibold flex items-center shadow-md transition-colors"
+                    >
+                        <svg class="w-4 h-4 sm:mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
+                        </svg>
+                        <span class="text-[10px] hidden sm:inline">Copy tồn</span>
+                    </button>
+                    
+                    <a href="{{ auth()->user()->vai_tro === 'nhan_vien' ? route('employee.pos.pending') : route('admin.pos.pending') }}">
+                        <div class="{{ $pendingCount > 0 ? 'bg-yellow-400 text-yellow-900' : 'bg-white/20 text-white' }} px-2 py-1.5 rounded font-semibold flex items-center shadow-md hover:bg-yellow-300 transition-colors">
+                            <svg class="w-4 h-4 sm:mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                             </svg>
-                            <span class="text-xs">{{ $pendingCount }}</span>
-                        </div>
-                    </a>
-                    @endif
-                    
-                    <a href="{{ auth()->user()->vai_tro === 'nhan_vien' ? route('employee.pos.confirmed') : route('admin.pos.confirmed') }}" class="relative">
-                        <div class="bg-white text-blue-600 px-3 py-2 rounded-lg font-semibold text-sm flex items-center space-x-1 shadow-md hover:bg-blue-50 transition-colors">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
-                            </svg>
-                            <span class="text-xs">Đã chốt</span>
+                            <span class="text-[10px]">{{ $pendingCount > 0 ? $pendingCount : '' }}<span class="hidden sm:inline"> Chờ</span></span>
                         </div>
                     </a>
                     
@@ -93,15 +92,15 @@ x-on:copy-to-clipboard.window="
                             onclick="event.preventDefault(); alert('Vui lòng chốt hết {{ $pendingCount }} đơn chờ trước khi chốt ca!'); return false;"
                         @endif
                         @class([
-                            'px-4 py-2 rounded-lg font-semibold text-sm flex items-center space-x-2 shadow-md transition-colors',
+                            'px-2 py-1.5 rounded font-semibold flex items-center shadow-md transition-colors',
                             'bg-red-500 hover:bg-red-600 text-white' => $pendingCount == 0,
                             'bg-gray-400 text-gray-200 cursor-not-allowed' => $pendingCount > 0
                         ])
                     >
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        <svg class="w-4 h-4 sm:mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
                         </svg>
-                        <span>Chốt ca</span>
+                        <span class="text-[10px] hidden sm:inline">Chốt ca</span>
                     </a>
                 </div>
             </div>
@@ -290,4 +289,66 @@ x-on:copy-to-clipboard.window="
             <p class="font-bold" x-text="message"></p>
         </div>
     </div>
+
+    {{-- Update Stock Modal --}}
+    @if($showUpdateStockModal)
+        <div class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+            <div class="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden max-h-[90vh] flex flex-col">
+                <div class="bg-indigo-600 px-6 py-4 flex justify-between items-center shrink-0">
+                    <h3 class="text-white font-bold text-lg">Nhập số lượng bổ sung</h3>
+                    <button wire:click="$set('showUpdateStockModal', false)" class="text-indigo-100 hover:text-white">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+                
+                <div class="p-6 overflow-y-auto flex-1 space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Xác nhận số lượng bánh nhận <span class="text-red-500">*</span></label>
+                        <div class="bg-gray-50 rounded-lg border border-gray-200 divide-y divide-gray-200">
+                            @forelse($updateProducts as $p)
+                                <div class="p-3 flex items-center justify-between gap-3">
+                                    <div class="flex-1 min-w-0">
+                                        <span class="font-medium text-gray-900 block truncate">{{ $p['ten_san_pham'] ?? 'Sản phẩm' }}</span>
+                                    </div>
+                                    <div class="flex items-center gap-2">
+                                        <div class="relative w-20">
+                                            <input type="number" inputmode="numeric" 
+                                                wire:model="updateReceivedStock.{{ $p['id'] }}" 
+                                                class="block w-full text-center border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 font-bold px-1"
+                                                placeholder="0">
+                                        </div>
+                                        <button wire:click="fillUpdateMaxStock({{ $p['id'] }})"
+                                            class="px-2 py-2 bg-indigo-100 text-indigo-700 rounded-lg text-[10px] font-bold hover:bg-indigo-200 active:scale-95 transition-transform whitespace-nowrap">
+                                            Max ({{ $updateMaxStock[$p['id']] ?? 0 }})
+                                        </button>
+                                    </div>
+                                </div>
+                            @empty
+                                <div class="p-4 text-center text-gray-500 text-sm">
+                                    Không có hàng phân bổ mới đang chờ.
+                                </div>
+                            @endforelse
+                        </div>
+                        @error('updateReceivedStock.*')
+                            <span class="text-red-500 text-xs mt-1 block">Vui lòng nhập số lượng hợp lệ</span>
+                        @enderror
+                    </div>
+                </div>
+
+                <div class="p-4 bg-gray-50 border-t border-gray-200 shrink-0 flex gap-3">
+                    <button wire:click="$set('showUpdateStockModal', false)"
+                        class="flex-1 bg-white border border-gray-300 text-gray-700 font-medium py-2.5 rounded-lg hover:bg-gray-50">
+                        Hủy
+                    </button>
+                    <button wire:click="confirmUpdateStock"
+                        @if(empty($updateProducts)) disabled @endif
+                        class="flex-1 bg-indigo-600 text-white font-bold py-2.5 rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed">
+                        Xác nhận
+                    </button>
+                </div>
+            </div>
+        </div>
+    @endif
 </div>

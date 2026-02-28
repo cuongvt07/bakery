@@ -243,6 +243,105 @@ class QuickSale extends Component
             ->count();
     }
 
+    // --- UPDATE STOCK MODAL LOGIC ---
+    public $showUpdateStockModal = false;
+    public $updateProducts = [];
+    public $updateMaxStock = [];
+    public $updateReceivedStock = [];
+
+    public function openUpdateStockModal()
+    {
+        $this->showUpdateStockModal = true;
+
+        $agencyId = $this->shift->diem_ban_id;
+
+        $distributions = \App\Models\PhanBoHangDiemBan::with(['product'])
+            ->where('diem_ban_id', $agencyId)
+            ->where('trang_thai', 'chua_nhan')
+            ->get();
+
+        $this->updateProducts = [];
+        $this->updateReceivedStock = [];
+        $this->updateMaxStock = [];
+
+        $uniqueProducts = [];
+
+        foreach ($distributions as $dist) {
+            if ($dist->product) {
+                $product = $dist->product;
+
+                if (!isset($this->updateReceivedStock[$product->id])) {
+                    $uniqueProducts[$product->id] = $product;
+                    $this->updateReceivedStock[$product->id] = 0;
+                    $this->updateMaxStock[$product->id] = 0;
+                }
+
+                $this->updateMaxStock[$product->id] += $dist->so_luong;
+                // Pre-fill
+                $this->updateReceivedStock[$product->id] = $this->updateMaxStock[$product->id];
+            }
+        }
+
+        $this->updateProducts = array_values($uniqueProducts);
+    }
+
+    public function fillUpdateMaxStock($productId)
+    {
+        if (isset($this->updateMaxStock[$productId])) {
+            $this->updateReceivedStock[$productId] = $this->updateMaxStock[$productId];
+        }
+    }
+
+    public function confirmUpdateStock()
+    {
+        $this->validate([
+            'updateReceivedStock.*' => 'nullable|numeric|min:0',
+        ]);
+
+        try {
+            DB::transaction(function () {
+                foreach ($this->updateProducts as $p) {
+                    $qty = $this->updateReceivedStock[$p->id] ? $this->updateReceivedStock[$p->id] : 0;
+
+                    if ($qty > 0) {
+                        $detail = ChiTietCaLam::firstOrNew([
+                            'ca_lam_viec_id' => $this->shift->id,
+                            'san_pham_id' => $p->id,
+                        ]);
+
+                        $detail->so_luong_nhan_ca = ($detail->so_luong_nhan_ca ?? 0) + $qty;
+                        $detail->save();
+                    }
+                }
+
+                $agencyId = $this->shift->diem_ban_id;
+
+                \App\Models\PhanBoHangDiemBan::where('diem_ban_id', $agencyId)
+                    ->where('trang_thai', 'chua_nhan')
+                    ->update([
+                        'trang_thai' => 'da_nhan',
+                        'nguoi_nhan_id' => Auth::id(),
+                        'ngay_nhan' => now(),
+                    ]);
+            });
+
+            // Reload POS products
+            $this->loadShiftProducts();
+
+            $this->showUpdateStockModal = false;
+            $this->dispatch('show-alert', [
+                'type' => 'success',
+                'message' => 'Đã cập nhật số lượng hàng!'
+            ]);
+
+        } catch (\Exception $e) {
+            $this->dispatch('show-alert', [
+                'type' => 'error',
+                'message' => 'Lỗi: ' . $e->getMessage()
+            ]);
+        }
+    }
+
     public function render()
     {
         $layout = (Auth::user() && Auth::user()->vai_tro === 'nhan_vien')
