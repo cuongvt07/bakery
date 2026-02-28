@@ -164,8 +164,8 @@
                                                                     </span>
                                                                 </div>
                                                                 <p class="text-gray-500 text-xs cursor-help" 
-                                                                   title="Tính toán: Tổng={{ $avail['total'] }} - Hỏng={{ $avail['failed'] ?? 0 }} - Điều chỉnh={{ $avail['adjusted'] ?? 0 }} - Bán={{ $avail['sold_at_agency'] ?? 0 }} + Trả={{ $avail['returned'] ?? 0 }} = Còn={{ $avail['available'] }}">
-                                                                    💡 Tổng - Hỏng - Điều chỉnh - Bán + Trả = Còn lại
+                                                                   title="Tính toán: Tổng={{ $avail['total'] }} - Hỏng={{ $avail['failed'] ?? 0 }} - Điều chỉnh={{ $avail['adjusted'] ?? 0 }} - Đã phân (Tổng)={{ $avail['distributed'] ?? 0 }} + Trả={{ $avail['returned'] ?? 0 }} = Còn={{ $avail['available'] }}">
+                                                                    💡 Tổng - Hỏng - Điều chỉnh - Đã phân + Trả = Còn lại
                                                                 </p>
                                                             </div>
                                                         </div>

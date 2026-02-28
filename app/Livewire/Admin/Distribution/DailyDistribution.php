@@ -108,17 +108,12 @@ class DailyDistribution extends Component
             ->where('loai', 'hoan')
             ->sum('so_luong_doi') ?? 0);
 
-        $soldAtAgency = 0;
-        if ($this->selectedAgencyId) {
-            $soldAtAgency = abs(\App\Models\LichSuCapNhatMe::where('me_san_xuat_id', $batchId)
-                ->where('san_pham_id', $productId)
-                ->where('diem_ban_id', $this->selectedAgencyId)
-                ->where('loai', 'ban')
-                ->sum('so_luong_doi') ?? 0);
-        }
+        $distributedGlobal = PhanBoHangDiemBan::where('me_san_xuat_id', $batchId)
+            ->where('san_pham_id', $productId)
+            ->sum('so_luong');
 
-        // Calculate maximum available
-        $maxAvailable = $baseQty - $failedQty - $adjustedQty - $soldAtAgency + $returnedQty;
+        // Calculate maximum available: Base - Failed - Adjusted - Distributed + Returned
+        $maxAvailable = $baseQty - $failedQty - $adjustedQty - $distributedGlobal + $returnedQty;
         $maxAvailable = max(0, $maxAvailable); // Never negative
 
         // Auto-cap to max available
@@ -279,20 +274,9 @@ class DailyDistribution extends Component
                     ->where('loai', 'hoan') // Return
                     ->sum('so_luong_doi'));
 
-                // Method 4: Get sold quantity from ONLY selected agency
-                $soldAtAgency = 0;
-                if ($this->selectedAgencyId) {
-                    $soldAtAgency = abs(\App\Models\LichSuCapNhatMe::where('me_san_xuat_id', $batch->id)
-                        ->where('san_pham_id', $detail->san_pham_id)
-                        ->where('diem_ban_id', $this->selectedAgencyId)
-                        ->where('loai', 'ban')
-                        ->sum('so_luong_doi'));
-                }
-
-                // For display: show what's available globally (accounting for failures, adjustments, and sales)
-                // Available at factory = Base - Failed - Adjusted - Sold + Returned
-                // NOTE: Do NOT subtract distributed - that's what we're about to do now!
-                $availableGlobal = $baseQty - $failedQty - $adjustedQty - $soldAtAgency + $returnedQty;
+                // For display: show what's available globally (accounting for failures, adjustments, and distributions)
+                // Available at factory = Base - Failed - Adjusted - Distributed + Returned
+                $availableGlobal = $baseQty - $failedQty - $adjustedQty - $distributedGlobal + $returnedQty;
 
                 // For this specific agency: what's available to distribute = Available at factory - Already distributed to agency
                 // Then deduct sales at this agency
@@ -310,7 +294,7 @@ class DailyDistribution extends Component
                     'returned' => $returnedQty,
                     'distributed' => $distributedGlobal,
                     'distributed_to_agency' => $distributedToAgency,
-                    'sold_at_agency' => $soldAtAgency,
+                    'sold_at_agency' => 0, // No longer used for global availability but kept for backward compatibility if needed in UI
                     'available' => $availableGlobal, // Available at factory (for display)
                     'available_to_distribute' => $availableToDistribute, // Can still distribute
                 ];

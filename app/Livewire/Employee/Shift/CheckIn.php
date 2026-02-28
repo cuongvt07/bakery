@@ -366,6 +366,37 @@ class CheckIn extends Component
             }
         }
 
+        // 3. FALLBACK: Đảm bảo TẤT CẢ hàng phân bổ trong ngày đều có mặt, kể cả khi ca 1 quên nhận/chốt
+        $todayDistributions = PhanBoHangDiemBan::with(['product'])
+            ->where('diem_ban_id', $agencyId)
+            ->whereDate('created_at', Carbon::today())
+            ->get();
+
+        // Group by product to get total distributed today
+        $todayTotals = [];
+        foreach ($todayDistributions as $dist) {
+            if ($dist->product) {
+                $pid = $dist->product->id;
+                if (!isset($todayTotals[$pid])) {
+                    $todayTotals[$pid] = [
+                        'product' => $dist->product,
+                        'total' => 0
+                    ];
+                }
+                $todayTotals[$pid]['total'] += $dist->so_luong;
+            }
+        }
+
+        // Add missing products to the checklist
+        foreach ($todayTotals as $pid => $data) {
+            if (!isset($this->receivedStock[$pid])) {
+                $uniqueProducts[$pid] = $data['product'];
+                // Giả định lượng tồn kho kế thừa hoặc nhận mới bằng tổng lượng phân bổ
+                $this->maxStock[$pid] = $data['total'];
+                $this->receivedStock[$pid] = $data['total'];
+            }
+        }
+
         $this->products = array_values($uniqueProducts);
     }
 
