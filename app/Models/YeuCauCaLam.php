@@ -81,7 +81,11 @@ class YeuCauCaLam extends Model
     public function getReasonTextAttribute()
     {
         $lyDoData = json_decode($this->ly_do, true);
-        return $lyDoData['reason'] ?? '(Không có lý do)';
+        if (is_array($lyDoData)) {
+            // Tickets store content in 'message', shift requests use 'reason'
+            return $lyDoData['message'] ?? $lyDoData['reason'] ?? $this->ly_do ?? '(Không có lý do)';
+        }
+        return $this->ly_do ?? '(Không có lý do)';
     }
 
     public function getShiftScheduleIdAttribute()
