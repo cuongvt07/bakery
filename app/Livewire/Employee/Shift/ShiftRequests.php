@@ -14,6 +14,14 @@ use Illuminate\Support\Facades\Auth;
 class ShiftRequests extends Component
 {
     public $upcomingShifts = [];
+    public $filterStatus = '';
+    public $requests = [];
+    public $requestType = '';
+    public $selectedShiftId = null;
+    public $selectedShiftInfo = null;
+    public $requestDate = '';
+    public $requestNote = '';
+    public $showRequestModal = false;
 
     public function mount()
     {
@@ -26,6 +34,25 @@ class ShiftRequests extends Component
         }
 
         $this->loadRequests();
+    }
+
+    public function updatedSelectedShiftId($value)
+    {
+        if (!$value) {
+            $this->selectedShiftInfo = null;
+            return;
+        }
+        $schedule = ShiftSchedule::with(['shiftTemplate', 'agency'])->find($value);
+        if ($schedule) {
+            $this->selectedShiftInfo = [
+                'date' => $schedule->ngay_lam ? \Carbon\Carbon::parse($schedule->ngay_lam)->format('d/m/Y') : 'N/A',
+                'day' => $schedule->ngay_lam ? \Carbon\Carbon::parse($schedule->ngay_lam)->locale('vi')->isoFormat('dddd') : '',
+                'time' => ($schedule->gio_bat_dau ?? '') . ' - ' . ($schedule->gio_ket_thuc ?? ''),
+                'agency' => $schedule->agency->ten_diem_ban ?? 'N/A',
+            ];
+        } else {
+            $this->selectedShiftInfo = null;
+        }
     }
 
     public function updatedRequestType($value)

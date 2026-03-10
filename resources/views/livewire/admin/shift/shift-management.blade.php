@@ -445,9 +445,7 @@
                                                     ) {
                                                         return \Carbon\Carbon::parse($s->ngay_lam)->isSameDay(
                                                             $currentDate,
-                                                        ) &&
-                                                            $s->shift_template_id == $template->id &&
-                                                            $s->trang_thai !== 'rejected';
+                                                        ) && $s->shift_template_id == $template->id;
                                                     });
                                                 @endphp
                                                 <td

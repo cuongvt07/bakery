@@ -402,7 +402,15 @@ class ShiftManagement extends Component
         foreach ($this->selectedTemplates as $templateId) {
             $template = \App\Models\ShiftTemplate::find($templateId);
 
-            // Check if shift already exists
+            // Delete any rejected shifts for the same slot before creating new one
+            ShiftSchedule::where('nguoi_dung_id', $this->addShiftEmployeeId)
+                ->where('diem_ban_id', $this->addShiftAgencyId)
+                ->where('shift_template_id', $templateId)
+                ->where('ngay_lam', $this->addShiftDate)
+                ->where('trang_thai', 'rejected')
+                ->delete();
+
+            // Check if a non-rejected shift already exists
             $exists = ShiftSchedule::where('nguoi_dung_id', $this->addShiftEmployeeId)
                 ->where('diem_ban_id', $this->addShiftAgencyId)
                 ->where('shift_template_id', $templateId)
@@ -614,6 +622,7 @@ class ShiftManagement extends Component
                         $q->where('nguoi_dung_id', $this->employeeFilter);
                     if ($this->statusFilter)
                         $q->where('trang_thai', $this->statusFilter);
+                    // No longer filtering out 'rejected' here, we'll handle it in the view
                     if ($this->search) {
                         $q->whereHas('user', function ($sq) {
                             $sq->where('ho_ten', 'like', '%' . $this->search . '%');
