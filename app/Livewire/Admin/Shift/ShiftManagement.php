@@ -49,6 +49,7 @@ class ShiftManagement extends Component
     public $editStartTime = '';
     public $editEndTime = '';
     public $editStatus = '';
+    public $editShiftScheduleId = null; // Track the original schedule record
 
     // Delete confirmation
     public $showDeleteConfirm = false;
@@ -142,11 +143,11 @@ class ShiftManagement extends Component
             ->where('diem_ban_id', $shiftSchedule->diem_ban_id)
             ->first();
 
-        // If no CaLamViec found, use ShiftSchedule data
         if (!$this->selectedShift) {
             $this->selectedShift = $shiftSchedule->load(['agency', 'user']);
         }
 
+        $this->editShiftScheduleId = $shiftSchedule->id;
         $this->showDetailModal = true;
     }
 
@@ -154,6 +155,7 @@ class ShiftManagement extends Component
     {
         $this->showDetailModal = false;
         $this->selectedShift = null;
+        $this->editShiftScheduleId = null;
         $this->editingShift = false;
         $this->resetEditFields();
     }
@@ -206,28 +208,60 @@ class ShiftManagement extends Component
 
             $template = \App\Models\ShiftTemplate::find($this->editShiftTemplateId);
 
-            $this->selectedShift->update([
-                'diem_ban_id' => $this->editAgencyId,
-                'shift_template_id' => $this->editShiftTemplateId,
-                'ngay_lam' => $this->editDate,
-                'gio_bat_dau' => $template->start_time,
-                'gio_ket_thuc' => $template->end_time,
-                'trang_thai' => $this->editStatus,
-            ]);
+            // 1. Update the original ShiftSchedule (to ensure grid updates)
+            $schedule = ShiftSchedule::find($this->editShiftScheduleId);
+            if ($schedule) {
+                $schedule->update([
+                    'diem_ban_id' => $this->editAgencyId,
+                    'shift_template_id' => $this->editShiftTemplateId,
+                    'ngay_lam' => $this->editDate,
+                    'gio_bat_dau' => $template->start_time,
+                    'gio_ket_thuc' => $template->end_time,
+                    'trang_thai' => $this->editStatus,
+                ]);
+            }
 
-            // Recalculate working hours (cong) if it's an actual shift (CaLamViec)
+            // 2. Update CaLamViec if it's currently selected OR if it exists for this schedule
+            $caLam = null;
             if ($this->selectedShift instanceof \App\Models\CaLamViec) {
+                $caLam = $this->selectedShift;
+            } else if ($schedule) {
+                // Try to find CaLamViec again in case it was created since modal opened
+                $caLam = \App\Models\CaLamViec::where('nguoi_dung_id', $schedule->nguoi_dung_id)
+                    ->whereDate('ngay_lam', $schedule->ngay_lam)
+                    ->where('diem_ban_id', $schedule->diem_ban_id)
+                    ->first();
+            }
+
+            if ($caLam) {
+                // Map status between ShiftSchedule (pending, approved, rejected, completed)
+                // and CaLamViec (chua_bat_dau, dang_lam, da_ket_thuc, vang)
+                $caStatus = match ($this->editStatus) {
+                    'approved', 'pending' => 'chua_bat_dau',
+                    'completed' => 'da_ket_thuc',
+                    'rejected' => 'vang',
+                    default => 'chua_bat_dau',
+                };
+
+                $caLam->update([
+                    'diem_ban_id' => $this->editAgencyId,
+                    'shift_template_id' => $this->editShiftTemplateId,
+                    'ngay_lam' => $this->editDate,
+                    'gio_bat_dau' => $template->start_time,
+                    'gio_ket_thuc' => $template->end_time,
+                    'trang_thai' => $caStatus,
+                ]);
+
+                // Recalculate working hours (cong) for actual shift
                 $start = Carbon::parse($this->editDate . ' ' . $template->start_time);
                 $end = Carbon::parse($this->editDate . ' ' . $template->end_time);
 
-                // Handle overnight shift if needed (end < start)
                 if ($end->lt($start)) {
                     $end->addDay();
                 }
 
                 $hours = round($start->diffInMinutes($end) / 60, 2);
-
-                $this->selectedShift->update(['tong_gio_lam_viec' => $hours]);
+                $caLam->update(['tong_gio_lam_viec' => $hours]);
             }
 
             session()->flash('message', 'Cập nhật ca làm việc thành công!');

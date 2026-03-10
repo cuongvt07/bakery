@@ -577,7 +577,8 @@
                                 <td class="px-4 py-3 whitespace-nowrap text-center text-sm">
                                     @if ($shift->thoi_gian_checkin)
                                         <span class="font-semibold text-indigo-700 bg-indigo-50 px-2 py-1 rounded">
-                                            {{ floor($shift->total_hours) }}h {{ round(($shift->total_hours - floor($shift->total_hours)) * 60) }}m
+                                            {{ floor($shift->total_hours) }}h
+                                            {{ round(($shift->total_hours - floor($shift->total_hours)) * 60) }}m
                                         </span>
                                     @else
                                         <span class="text-gray-400">-</span>
@@ -748,6 +749,9 @@
                                         <option value="{{ $agency->id }}">{{ $agency->ten_diem_ban }}</option>
                                     @endforeach
                                 </select>
+                                @error('editAgencyId')
+                                    <span class="text-red-500 text-xs">{{ $message }}</span>
+                                @enderror
                             </div>
 
                             @if ($editAgencyId)
@@ -769,6 +773,9 @@
                                             </option>
                                         @endforeach
                                     </select>
+                                    @error('editShiftTemplateId')
+                                        <span class="text-red-500 text-xs">{{ $message }}</span>
+                                    @enderror
                                 </div>
                             @endif
 
@@ -776,18 +783,24 @@
                                 <label class="block text-sm font-medium text-gray-700 mb-1">Ngày làm</label>
                                 <input type="date" wire:model="editDate"
                                     class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                                @error('editDate')
+                                    <span class="text-red-500 text-xs">{{ $message }}</span>
+                                @enderror
                             </div>
 
-                            {{-- Hidden: Status field --}}
-                            {{-- <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Trạng thái</label>
-                            <select wire:model="editStatus" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
-                                <option value="approved">🔵 Sắp tới</option>
-                                <option value="completed">⚪ Đã kết thúc</option>
-                                <option value="pending">⏳ Chờ duyệt</option>
-                                <option value="rejected">🔴 Từ chối</option>
-                            </select>
-                        </div> --}}
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Trạng thái</label>
+                                <select wire:model="editStatus"
+                                    class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                                    <option value="approved">🔵 Approved (Sắp tới)</option>
+                                    <option value="completed">⚪ Completed (Đã xong)</option>
+                                    <option value="pending">⏳ Pending (Chờ duyệt)</option>
+                                    <option value="rejected">🔴 Rejected (Từ chối)</option>
+                                </select>
+                                @error('editStatus')
+                                    <span class="text-red-500 text-xs">{{ $message }}</span>
+                                @enderror
+                            </div>
                         </div>
                     @else
                         <!-- View Mode -->
